@@ -1,0 +1,6 @@
+{
+  "name": "sire.lol",
+  "description": "Premium biolink service with high-performance landing pages and storytelling animations.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,17 @@
+{
+  "rewrites": [
+    { "source": "/api/og", "destination": "/api/me?action=og" },
+    { "source": "/api/(.*)", "destination": "/api/$1" },
+    { "source": "/i/(.*)", "destination": "/api/me?action=serveMedia&code=$1&k=media" },
+    { "source": "/f/(.*)", "destination": "/api/me?action=serveFile&code=$1&k=file" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ],
+  "headers": [
+    {
+      "source": "/character.png",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+      ]
+    }
+  ]
+}
