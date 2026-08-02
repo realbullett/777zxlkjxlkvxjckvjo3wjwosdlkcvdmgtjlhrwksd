@@ -149,6 +149,16 @@
   .hide-scrollbar::-webkit-scrollbar {
     display: none;
   }
+  .snap-container {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .snap-container::-webkit-scrollbar {
+    display: none;
+  }
+  .snap-page {
+    scroll-snap-align: start;
+  }
   @keyframes glow-sweep {
     0% { transform: translateX(-100%); }
     50% { transform: translateX(100%); }

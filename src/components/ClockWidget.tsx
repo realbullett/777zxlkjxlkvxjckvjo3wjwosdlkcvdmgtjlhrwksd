@@ -43,15 +43,15 @@ export default function ClockWidget({ widget, className = "" }: { widget: ClockW
       ref={ref}
       onMouseMove={handleMove}
       onMouseLeave={handleLeave}
-      className={`flex w-full items-center gap-5 rounded-3xl border border-white/10 bg-white/[0.05] px-6 py-5 backdrop-blur-2xl shadow-[0_8px_32px_0_rgba(0,0,0,0.25)] ${className}`}
+      className={`flex w-full items-center gap-6 rounded-3xl border border-white/10 bg-white/[0.05] px-8 py-6 backdrop-blur-2xl shadow-[0_8px_32px_0_rgba(0,0,0,0.25)] ${className}`}
       style={{ willChange: widget.mouseFollow ? "transform" : undefined }}
     >
-      <div className="relative h-20 w-20 shrink-0 rounded-full border border-white/15 bg-black/30">
+      <div className="relative h-24 w-24 shrink-0 rounded-full border border-white/15 bg-black/30">
         {Array.from({ length: 12 }).map((_, i) => (
           <span
             key={i}
-            className={`absolute left-1/2 top-0 w-px ${i % 3 === 0 ? "h-2 bg-white/70" : "h-1.5 bg-white/30"}`}
-            style={{ transform: `translateX(-0.5px) rotate(${i * 30}deg)`, transformOrigin: "50% 40px" }}
+            className={`absolute left-1/2 top-0 w-px ${i % 3 === 0 ? "h-2.5 bg-white/70" : "h-2 bg-white/30"}`}
+            style={{ transform: `translateX(-0.5px) rotate(${i * 30}deg)`, transformOrigin: "50% 48px" }}
           />
         ))}
         <div
@@ -59,10 +59,10 @@ export default function ClockWidget({ widget, className = "" }: { widget: ClockW
           style={{
             left: "50%",
             top: "50%",
-            width: 3.5,
-            height: 20,
-            marginLeft: -1.75,
-            marginTop: -20,
+            width: 4,
+            height: 24,
+            marginLeft: -2,
+            marginTop: -24,
             transformOrigin: "50% 100%",
             transform: `rotate(${hourAngle}deg)`,
           }}
@@ -72,10 +72,10 @@ export default function ClockWidget({ widget, className = "" }: { widget: ClockW
           style={{
             left: "50%",
             top: "50%",
-            width: 2.5,
-            height: 30,
-            marginLeft: -1.25,
-            marginTop: -30,
+            width: 3,
+            height: 36,
+            marginLeft: -1.5,
+            marginTop: -36,
             transformOrigin: "50% 100%",
             transform: `rotate(${minAngle}deg)`,
           }}
@@ -85,24 +85,24 @@ export default function ClockWidget({ widget, className = "" }: { widget: ClockW
           style={{
             left: "50%",
             top: "50%",
-            width: 1.5,
-            height: 42,
-            marginLeft: -0.75,
-            marginTop: -33,
-            transformOrigin: "50% 33px",
+            width: 2,
+            height: 50,
+            marginLeft: -1,
+            marginTop: -39,
+            transformOrigin: "50% 39px",
             transform: `rotate(${secAngle}deg)`,
           }}
         />
-        <div className="absolute left-1/2 top-1/2 h-2.5 w-2.5 -ml-[5px] -mt-[5px] rounded-full bg-white ring-2 ring-black/40" />
+        <div className="absolute left-1/2 top-1/2 h-3 w-3 -ml-1.5 -mt-1.5 rounded-full bg-white ring-2 ring-black/40" />
       </div>
       <div className="min-w-0">
-        <p className="text-xs font-medium mb-0.5" style={{ color: "var(--text-color, #ffffff)", opacity: 0.45 }}>
+        <p className="text-sm font-medium mb-1" style={{ color: "var(--text-color, #ffffff)", opacity: 0.45 }}>
           {widget.label || widget.timeZone}
         </p>
-        <p className="text-2xl font-bold leading-none tabular-nums tracking-tight" style={{ color: "var(--text-color, #ffffff)" }}>
+        <p className="text-3xl font-bold leading-none tabular-nums tracking-tight" style={{ color: "var(--text-color, #ffffff)" }}>
           {timeLabel(widget.timeZone, now)}
         </p>
-        <p className="text-xs mt-1.5" style={{ color: "var(--text-color, #ffffff)", opacity: 0.45 }}>
+        <p className="text-sm mt-2" style={{ color: "var(--text-color, #ffffff)", opacity: 0.45 }}>
           {dateLabel(widget.timeZone, now)} <span className="opacity-30">·</span> {gmtLabel(widget.timeZone, now)}
         </p>
       </div>

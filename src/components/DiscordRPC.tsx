@@ -39,7 +39,7 @@ const DISCORD_BADGES: Array<{ bit: number; label: string; bg: string }> = [
   { bit: 1 << 18, label: "Active Developer", bg: "#3BA55D" },
 ];
 
-export default function DiscordRPC({ discordId }: { discordId: string }) {
+export default function DiscordRPC({ discordId, wide = false }: { discordId: string; wide?: boolean }) {
   const [data, setData] = useState<PresenceRow | null>(null);
 
   useEffect(() => {
@@ -84,10 +84,10 @@ export default function DiscordRPC({ discordId }: { discordId: string }) {
   }
 
   return (
-    <div className="w-full max-w-xs mx-auto">
-      <div className="flex items-center gap-3 rounded-2xl bg-white/[0.05] border border-white/[0.08] px-4 py-3 backdrop-blur-sm">
+    <div className={`w-full mx-auto ${wide ? "h-full" : "max-w-xs"}`}>
+      <div className={`flex items-center gap-4 rounded-2xl bg-white/[0.05] border border-white/[0.08] px-5 py-4 backdrop-blur-sm ${wide ? "h-full" : ""}`}>
         <div className="relative flex-shrink-0">
-          <img src={avatarUrl} alt={data.username || ""} className="h-10 w-10 rounded-full" />
+          <img src={avatarUrl} alt={data.username || ""} className={`${wide ? "h-12 w-12" : "h-10 w-10"} rounded-full`} />
           <span
             className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-[#101014]"
             style={{ backgroundColor: status.color }}
@@ -95,9 +95,9 @@ export default function DiscordRPC({ discordId }: { discordId: string }) {
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 min-w-0">
-            <span className="truncate text-sm font-semibold text-white/90">{data.global_name || data.display_name || data.username || "user"}</span>
+            <span className={`truncate font-semibold text-white/90 ${wide ? "text-base" : "text-sm"}`}>{data.global_name || data.display_name || data.username || "user"}</span>
             {badges.map((b) => (
-              <span key={b.bit} title={b.label} className="h-3 w-3 shrink-0 rounded-[4px] border border-black/30" style={{ backgroundColor: b.bg }} />
+              <span key={b.bit} title={b.label} className={`${wide ? "h-3.5 w-3.5" : "h-3 w-3"} shrink-0 rounded-[4px] border border-black/30`} style={{ backgroundColor: b.bg }} />
             ))}
           </div>
           {(textStatus || emoji) && (
@@ -107,12 +107,12 @@ export default function DiscordRPC({ discordId }: { discordId: string }) {
                   ? <img src={`https://cdn.discordapp.com/emojis/${emoji.id}.${emoji.animated ? "gif" : "png"}`} alt={emoji.name || ""} className="h-3.5 w-3.5 shrink-0" />
                   : <span className="shrink-0 text-[10px]">{emoji.name || ""}</span>
               )}
-              {textStatus && <span className="truncate text-[10px] text-white/50 font-medium">{textStatus}</span>}
+              {textStatus && <span className={`truncate text-white/50 font-medium ${wide ? "text-xs" : "text-[10px]"}`}>{textStatus}</span>}
             </div>
           )}
         </div>
         <div className="flex-shrink-0 flex flex-col items-end gap-0.5">
-          {activity && <span className="max-w-[90px] truncate text-[10px] text-white/40">{activity}</span>}
+          {activity && <span className={`truncate text-white/40 ${wide ? "max-w-[240px] text-xs" : "max-w-[90px] text-[10px]"}`}>{activity}</span>}
         </div>
       </div>
     </div>

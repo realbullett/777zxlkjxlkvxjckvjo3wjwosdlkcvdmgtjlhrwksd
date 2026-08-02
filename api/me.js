@@ -360,6 +360,7 @@ export default async function handler(req, res) {
     if (action === "og") return ogImage(req, res);
     if (action === "hostList") return hostList(req, res);
     if (action === "serveMedia" || action === "serveFile" || req.params?.code) return hostServe(req, res);
+    if (action === "track") return trackInfo(req, res);
     const sessionToken = req.query.sessionToken || req.query.s;
     const uid = unsignToken(sessionToken);
     if (!uid) { res.status(401).json({ error: "Unauthorized" }); return; }
@@ -403,20 +404,50 @@ export default async function handler(req, res) {
           res.status(403).json({ error: "This is a premium feature." });
           return;
         }
-        if (!Array.isArray(data.widgets)) {
+        const w = data.widgets;
+        if (!w || typeof w !== "object" || Array.isArray(w)) {
           res.status(400).json({ error: "Invalid widgets" });
           return;
         }
-        data.widgets = data.widgets
-          .filter((w) => w && typeof w === "object" && w.type === "clock" && typeof w.timeZone === "string" && w.timeZone.length <= 64 && typeof w.label === "string" && w.label.length <= 64)
-          .map((w) => ({
-            id: typeof w.id === "string" && w.id ? String(w.id).slice(0, 32) : `w${Date.now()}${Math.random().toString(36).slice(2, 6)}`,
-            type: "clock",
-            timeZone: w.timeZone.slice(0, 64),
-            label: w.label.slice(0, 64),
-            mouseFollow: !!w.mouseFollow,
-          }))
-          .slice(0, 10);
+        const pages = Math.max(1, Math.min(4, Math.round(Number(w.pages) || 1)));
+        const a = w.about && typeof w.about === "object" && !Array.isArray(w.about) ? w.about : {};
+        const clock = a.clock && typeof a.clock === "object" && !Array.isArray(a.clock) ? a.clock : null;
+        const s = w.song && typeof w.song === "object" && !Array.isArray(w.song) ? w.song : {};
+        const p = w.projects && typeof w.projects === "object" && !Array.isArray(w.projects) ? w.projects : {};
+        const tags = Array.isArray(a.tags)
+          ? a.tags.map((t) => String(t || "").trim().slice(0, 32)).filter(Boolean).slice(0, 6)
+          : [];
+        const projectList = Array.isArray(p.projects)
+          ? p.projects
+              .filter((x) => x && typeof x === "object" && !Array.isArray(x))
+              .slice(0, 4)
+              .map((x) => ({
+                banner: String(x.banner || "").slice(0, 500),
+                name: String(x.name || "").slice(0, 80),
+                description: String(x.description || "").slice(0, 200),
+              }))
+          : [{
+              banner: String(p.banner || "").slice(0, 500),
+              name: String(p.name || "").slice(0, 80),
+              description: String(p.description || "").slice(0, 200),
+            }];
+        data.widgets = {
+          pages,
+          about: {
+            title: String(a.title || "About me").slice(0, 80),
+            description: String(a.description || "").slice(0, 600),
+            clock: clock ? {
+              id: typeof clock.id === "string" && clock.id ? String(clock.id).slice(0, 32) : `w${Date.now()}${Math.random().toString(36).slice(2, 6)}`,
+              type: "clock",
+              label: String(clock.label || "").slice(0, 64),
+              timeZone: String(clock.timeZone || "UTC").slice(0, 64),
+              mouseFollow: !!clock.mouseFollow,
+            } : null,
+            tags,
+          },
+          song: { url: String(s.url || "").slice(0, 500) },
+          projects: { projects: projectList },
+        };
       }
       const premiumField = Object.keys(data).find((k) => PREMIUM_VALUES[k] && PREMIUM_VALUES[k].has(String(data[k])));
       if (premiumField && !(await isPremiumUser(uid))) {
@@ -652,6 +683,109 @@ export default async function handler(req, res) {
 
     default:
       res.status(400).json({ error: "Unknown action" });
+  }
+}
+
+async function trackInfo(req, res) {
+  const url = String(req.query.url || "");
+  const m = url.match(/open\.spotify\.com\/track\/([a-zA-Z0-9]+)/);
+  const id = m ? m[1] : null;
+  if (!id) {
+    res.status(400).json({ error: "Invalid Spotify URL" });
+    return;
+  }
+  let title = "", artist = "", previewUrl = "", duration = 0, image = "", color = "", ytId = "";
+  try {
+    const r = await fetch(`https://open.spotify.com/embed/track/${id}`, {
+      headers: { "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36" },
+    });
+    const html = await r.text();
+    const m2 = html.match(/<script id="__NEXT_DATA__" type="application\/json">([\s\S]*?)<\/script>/);
+    if (m2) {
+      try {
+        const json = JSON.parse(m2[1]);
+        const entity = json?.props?.pageProps?.state?.data?.entity;
+        if (entity) {
+          title = String(entity.name || "");
+          artist = Array.isArray(entity.artists) && entity.artists[0]?.name ? String(entity.artists[0].name) : "";
+          previewUrl = String(entity.audioPreview?.url || entity.previewUrl || "");
+          duration = Math.round(Number(entity.duration || 0) / 1000);
+          const vi = entity.visualIdentity || {};
+          if (Array.isArray(vi.image) && vi.image[0]?.url) image = String(vi.image[0].url);
+          const bg = vi.backgroundBase;
+          if (bg && typeof bg.red === "number" && typeof bg.green === "number" && typeof bg.blue === "number") {
+            color = `rgb(${Math.round(bg.red)},${Math.round(bg.green)},${Math.round(bg.blue)})`;
+          }
+        }
+      } catch {}
+    }
+  } catch (e) {
+    console.error("spotify embed error:", e);
+  }
+  let synced = null;
+  if (title && artist) {
+    synced = await fetchSyncedLyrics(artist, title);
+    try {
+      const q = encodeURIComponent(`${artist} ${title} official audio`);
+      const yt = await fetch(`https://www.youtube.com/results?search_query=${q}`, {
+        headers: { "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36" },
+      });
+      ytId = pickYoutubeId(await yt.text());
+    } catch {}
+  }
+  res.status(200).json({ title, artist, previewUrl, duration, synced, image, color, ytId });
+}
+
+async function fetchSyncedLyrics(artist, title) {
+  try {
+    const r = await fetch(`https://lrclib.net/api/get?artist_name=${encodeURIComponent(artist)}&track_name=${encodeURIComponent(title)}`);
+    if (r.ok) {
+      const j = await r.json();
+      if (j && typeof j.syncedLyrics === "string" && j.syncedLyrics.trim()) return j.syncedLyrics;
+    }
+  } catch {}
+  try {
+    const r = await fetch(`https://lrclib.net/api/search?q=${encodeURIComponent(`${title} ${artist}`.trim())}`);
+    if (!r.ok) return null;
+    const arr = await r.json();
+    if (!Array.isArray(arr)) return null;
+    const syncedRes = arr.filter((x) => x && typeof x.syncedLyrics === "string" && x.syncedLyrics.trim());
+    if (syncedRes.length === 0) return null;
+    const t = title.toLowerCase().replace(/[\(\[].*?[\)\]]/g, "").trim();
+    const a = artist.toLowerCase();
+    const score = (x) => {
+      const tn = String(x.trackName || "").toLowerCase().replace(/[\(\[].*?[\)\]]/g, "").trim();
+      const an = String(x.artistName || "").toLowerCase();
+      return (tn === t ? 3 : tn.includes(t) || t.includes(tn) ? 2 : 0) + (an === a ? 2 : an.includes(a) || a.includes(an) ? 1 : 0);
+    };
+    syncedRes.sort((x, y) => score(y) - score(x));
+    return syncedRes[0].syncedLyrics;
+  } catch {}
+  return null;
+}
+
+function pickYoutubeId(html) {
+  try {
+    const m = html.match(/var ytInitialData = (\{.*?\});<\/script>/s);
+    if (!m) return "";
+    const data = JSON.parse(m[1]);
+    const contents = data?.contents?.twoColumnSearchResultsRenderer?.primaryContents?.sectionListRenderer?.contents || [];
+    let first = "";
+    let topic = "";
+    for (const sec of contents) {
+      const items = sec?.itemSectionRenderer?.contents || [];
+      for (const item of items) {
+        const v = item?.videoRenderer;
+        if (!v || !v.videoId) continue;
+        if (!first) first = v.videoId;
+        const owner = v?.ownerText?.runs?.[0]?.text || "";
+        if (owner.includes("Topic")) { topic = v.videoId; break; }
+      }
+      if (topic) break;
+    }
+    return topic || first;
+  } catch {
+    return "";
   }
 }
 

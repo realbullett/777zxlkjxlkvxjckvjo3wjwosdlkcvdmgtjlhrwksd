@@ -11,8 +11,10 @@ import { parseSongUrl } from "../lib/song";
 import SongPlayer from "../components/SongPlayer";
 import DiscordRPC from "../components/DiscordRPC";
 import { CursorEffect } from "../components/CursorEffect";
-import ClockWidget from "../components/ClockWidget";
-import { TIMEZONE_PRESETS, browserTimeZone, defaultLabel, findMyTimeZone, tzOffsetHours, widgetId, type WidgetConfig } from "../lib/widgets";
+import AboutPage from "../components/AboutPage";
+import SongPage from "../components/SongPage";
+import ProjectsPage from "../components/ProjectsPage";
+import { TIMEZONE_PRESETS, MAX_PROJECTS, MAX_TAGS, LANGUAGE_TAGS, defaultLabel, defaultAboutPage, defaultProjectsPage, defaultSongPage, emptyProject, emptyWidgets, findMyTimeZone, normalizeWidgets, tzOffsetHours, type AboutPageConfig, type ClockWidgetConfig, type ProjectItem, type SongPageConfig, type WidgetsConfig } from "../lib/widgets";
 
 type User = {
   id: number;
@@ -76,7 +78,7 @@ type User = {
   discord_rpc_offset_y: number;
   panel_opacity: number | null;
   panel_hidden: boolean | null;
-  widgets: WidgetConfig[] | null;
+  widgets: unknown;
 };
 
 const tabs = [
@@ -4365,9 +4367,10 @@ function FileHost({ user }: { user: User | null }) {
 function Widgets({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (u: User) => void }) {
   const [premium, setPremium] = useState(false);
   const [loaded, setLoaded] = useState(false);
-  const [widgets, setWidgets] = useState<WidgetConfig[]>([]);
+  const [widgets, setWidgets] = useState<WidgetsConfig>(emptyWidgets);
+  const [tagInput, setTagInput] = useState("");
   const [saving, setSaving] = useState(false);
-  const [locating, setLocating] = useState<string | null>(null);
+  const [locating, setLocating] = useState(false);
   const [savedMsg, setSavedMsg] = useState("");
   const hydrated = useRef(false);
 
@@ -4382,7 +4385,7 @@ function Widgets({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (u:
   useEffect(() => {
     if (!user || hydrated.current) return;
     hydrated.current = true;
-    setWidgets(Array.isArray(user.widgets) ? user.widgets : []);
+    setWidgets(normalizeWidgets(user.widgets));
   }, [user]);
 
   const save = async () => {
@@ -4395,25 +4398,75 @@ function Widgets({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (u:
     setTimeout(() => setSavedMsg(""), 2000);
   };
 
-  const addClock = () => {
-    const tz = browserTimeZone();
-    setWidgets((prev) => [...prev, { id: widgetId(), type: "clock", timeZone: tz, label: defaultLabel(tz), mouseFollow: false }]);
+  const setPages = (n: number) =>
+    setWidgets((prev) => {
+      const next = { ...prev, pages: n };
+      if (n >= 2 && !next.about) next.about = defaultAboutPage();
+      if (n >= 3 && !next.song) next.song = defaultSongPage();
+      if (n >= 4 && !next.projects) next.projects = defaultProjectsPage();
+      return next;
+    });
+
+  const patchAbout = (patch: Partial<AboutPageConfig>) =>
+    setWidgets((prev) => ({ ...prev, about: prev.about ? { ...prev.about, ...patch } : prev.about }));
+
+  const patchClock = (patch: Partial<ClockWidgetConfig>) =>
+    setWidgets((prev) => ({ ...prev, about: prev.about?.clock ? { ...prev.about, clock: { ...prev.about.clock, ...patch } } : prev.about }));
+
+  const addTag = (raw: string) => {
+    const tag = raw.trim().replace(/[#@]/g, "");
+    if (!tag) return;
+    setWidgets((prev) => {
+      const cur = prev.about?.tags || [];
+      if (cur.length >= MAX_TAGS || cur.some((x) => x.toLowerCase() === tag.toLowerCase())) return prev;
+      return { ...prev, about: prev.about ? { ...prev.about, tags: [...cur, tag] } : prev.about };
+    });
   };
 
-  const updateWidget = (id: string, patch: Partial<WidgetConfig>) =>
-    setWidgets((prev) => prev.map((w) => (w.id === id ? { ...w, ...patch } : w)));
+  const removeTag = (idx: number) =>
+    setWidgets((prev) =>
+      prev.about ? { ...prev, about: { ...prev.about, tags: (prev.about.tags || []).filter((_, i) => i !== idx) } } : prev
+    );
 
-  const removeWidget = (id: string) => setWidgets((prev) => prev.filter((w) => w.id !== id));
+  const patchSong = (patch: Partial<SongPageConfig>) =>
+    setWidgets((prev) => ({ ...prev, song: prev.song ? { ...prev.song, ...patch } : prev.song }));
 
-  const findLocation = async (id: string) => {
-    setLocating(id);
+  const patchProject = (idx: number, patch: Partial<ProjectItem>) =>
+    setWidgets((prev) => {
+      if (!prev.projects) return prev;
+      return {
+        ...prev,
+        projects: {
+          ...prev.projects,
+          projects: prev.projects.projects.map((pr, i) => (i === idx ? { ...pr, ...patch } : pr)),
+        },
+      };
+    });
+
+  const addProject = () =>
+    setWidgets((prev) => {
+      if (!prev.projects || prev.projects.projects.length >= MAX_PROJECTS) return prev;
+      return { ...prev, projects: { ...prev.projects, projects: [...prev.projects.projects, emptyProject()] } };
+    });
+
+  const removeProject = (idx: number) =>
+    setWidgets((prev) => {
+      if (!prev.projects || prev.projects.projects.length <= 1) return prev;
+      return {
+        ...prev,
+        projects: { ...prev.projects, projects: prev.projects.projects.filter((_, i) => i !== idx) },
+      };
+    });
+
+  const findLocation = async () => {
+    setLocating(true);
     try {
       const tz = await findMyTimeZone();
-      updateWidget(id, { timeZone: tz, label: defaultLabel(tz) });
+      patchClock({ timeZone: tz, label: defaultLabel(tz) });
     } catch (e) {
       alert(e instanceof Error ? e.message : "Couldn't detect your location.");
     } finally {
-      setLocating(null);
+      setLocating(false);
     }
   };
 
@@ -4423,6 +4476,8 @@ function Widgets({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (u:
       : [{ tz: currentTz, label: defaultLabel(currentTz), offset: tzOffsetHours(currentTz) }, ...TIMEZONE_PRESETS];
     return [...list].sort((a, b) => a.offset - b.offset || a.tz.localeCompare(b.tz));
   };
+
+  const clock = widgets.about?.clock ?? null;
 
   if (loaded && !premium) {
     return (
@@ -4463,12 +4518,6 @@ function Widgets({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (u:
 
         <div className="flex items-center gap-3 mb-6">
           <button
-            onClick={addClock}
-            className="text-sm bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-sky-400 transition-all rounded-xl px-4 py-2.5 text-white font-semibold flex items-center gap-2 cursor-pointer shadow-[0_0_20px_rgba(37,99,235,0.3)]"
-          >
-            <Clock size={15} /> add clock
-          </button>
-          <button
             onClick={save}
             disabled={saving}
             className="text-sm shimmer rounded-xl bg-white/[0.06] border border-white/10 px-4 py-2.5 text-white/80 font-semibold disabled:opacity-40 cursor-pointer"
@@ -4478,40 +4527,120 @@ function Widgets({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (u:
           {savedMsg && <span className="text-xs text-blue-300 font-semibold">{savedMsg}</span>}
         </div>
 
-        {widgets.length === 0 ? (
-          <div className="glass-card rounded-2xl p-10 flex flex-col items-center justify-center gap-3 text-center border-blue-500/10">
-            <Clock size={28} className="text-white/20" />
-            <p className="text-sm text-white/20 italic">no widgets yet. add a clock and it'll show up on your biolink below the panel.</p>
+        <div className="glass-card rounded-2xl p-6 mb-6 border-blue-500/10">
+          <p className="text-[11px] text-white/40 mb-3">number of pages on your biolink</p>
+          <div className="flex gap-2">
+            {[1, 2, 3, 4].map((n) => (
+              <button
+                key={n}
+                onClick={() => setPages(n)}
+                className={`h-10 w-10 rounded-xl text-sm font-bold transition-all cursor-pointer border ${widgets.pages === n ? "bg-gradient-to-br from-blue-600 to-blue-500 text-white border-blue-400 shadow-[0_0_15px_rgba(37,99,235,0.4)]" : "bg-white/[0.03] text-white/50 border-white/10 hover:border-blue-500/40 hover:text-white/80"}`}
+                title={`${n} page${n > 1 ? "s" : ""}`}
+              >
+                {n}
+              </button>
+            ))}
           </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {widgets.map((w, i) => {
-              const options = tzOptions(w.timeZone);
-              return (
-                <div key={w.id} className="relative rounded-2xl border border-blue-500/20 bg-white/[0.03] p-5 transition-all hover:border-blue-400/50">
-                  <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-blue-400/60 to-transparent" />
-                  <div className="flex items-center justify-between mb-4">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-blue-300/80">clock #{i + 1}</p>
+          <p className="text-[10px] text-white/30 mt-3">
+            {widgets.pages === 1
+              ? "page 1 · glasscard"
+              : `pages 1–${widgets.pages} · glasscard, about, ${widgets.pages >= 3 ? "song, " : ""}${widgets.pages >= 4 ? "projects" : ""}`}
+          </p>
+        </div>
+
+        {widgets.pages >= 2 && widgets.about && (
+          <div className="glass-card rounded-2xl p-6 mb-6 border-blue-500/10">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-blue-300/80 mb-4">page 2 · about me</p>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div>
+                  <label className="text-[11px] text-white/40 block mb-1">title</label>
+                  <input
+                    type="text"
+                    value={widgets.about.title}
+                    onChange={(e) => patchAbout({ title: e.target.value })}
+                    placeholder="About me"
+                    className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none placeholder:text-white/10 focus:border-blue-500/50 transition-colors"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] text-white/40 block mb-1">description</label>
+                  <textarea
+                    value={widgets.about.description}
+                    onChange={(e) => patchAbout({ description: e.target.value })}
+                    rows={4}
+                    placeholder="a short description about yourself"
+                    className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none placeholder:text-white/10 focus:border-blue-500/50 transition-colors resize-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] text-white/40 block mb-2">
+                    skill tags ({widgets.about.tags.length}/{MAX_TAGS})
+                  </label>
+                  {widgets.about.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      {widgets.about.tags.map((t, i) => (
+                        <span key={i} className="flex items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.06] py-1 pl-3 pr-1.5 text-xs font-semibold text-white/90">
+                          {t}
+                          <button
+                            onClick={() => removeTag(i)}
+                            className="flex h-4 w-4 items-center justify-center rounded-full bg-white/10 text-white/70 transition-colors hover:bg-red-500/60 cursor-pointer"
+                          >
+                            <X size={10} />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <div className="flex gap-2 mb-3">
+                    <input
+                      type="text"
+                      value={tagInput}
+                      onChange={(e) => setTagInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          addTag(tagInput);
+                          setTagInput("");
+                        }
+                      }}
+                      placeholder="add your own tag..."
+                      disabled={widgets.about.tags.length >= MAX_TAGS}
+                      className="flex-1 bg-white/[0.03] border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none placeholder:text-white/10 focus:border-blue-500/50 transition-colors disabled:opacity-40"
+                    />
                     <button
-                      onClick={() => removeWidget(w.id)}
-                      className="text-white/30 hover:text-red-400 transition-colors cursor-pointer"
-                      title="remove widget"
+                      onClick={() => { addTag(tagInput); setTagInput(""); }}
+                      disabled={widgets.about.tags.length >= MAX_TAGS || !tagInput.trim()}
+                      className="text-xs font-semibold text-blue-300 hover:text-blue-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                     >
-                      <Trash2 size={14} />
+                      add
                     </button>
                   </div>
-
-                  <div className="flex justify-center mb-5">
-                    <ClockWidget widget={w} />
-                  </div>
-
-                  <div className="space-y-3">
+                  {widgets.about.tags.length < MAX_TAGS && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {LANGUAGE_TAGS
+                        .filter((l) => !(widgets.about.tags || []).some((t) => t.toLowerCase() === l.toLowerCase()))
+                        .slice(0, MAX_TAGS - widgets.about.tags.length)
+                        .map((l) => (
+                          <button
+                            key={l}
+                            onClick={() => addTag(l)}
+                            className="text-[11px] rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-1 text-white/40 transition-colors hover:border-blue-500/40 hover:bg-blue-600/20 hover:text-blue-300 cursor-pointer"
+                          >
+                            {l}
+                          </button>
+                        ))}
+                    </div>
+                  )}
+                </div>
+                {clock && (
+                  <>
                     <div>
-                      <label className="text-[11px] text-white/40 block mb-1">location label</label>
+                      <label className="text-[11px] text-white/40 block mb-1">clock location label</label>
                       <input
                         type="text"
-                        value={w.label}
-                        onChange={(e) => updateWidget(w.id, { label: e.target.value })}
+                        value={clock.label}
+                        onChange={(e) => patchClock({ label: e.target.value })}
                         placeholder="e.g. Istanbul"
                         className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none placeholder:text-white/10 focus:border-blue-500/50 transition-colors"
                       />
@@ -4519,14 +4648,14 @@ function Widgets({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (u:
                     <div>
                       <label className="text-[11px] text-white/40 block mb-1">timezone</label>
                       <select
-                        value={w.timeZone}
+                        value={clock.timeZone}
                         onChange={(e) => {
                           const tz = e.target.value;
-                          updateWidget(w.id, { timeZone: tz, label: defaultLabel(tz) });
+                          patchClock({ timeZone: tz, label: defaultLabel(tz) });
                         }}
                         className="w-full bg-[#131316] border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-blue-500/50 transition-colors"
                       >
-                        {options.map((o) => (
+                        {tzOptions(clock.timeZone).map((o) => (
                           <option key={o.tz} value={o.tz}>
                             {o.label} (GMT{o.offset >= 0 ? "+" : ""}{o.offset})
                           </option>
@@ -4534,21 +4663,116 @@ function Widgets({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (u:
                       </select>
                     </div>
                     <button
-                      onClick={() => findLocation(w.id)}
-                      disabled={locating === w.id}
+                      onClick={findLocation}
+                      disabled={locating}
                       className="text-[11px] bg-white/[0.04] hover:bg-blue-600/20 hover:text-blue-300 border border-white/10 hover:border-blue-500/40 transition-colors rounded-lg px-3 py-2 text-white/50 flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40 w-full"
                     >
                       <Search size={12} />
-                      {locating === w.id ? "detecting..." : "find my location"}
+                      {locating ? "detecting..." : "find my location"}
                     </button>
                     <div className="flex items-center justify-between">
-                      <span className="text-[11px] text-white/40">mouse follow panel</span>
-                      <Toggle checked={!!w.mouseFollow} onChange={(v) => updateWidget(w.id, { mouseFollow: v })} />
+                      <span className="text-[11px] text-white/40">mouse follow clock</span>
+                      <Toggle checked={!!clock.mouseFollow} onChange={(v) => patchClock({ mouseFollow: v })} />
+                    </div>
+                  </>
+                )}
+              </div>
+              <div className="flex items-center justify-center rounded-2xl border border-white/[0.06] bg-black/20 p-6">
+                <AboutPage config={widgets.about} discordId={user?.discord_id} discordEnabled={user?.discord_rpc_enabled} />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {widgets.pages >= 3 && widgets.song && (
+          <div className="glass-card rounded-2xl p-6 mb-6 border-blue-500/10">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-blue-300/80 mb-4">page 3 · song + live lyrics</p>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div>
+                  <label className="text-[11px] text-white/40 block mb-1">spotify track link</label>
+                  <input
+                    type="text"
+                    value={widgets.song.url}
+                    onChange={(e) => patchSong({ url: e.target.value })}
+                    placeholder="https://open.spotify.com/track/..."
+                    className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none placeholder:text-white/10 focus:border-blue-500/50 transition-colors"
+                  />
+                </div>
+                <p className="text-[11px] text-white/30 leading-relaxed">
+                  paste a spotify track link — the page will show the track embed plus live synced lyrics below it.
+                </p>
+              </div>
+              <div className="flex items-center justify-center rounded-2xl border border-white/[0.06] bg-black/20 p-6">
+                <SongPage url={widgets.song.url} />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {widgets.pages >= 4 && widgets.projects && (
+          <div className="glass-card rounded-2xl p-6 mb-6 border-blue-500/10">
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-blue-300/80">
+                page 4 · my projects ({widgets.projects.projects.length}/{MAX_PROJECTS})
+              </p>
+              <button
+                onClick={addProject}
+                disabled={widgets.projects.projects.length >= MAX_PROJECTS}
+                className="text-xs font-semibold text-blue-300 hover:text-blue-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              >
+                + add project
+              </button>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="space-y-6">
+                {widgets.projects.projects.map((pr, i) => (
+                  <div key={i} className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-white/50">project {i + 1}</span>
+                      {widgets.projects!.projects.length > 1 && (
+                        <button onClick={() => removeProject(i)} className="text-xs text-red-400/70 hover:text-red-300 transition-colors">
+                          remove
+                        </button>
+                      )}
+                    </div>
+                    <div>
+                      <label className="text-[11px] text-white/40 block mb-1">banner image link</label>
+                      <input
+                        type="text"
+                        value={pr.banner}
+                        onChange={(e) => patchProject(i, { banner: e.target.value })}
+                        placeholder="https://example.com/banner.png"
+                        className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none placeholder:text-white/10 focus:border-blue-500/50 transition-colors"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] text-white/40 block mb-1">project name</label>
+                      <input
+                        type="text"
+                        value={pr.name}
+                        onChange={(e) => patchProject(i, { name: e.target.value })}
+                        placeholder="e.g. My Python Project"
+                        className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none placeholder:text-white/10 focus:border-blue-500/50 transition-colors"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] text-white/40 block mb-1">description</label>
+                      <textarea
+                        value={pr.description}
+                        onChange={(e) => patchProject(i, { description: e.target.value })}
+                        rows={2}
+                        placeholder="what does it do?"
+                        className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none placeholder:text-white/10 focus:border-blue-500/50 transition-colors resize-none"
+                      />
                     </div>
                   </div>
-                </div>
-              );
-            })}
+                ))}
+              </div>
+              <div className="flex items-center justify-center overflow-hidden rounded-2xl border border-white/[0.06] bg-black/20 p-6">
+                <ProjectsPage config={widgets.projects} />
+              </div>
+            </div>
           </div>
         )}
       </div>

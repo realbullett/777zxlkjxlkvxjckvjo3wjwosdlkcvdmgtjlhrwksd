@@ -11,8 +11,10 @@ import SongPlayer from "../components/SongPlayer";
 import DiscordRPC from "../components/DiscordRPC";
 import SEO from "../components/SEO";
 import { CursorEffect } from "../components/CursorEffect";
-import ClockWidget from "../components/ClockWidget";
-import type { WidgetConfig } from "../lib/widgets";
+import AboutPage from "../components/AboutPage";
+import SongPage from "../components/SongPage";
+import ProjectsPage from "../components/ProjectsPage";
+import { normalizeWidgets } from "../lib/widgets";
 
 const BADGE_FILES: Record<string, string> = {
   verified: "verified.png",
@@ -100,7 +102,7 @@ type User = {
   discord_rpc_offset_y: number | null;
   panel_opacity: number | null;
   panel_hidden: boolean | null;
-  widgets: WidgetConfig[] | null;
+  widgets: unknown;
 };
 
 type Asset = {
@@ -120,12 +122,24 @@ export default function Biolink() {
   const [links, setLinks] = useState<Record<string, string>>({});
   const [hoveredBadge, setHoveredBadge] = useState<string | null>(null);
   const [hoveredUid, setHoveredUid] = useState(false);
-  const [scrollProgress, setScrollProgress] = useState(0);
+  const [activePage, setActivePage] = useState(0);
   const cardRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const activePageRef = useRef(0);
+  const lastWheelRef = useRef(0);
+  const lastNavRef = useRef(0);
+  const wheelAccumRef = useRef(0);
+  const scrollAnimRef = useRef(0);
+  const touchRef = useRef<{ y: number; allow: boolean } | null>(null);
+
+  const getPageTops = () =>
+    Array.from(document.querySelectorAll<HTMLElement>(".snap-page")).map((el) => el.getBoundingClientRect().top + window.scrollY);
 
   useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "instant" });
+    activePageRef.current = 0;
+    setActivePage(0);
     if (!username) return;
     supabase.from("users").select("id,username,alias,display_name,avatar_url,description,accent_color,text_color,background_color,icon_color,bg_effect_color,primary_color,secondary_color,show_username,display_effect,font,video_audio,bg_effect,song_platform,song_id,entry_text,entry_font,entry_color,entry_effect,desc_effect,desc_effect_speed,desc_lines,monochrome_icons,monochrome_badges,banner_enabled,seo_title,seo_description,seo_image,seo_favicon,panel_mouse_follow,audio_volume,audio_autoplay,audio_loop,audio_shuffle,cursor_effect,avatar_shape,avatar_size,avatar_offset_x,avatar_offset_y,name_offset_x,name_offset_y,badge_offset_x,badge_offset_y,desc_offset_x,desc_offset_y,song_offset_x,song_offset_y,discord_rpc_offset_x,discord_rpc_offset_y,panel_opacity,panel_hidden,discord_id,discord_rpc_enabled,widgets").or(`username.eq.${username},alias.eq.${username}`).then(({ data, error }) => {
       const rows = data || [];
@@ -153,15 +167,115 @@ export default function Biolink() {
     });
   }, [username]);
 
+  const animateScrollTo = (targetY: number, duration = 900) => {
+    cancelAnimationFrame(scrollAnimRef.current);
+    const startY = window.scrollY;
+    const dist = targetY - startY;
+    if (Math.abs(dist) < 2) return;
+    const t0 = performance.now();
+    const easeInOutCubic = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+    const step = (now: number) => {
+      const p = Math.min(1, Math.max(0, (now - t0) / duration));
+      window.scrollTo({ top: startY + dist * easeInOutCubic(p), behavior: "instant" });
+      if (p < 1) scrollAnimRef.current = requestAnimationFrame(step);
+    };
+    scrollAnimRef.current = requestAnimationFrame(step);
+  };
+
+  const goToPage = (i: number) => {
+    const pages = user ? normalizeWidgets(user.widgets).pages : 1;
+    const idx = Math.max(0, Math.min(pages - 1, i));
+    if (idx === activePageRef.current) return;
+    activePageRef.current = idx;
+    setActivePage(idx);
+    const targetY = getPageTops()[idx] ?? idx * window.innerHeight;
+    animateScrollTo(targetY);
+  };
+
   useEffect(() => {
+    if (!user) return;
+    const pages = normalizeWidgets(user.widgets).pages;
     const onScroll = () => {
-      const max = document.documentElement.scrollHeight - window.innerHeight;
-      setScrollProgress(max > 0 ? Math.min(1, Math.max(0, window.scrollY / max)) : 0);
+      const tops = getPageTops();
+      const y = window.scrollY;
+      let idx = 0;
+      for (let i = 0; i < tops.length; i++) {
+        if (tops[i] <= y + window.innerHeight * 0.5) idx = i;
+      }
+      idx = Math.min(pages - 1, Math.max(0, idx));
+      activePageRef.current = idx;
+      setActivePage(idx);
     };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+  }, [user]);
+
+  useEffect(() => {
+    if (!user || !entered) return;
+    const pages = normalizeWidgets(user.widgets).pages;
+    if (pages <= 1) return;
+    const onWheel = (e: WheelEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target?.closest?.(".allow-scroll")) return;
+      e.preventDefault();
+      const now = Date.now();
+      if (now - lastWheelRef.current > 400) wheelAccumRef.current = 0;
+      lastWheelRef.current = now;
+      const factor = e.deltaMode === 1 ? 32 : e.deltaMode === 2 ? window.innerHeight : 1;
+      wheelAccumRef.current += e.deltaY * factor;
+      if (Math.abs(wheelAccumRef.current) < 60) return;
+      if (now - lastNavRef.current < 700) return;
+      const dir = wheelAccumRef.current > 0 ? 1 : -1;
+      wheelAccumRef.current = 0;
+      lastNavRef.current = now;
+      goToPage(activePageRef.current + dir);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "ArrowDown" || e.key === "PageDown") {
+        e.preventDefault();
+        goToPage(activePageRef.current + 1);
+      } else if (e.key === "ArrowUp" || e.key === "PageUp") {
+        e.preventDefault();
+        goToPage(activePageRef.current - 1);
+      }
+    };
+    const onTouchStart = (e: TouchEvent) => {
+      const target = e.target as HTMLElement | null;
+      touchRef.current = { y: e.touches[0].clientY, allow: !!target?.closest?.(".allow-scroll") };
+    };
+    const onTouchMove = (e: TouchEvent) => {
+      if (!touchRef.current || touchRef.current.allow) return;
+      e.preventDefault();
+    };
+    const onTouchEnd = (e: TouchEvent) => {
+      const t = touchRef.current;
+      touchRef.current = null;
+      if (!t || t.allow) return;
+      const dy = e.changedTouches[0].clientY - t.y;
+      if (Math.abs(dy) > 40) goToPage(activePageRef.current + (dy < 0 ? 1 : -1));
+    };
+    window.addEventListener("wheel", onWheel, { passive: false });
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("touchstart", onTouchStart, { passive: true });
+    window.addEventListener("touchmove", onTouchMove, { passive: false });
+    window.addEventListener("touchend", onTouchEnd, { passive: true });
+    return () => {
+      window.removeEventListener("wheel", onWheel);
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("touchstart", onTouchStart);
+      window.removeEventListener("touchmove", onTouchMove);
+      window.removeEventListener("touchend", onTouchEnd);
+    };
+  }, [user, entered]);
+
+  useEffect(() => {
+    if (!user) return;
+    const root = document.documentElement;
+    const on = normalizeWidgets(user.widgets).pages > 1;
+    root.classList.toggle("snap-container", on);
+    return () => root.classList.remove("snap-container");
+  }, [user]);
 
   const getAsset = (type: string) => assets.find((a) => a.type === type)?.url;
 
@@ -299,7 +413,12 @@ export default function Biolink() {
   };
 
   const handleEnter = async () => {
+    window.scrollTo({ top: 0, behavior: "instant" });
+    activePageRef.current = 0;
+    setActivePage(0);
     setEntered(true);
+    const wcfg = user ? normalizeWidgets(user.widgets) : null;
+    const hasSongPage = !!wcfg && wcfg.pages >= 3 && !!wcfg.song;
     if (user) {
       const vid = getVisitorId();
       const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
@@ -320,7 +439,7 @@ export default function Biolink() {
         if (res.counted) setViewCount((prev) => (prev !== null ? prev + 1 : prev));
       }
     }
-    if (audioRef.current && (user?.audio_autoplay ?? true)) {
+    if (audioRef.current && !hasSongPage && (user?.audio_autoplay ?? true)) {
       audioRef.current.volume = (user?.audio_volume ?? 30) / 100;
       audioRef.current.loop = user?.audio_loop ?? true;
       audioRef.current.play().catch(() => {});
@@ -348,6 +467,9 @@ export default function Biolink() {
   if (!user) return null;
 
   const isPremium = badges.includes("premium");
+  const widgetCfg = normalizeWidgets(user.widgets);
+  const pageCount = widgetCfg.pages;
+  const hasSongPage = pageCount >= 3 && !!widgetCfg.song;
   const displayEffect =
     isPremium || !PREMIUM_DISPLAY_EFFECTS.has(user.display_effect || "")
       ? user.display_effect
@@ -396,7 +518,7 @@ export default function Biolink() {
       {user?.cursor_effect && user?.cursor_effect !== "none" && <CursorEffect type={user.cursor_effect} />}
       <div className="absolute inset-0 bg-black/30" />
 
-      {audio && <audio ref={audioRef} src={audio} loop />}
+      {audio && !hasSongPage && <audio ref={audioRef} src={audio} loop />}
 
       <EntryOverlay
         entered={entered}
@@ -408,12 +530,13 @@ export default function Biolink() {
       />
 
 <motion.div
+        id="bio-page-1"
         initial={{ opacity: 0, y: 20 }}
         animate={entered ? { opacity: 1, y: 0 } : {}}
         transition={{ duration: 0.5 }}
-        className="relative z-0 flex items-center justify-center min-h-screen"
+        className="relative z-0 flex min-h-screen snap-page"
       >
-        <div className="text-center w-full max-w-2xl px-8">
+        <div className="m-auto text-center w-full max-w-2xl px-8">
           <div
             ref={cardRef}
             onMouseMove={(e) => {
@@ -626,37 +749,56 @@ export default function Biolink() {
             </motion.div>
             </motion.div>
 </div>
-          {isPremium && user.widgets?.length ? (
-            <>
-              <motion.div
-                id="biolink-widgets"
-                initial={{ opacity: 0, y: 12 }}
-                animate={entered ? { opacity: 1, y: 0 } : {}}
-                transition={{ duration: 0.4, delay: 0.1 }}
-                className="mt-6 flex flex-col gap-4"
-              >
-                {user.widgets.filter((w) => w.type === "clock").map((w) => (
-                  <div key={w.id}>
-                    <ClockWidget widget={w} />
-                  </div>
-                ))}
-              </motion.div>
-              <button
-                onClick={() => document.getElementById("biolink-widgets")?.scrollIntoView({ behavior: "smooth", block: "start" })}
-                className="fixed right-6 top-1/2 z-[5] flex -translate-y-1/2 flex-col items-center gap-2 rounded-full border border-white/10 bg-black/40 px-2 py-3 backdrop-blur-md transition-all hover:border-white/30"
-                aria-label="scroll position"
-              >
-                {[0, 1, 2].map((i) => (
-                  <span
-                    key={i}
-                    className={`h-1.5 w-1.5 rounded-full transition-all duration-300 ${i < Math.round(scrollProgress * 3) ? "bg-white shadow-[0_0_6px_rgba(255,255,255,0.8)]" : "bg-white/25"}`}
-                  />
-                ))}
-              </button>
-            </>
-          ) : null}
           </div>
         </motion.div>
+          {isPremium && pageCount >= 2 && widgetCfg.about ? (
+            <motion.div
+              id="bio-page-2"
+              initial={{ opacity: 0 }}
+              animate={entered ? { opacity: 1 } : {}}
+              transition={{ duration: 0.5, delay: 0.1 }}
+              className="relative z-0 flex min-h-screen items-center justify-center px-8 snap-page"
+            >
+              <AboutPage config={widgetCfg.about} discordId={user.discord_id} discordEnabled={user.discord_rpc_enabled} />
+            </motion.div>
+          ) : null}
+          {isPremium && pageCount >= 3 && widgetCfg.song ? (
+            <motion.div
+              id="bio-page-3"
+              initial={{ opacity: 0 }}
+              animate={entered ? { opacity: 1 } : {}}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="relative z-0 flex min-h-screen items-center justify-center px-8 snap-page"
+            >
+              <SongPage url={widgetCfg.song.url} autoPlay={entered} />
+            </motion.div>
+          ) : null}
+          {isPremium && pageCount >= 4 && widgetCfg.projects ? (
+            <motion.div
+              id="bio-page-4"
+              initial={{ opacity: 0 }}
+              animate={entered ? { opacity: 1 } : {}}
+              transition={{ duration: 0.5, delay: 0.3 }}
+              className="relative z-0 flex min-h-screen items-center justify-center px-8 snap-page"
+            >
+              <ProjectsPage config={widgetCfg.projects} />
+            </motion.div>
+          ) : null}
+          {isPremium && pageCount > 1 ? (
+            <div
+              className="fixed right-6 top-1/2 z-[5] flex -translate-y-1/2 flex-col items-center gap-2 rounded-full border border-white/10 bg-black/40 px-2 py-3 backdrop-blur-md transition-all hover:border-white/30"
+              aria-label="page navigation"
+            >
+              {Array.from({ length: pageCount }).map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => goToPage(i)}
+                  className={`h-1.5 w-1.5 rounded-full transition-all duration-300 ${activePage === i ? "bg-white shadow-[0_0_6px_rgba(255,255,255,0.8)] scale-125 cursor-default" : "bg-white/25 cursor-pointer hover:bg-white/50"}`}
+                  aria-label={`go to page ${i + 1}`}
+                />
+              ))}
+            </div>
+          ) : null}
       </div>
       </>
     );
@@ -719,7 +861,7 @@ function EntryOverlay({ entered, handleEnter, text, fontFamily, color, effect }:
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="absolute inset-0 z-10 flex items-center justify-center cursor-pointer bg-black"
+          className="fixed inset-0 z-10 flex items-center justify-center cursor-pointer bg-black"
           onClick={handleEnter}
         >
           <motion.div
