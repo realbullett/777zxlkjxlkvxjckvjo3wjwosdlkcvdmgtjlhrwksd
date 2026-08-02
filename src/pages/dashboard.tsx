@@ -15,6 +15,7 @@ import AboutPage from "../components/AboutPage";
 import SongPage from "../components/SongPage";
 import ProjectsPage from "../components/ProjectsPage";
 import { TIMEZONE_PRESETS, MAX_PROJECTS, MAX_TAGS, LANGUAGE_TAGS, defaultLabel, defaultAboutPage, defaultProjectsPage, defaultSongPage, emptyProject, emptyWidgets, findMyTimeZone, normalizeWidgets, tzOffsetHours, type AboutPageConfig, type ClockWidgetConfig, type ProjectItem, type SongPageConfig, type WidgetsConfig } from "../lib/widgets";
+import TagIcon from "../components/TagIcon";
 
 type User = {
   id: number;
@@ -4581,6 +4582,7 @@ function Widgets({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (u:
                     <div className="flex flex-wrap gap-2 mb-3">
                       {widgets.about.tags.map((t, i) => (
                         <span key={i} className="flex items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.06] py-1 pl-3 pr-1.5 text-xs font-semibold text-white/90">
+                          <TagIcon tag={t} size={11} />
                           {t}
                           <button
                             onClick={() => removeTag(i)}
@@ -4625,8 +4627,9 @@ function Widgets({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (u:
                           <button
                             key={l}
                             onClick={() => addTag(l)}
-                            className="text-[11px] rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-1 text-white/40 transition-colors hover:border-blue-500/40 hover:bg-blue-600/20 hover:text-blue-300 cursor-pointer"
+                            className="flex items-center gap-1.5 text-[11px] rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-1 text-white/40 transition-colors hover:border-blue-500/40 hover:bg-blue-600/20 hover:text-blue-300 cursor-pointer"
                           >
+                            <TagIcon tag={l} size={11} />
                             {l}
                           </button>
                         ))}

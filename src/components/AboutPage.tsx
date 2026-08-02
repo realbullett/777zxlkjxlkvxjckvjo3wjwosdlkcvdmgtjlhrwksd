@@ -1,6 +1,7 @@
 import type { AboutPageConfig } from "../lib/widgets";
 import DiscordRPC from "./DiscordRPC";
 import ClockWidget from "./ClockWidget";
+import TagIcon from "./TagIcon";
 
 export default function AboutPage({
   config,
@@ -54,8 +55,9 @@ function TagsCard({ tags }: { tags: string[] }) {
         {tags.map((t) => (
           <span
             key={t}
-            className="rounded-full border border-white/15 bg-white/[0.06] px-4 py-1.5 text-sm font-semibold text-white/90 backdrop-blur-sm"
+            className="flex items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.06] px-4 py-1.5 text-sm font-semibold text-white/90 backdrop-blur-sm"
           >
+            <TagIcon tag={t} size={13} />
             {t}
           </span>
         ))}
