@@ -36,6 +36,7 @@ const USER_FIELDS = new Set([
   "desc_offset_x", "desc_offset_y", "song_offset_x", "song_offset_y",
   "discord_rpc_offset_x", "discord_rpc_offset_y",
   "panel_opacity", "panel_hidden", "discord_rpc_enabled",
+  "widgets",
 ]);
 
 const PREMIUM_VALUES = {
@@ -396,6 +397,26 @@ export default async function handler(req, res) {
         if (data[k] !== undefined && data[k] !== null && !Number.isNaN(Number(data[k]))) {
           data[k] = Math.round(Number(data[k]));
         }
+      }
+      if (data.widgets !== undefined) {
+        if (!(await isPremiumUser(uid))) {
+          res.status(403).json({ error: "This is a premium feature." });
+          return;
+        }
+        if (!Array.isArray(data.widgets)) {
+          res.status(400).json({ error: "Invalid widgets" });
+          return;
+        }
+        data.widgets = data.widgets
+          .filter((w) => w && typeof w === "object" && w.type === "clock" && typeof w.timeZone === "string" && w.timeZone.length <= 64 && typeof w.label === "string" && w.label.length <= 64)
+          .map((w) => ({
+            id: typeof w.id === "string" && w.id ? String(w.id).slice(0, 32) : `w${Date.now()}${Math.random().toString(36).slice(2, 6)}`,
+            type: "clock",
+            timeZone: w.timeZone.slice(0, 64),
+            label: w.label.slice(0, 64),
+            mouseFollow: !!w.mouseFollow,
+          }))
+          .slice(0, 10);
       }
       const premiumField = Object.keys(data).find((k) => PREMIUM_VALUES[k] && PREMIUM_VALUES[k].has(String(data[k])));
       if (premiumField && !(await isPremiumUser(uid))) {

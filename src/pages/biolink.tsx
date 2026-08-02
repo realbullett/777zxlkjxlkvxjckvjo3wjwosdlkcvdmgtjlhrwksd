@@ -11,6 +11,8 @@ import SongPlayer from "../components/SongPlayer";
 import DiscordRPC from "../components/DiscordRPC";
 import SEO from "../components/SEO";
 import { CursorEffect } from "../components/CursorEffect";
+import ClockWidget from "../components/ClockWidget";
+import type { WidgetConfig } from "../lib/widgets";
 
 const BADGE_FILES: Record<string, string> = {
   verified: "verified.png",
@@ -98,6 +100,7 @@ type User = {
   discord_rpc_offset_y: number | null;
   panel_opacity: number | null;
   panel_hidden: boolean | null;
+  widgets: WidgetConfig[] | null;
 };
 
 type Asset = {
@@ -117,13 +120,14 @@ export default function Biolink() {
   const [links, setLinks] = useState<Record<string, string>>({});
   const [hoveredBadge, setHoveredBadge] = useState<string | null>(null);
   const [hoveredUid, setHoveredUid] = useState(false);
+  const [scrollProgress, setScrollProgress] = useState(0);
   const cardRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     if (!username) return;
-    supabase.from("users").select("id,username,alias,display_name,avatar_url,description,accent_color,text_color,background_color,icon_color,bg_effect_color,primary_color,secondary_color,show_username,display_effect,font,video_audio,bg_effect,song_platform,song_id,entry_text,entry_font,entry_color,entry_effect,desc_effect,desc_effect_speed,desc_lines,monochrome_icons,monochrome_badges,banner_enabled,seo_title,seo_description,seo_image,seo_favicon,panel_mouse_follow,audio_volume,audio_autoplay,audio_loop,audio_shuffle,cursor_effect,avatar_shape,avatar_size,avatar_offset_x,avatar_offset_y,name_offset_x,name_offset_y,badge_offset_x,badge_offset_y,desc_offset_x,desc_offset_y,song_offset_x,song_offset_y,discord_rpc_offset_x,discord_rpc_offset_y,panel_opacity,panel_hidden,discord_id,discord_rpc_enabled").or(`username.eq.${username},alias.eq.${username}`).then(({ data, error }) => {
+    supabase.from("users").select("id,username,alias,display_name,avatar_url,description,accent_color,text_color,background_color,icon_color,bg_effect_color,primary_color,secondary_color,show_username,display_effect,font,video_audio,bg_effect,song_platform,song_id,entry_text,entry_font,entry_color,entry_effect,desc_effect,desc_effect_speed,desc_lines,monochrome_icons,monochrome_badges,banner_enabled,seo_title,seo_description,seo_image,seo_favicon,panel_mouse_follow,audio_volume,audio_autoplay,audio_loop,audio_shuffle,cursor_effect,avatar_shape,avatar_size,avatar_offset_x,avatar_offset_y,name_offset_x,name_offset_y,badge_offset_x,badge_offset_y,desc_offset_x,desc_offset_y,song_offset_x,song_offset_y,discord_rpc_offset_x,discord_rpc_offset_y,panel_opacity,panel_hidden,discord_id,discord_rpc_enabled,widgets").or(`username.eq.${username},alias.eq.${username}`).then(({ data, error }) => {
       const rows = data || [];
       const match = rows.find((r) => r.username === username) || rows[0];
       if (error || !match) setNotFound(true);
@@ -148,6 +152,16 @@ export default function Biolink() {
       }
     });
   }, [username]);
+
+  useEffect(() => {
+    const onScroll = () => {
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      setScrollProgress(max > 0 ? Math.min(1, Math.max(0, window.scrollY / max)) : 0);
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   const getAsset = (type: string) => assets.find((a) => a.type === type)?.url;
 
@@ -612,6 +626,35 @@ export default function Biolink() {
             </motion.div>
             </motion.div>
 </div>
+          {isPremium && user.widgets?.length ? (
+            <>
+              <motion.div
+                id="biolink-widgets"
+                initial={{ opacity: 0, y: 12 }}
+                animate={entered ? { opacity: 1, y: 0 } : {}}
+                transition={{ duration: 0.4, delay: 0.1 }}
+                className="mt-6 flex flex-col gap-4"
+              >
+                {user.widgets.filter((w) => w.type === "clock").map((w) => (
+                  <div key={w.id}>
+                    <ClockWidget widget={w} />
+                  </div>
+                ))}
+              </motion.div>
+              <button
+                onClick={() => document.getElementById("biolink-widgets")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+                className="fixed right-6 top-1/2 z-[5] flex -translate-y-1/2 flex-col items-center gap-2 rounded-full border border-white/10 bg-black/40 px-2 py-3 backdrop-blur-md transition-all hover:border-white/30"
+                aria-label="scroll position"
+              >
+                {[0, 1, 2].map((i) => (
+                  <span
+                    key={i}
+                    className={`h-1.5 w-1.5 rounded-full transition-all duration-300 ${i < Math.round(scrollProgress * 3) ? "bg-white shadow-[0_0_6px_rgba(255,255,255,0.8)]" : "bg-white/25"}`}
+                  />
+                ))}
+              </button>
+            </>
+          ) : null}
           </div>
         </motion.div>
       </div>

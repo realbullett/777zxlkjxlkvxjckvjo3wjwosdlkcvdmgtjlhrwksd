@@ -83,6 +83,9 @@ alter table users add column if not exists song_offset_y integer default 0;
 alter table users add column if not exists discord_rpc_offset_x integer default 0;
 alter table users add column if not exists discord_rpc_offset_y integer default 0;
 
+-- widgets are premium-only embedded widgets (e.g. clock) rendered below the biolink glasscard.
+alter table users add column if not exists widgets jsonb default '[]'::jsonb;
+
 alter table users enable row level security;
 
 -- Writes to users are ONLY allowed via server-side API functions using the service role key.
@@ -107,7 +110,7 @@ grant select (
   avatar_size, avatar_offset_x, avatar_offset_y, name_offset_x, name_offset_y,
   badge_offset_x, badge_offset_y, desc_offset_x, desc_offset_y, song_offset_x,
   song_offset_y, discord_rpc_offset_x, discord_rpc_offset_y, panel_opacity, panel_hidden, created_at,
-  discord_id, discord_rpc_enabled
+  discord_id, discord_rpc_enabled, widgets
 ) on users to anon;
 
 create table if not exists assets (

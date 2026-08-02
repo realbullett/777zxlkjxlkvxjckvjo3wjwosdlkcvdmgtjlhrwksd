@@ -11,6 +11,8 @@ import { parseSongUrl } from "../lib/song";
 import SongPlayer from "../components/SongPlayer";
 import DiscordRPC from "../components/DiscordRPC";
 import { CursorEffect } from "../components/CursorEffect";
+import ClockWidget from "../components/ClockWidget";
+import { TIMEZONE_PRESETS, browserTimeZone, defaultLabel, findMyTimeZone, tzOffsetHours, widgetId, type WidgetConfig } from "../lib/widgets";
 
 type User = {
   id: number;
@@ -74,6 +76,7 @@ type User = {
   discord_rpc_offset_y: number;
   panel_opacity: number | null;
   panel_hidden: boolean | null;
+  widgets: WidgetConfig[] | null;
 };
 
 const tabs = [
@@ -87,6 +90,7 @@ const tabs = [
   { id: "premium", label: "premium", icon: Crown },
   { id: "imagehost", label: "media host", icon: Image },
   { id: "filehost", label: "file host", icon: HardDrive },
+  { id: "widgets", label: "widgets", icon: Clock },
   { id: "admin", label: "admin", icon: Shield },
 ] as const;
 
@@ -216,7 +220,7 @@ return (
             <div className="flex flex-col gap-0.5 px-3">
               {tabs.filter((t) => t.id !== "admin" || user?.id === 1).map((t) => {
                 const Icon = t.icon;
-                const isPremiumTab = t.id === "imagehost" || t.id === "filehost" || t.id === "premium";
+                const isPremiumTab = t.id === "imagehost" || t.id === "filehost" || t.id === "widgets" || t.id === "premium";
                 return (
                   <button
                     key={t.id}
@@ -284,6 +288,7 @@ return (
                 {activeTab === "links" && <Links user={user} />}
                 {activeTab === "imagehost" && <MediaHost user={user} />}
                 {activeTab === "filehost" && <FileHost user={user} />}
+                {activeTab === "widgets" && <Widgets user={user} onUpdateUser={setUser} />}
                 {activeTab === "premium" && <Premium user={user} />}
                 {activeTab === "templates" && <Templates user={user} onTab={setActiveTab} onUpdateUser={setUser} />}
                 {activeTab === "data" && <DataSettings user={user} />}
@@ -4354,6 +4359,200 @@ function FileHost({ user }: { user: User | null }) {
       emptyText="no files hosted yet"
       lockedDesc="file host lets you upload any file up to 30mb and share it with a sire.lol link. only premium users can use it."
     />
+  );
+}
+
+function Widgets({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (u: User) => void }) {
+  const [premium, setPremium] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const [widgets, setWidgets] = useState<WidgetConfig[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [locating, setLocating] = useState<string | null>(null);
+  const [savedMsg, setSavedMsg] = useState("");
+  const hydrated = useRef(false);
+
+  useEffect(() => {
+    if (!user) return;
+    supabase.from("badges").select("badge").eq("user_id", user.id).then(({ data }) => {
+      setPremium(!!data?.some((r) => r.badge === "premium"));
+      setLoaded(true);
+    });
+  }, [user]);
+
+  useEffect(() => {
+    if (!user || hydrated.current) return;
+    hydrated.current = true;
+    setWidgets(Array.isArray(user.widgets) ? user.widgets : []);
+  }, [user]);
+
+  const save = async () => {
+    setSaving(true);
+    const d = await apiCall("update", { data: { widgets } });
+    setSaving(false);
+    if (d.error) { alert(d.error); return; }
+    if (d.user) onUpdateUser?.(d.user);
+    setSavedMsg("widgets saved");
+    setTimeout(() => setSavedMsg(""), 2000);
+  };
+
+  const addClock = () => {
+    const tz = browserTimeZone();
+    setWidgets((prev) => [...prev, { id: widgetId(), type: "clock", timeZone: tz, label: defaultLabel(tz), mouseFollow: false }]);
+  };
+
+  const updateWidget = (id: string, patch: Partial<WidgetConfig>) =>
+    setWidgets((prev) => prev.map((w) => (w.id === id ? { ...w, ...patch } : w)));
+
+  const removeWidget = (id: string) => setWidgets((prev) => prev.filter((w) => w.id !== id));
+
+  const findLocation = async (id: string) => {
+    setLocating(id);
+    try {
+      const tz = await findMyTimeZone();
+      updateWidget(id, { timeZone: tz, label: defaultLabel(tz) });
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Couldn't detect your location.");
+    } finally {
+      setLocating(null);
+    }
+  };
+
+  const tzOptions = (currentTz: string) => {
+    const list = TIMEZONE_PRESETS.some((p) => p.tz === currentTz)
+      ? TIMEZONE_PRESETS
+      : [{ tz: currentTz, label: defaultLabel(currentTz), offset: tzOffsetHours(currentTz) }, ...TIMEZONE_PRESETS];
+    return [...list].sort((a, b) => a.offset - b.offset || a.tz.localeCompare(b.tz));
+  };
+
+  if (loaded && !premium) {
+    return (
+      <div className="relative">
+        <div className="absolute inset-0 pointer-events-none -z-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_0%,rgba(37,99,235,0.12),transparent_70%)]" />
+        <div className="relative z-10">
+          <div className="flex items-center gap-3 mb-8">
+            <h1 className="text-lg font-semibold text-gradient-blue lowercase">widgets</h1>
+            <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-blue-300 bg-blue-600/15 border border-blue-500/30 rounded-full px-2.5 py-1 shadow-[0_0_15px_rgba(37,99,235,0.25)]">
+              <Crown size={10} /> premium
+            </span>
+          </div>
+          <div className="relative shine-effect rounded-2xl p-12 flex flex-col items-center justify-center gap-4 text-center border border-blue-500/30 bg-gradient-to-br from-blue-600/15 via-blue-500/5 to-white/5 glow-blue">
+            <div className="absolute inset-0 rounded-2xl bg-[radial-gradient(ellipse_60%_40%_at_50%_0%,rgba(255,255,255,0.1),transparent_70%)] pointer-events-none" />
+            <div className="relative h-14 w-14 rounded-2xl bg-blue-600/20 border border-blue-400/40 flex items-center justify-center shadow-[0_0_25px_rgba(37,99,235,0.4)]">
+              <Lock size={22} className="text-blue-300" />
+            </div>
+            <div className="relative">
+              <p className="text-gradient-blue font-bold text-lg">premium feature</p>
+              <p className="text-sm text-white/50 mt-1 max-w-sm">widgets let you embed live widgets like a clock on your biolink. only premium users can use it.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative">
+      <div className="absolute inset-0 pointer-events-none -z-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_0%,rgba(37,99,235,0.12),transparent_70%)]" />
+      <div className="relative z-10">
+        <div className="flex items-center gap-3 mb-8">
+          <h1 className="text-lg font-semibold text-gradient-blue lowercase">widgets</h1>
+          <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-blue-300 bg-blue-600/15 border border-blue-500/30 rounded-full px-2.5 py-1 shadow-[0_0_15px_rgba(37,99,235,0.25)]">
+            <Crown size={10} /> premium
+          </span>
+        </div>
+
+        <div className="flex items-center gap-3 mb-6">
+          <button
+            onClick={addClock}
+            className="text-sm bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-sky-400 transition-all rounded-xl px-4 py-2.5 text-white font-semibold flex items-center gap-2 cursor-pointer shadow-[0_0_20px_rgba(37,99,235,0.3)]"
+          >
+            <Clock size={15} /> add clock
+          </button>
+          <button
+            onClick={save}
+            disabled={saving}
+            className="text-sm shimmer rounded-xl bg-white/[0.06] border border-white/10 px-4 py-2.5 text-white/80 font-semibold disabled:opacity-40 cursor-pointer"
+          >
+            {saving ? "saving..." : "save widgets"}
+          </button>
+          {savedMsg && <span className="text-xs text-blue-300 font-semibold">{savedMsg}</span>}
+        </div>
+
+        {widgets.length === 0 ? (
+          <div className="glass-card rounded-2xl p-10 flex flex-col items-center justify-center gap-3 text-center border-blue-500/10">
+            <Clock size={28} className="text-white/20" />
+            <p className="text-sm text-white/20 italic">no widgets yet. add a clock and it'll show up on your biolink below the panel.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {widgets.map((w, i) => {
+              const options = tzOptions(w.timeZone);
+              return (
+                <div key={w.id} className="relative rounded-2xl border border-blue-500/20 bg-white/[0.03] p-5 transition-all hover:border-blue-400/50">
+                  <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-blue-400/60 to-transparent" />
+                  <div className="flex items-center justify-between mb-4">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-blue-300/80">clock #{i + 1}</p>
+                    <button
+                      onClick={() => removeWidget(w.id)}
+                      className="text-white/30 hover:text-red-400 transition-colors cursor-pointer"
+                      title="remove widget"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+
+                  <div className="flex justify-center mb-5">
+                    <ClockWidget widget={w} />
+                  </div>
+
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-[11px] text-white/40 block mb-1">location label</label>
+                      <input
+                        type="text"
+                        value={w.label}
+                        onChange={(e) => updateWidget(w.id, { label: e.target.value })}
+                        placeholder="e.g. Istanbul"
+                        className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none placeholder:text-white/10 focus:border-blue-500/50 transition-colors"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] text-white/40 block mb-1">timezone</label>
+                      <select
+                        value={w.timeZone}
+                        onChange={(e) => {
+                          const tz = e.target.value;
+                          updateWidget(w.id, { timeZone: tz, label: defaultLabel(tz) });
+                        }}
+                        className="w-full bg-[#131316] border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-blue-500/50 transition-colors"
+                      >
+                        {options.map((o) => (
+                          <option key={o.tz} value={o.tz}>
+                            {o.label} (GMT{o.offset >= 0 ? "+" : ""}{o.offset})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <button
+                      onClick={() => findLocation(w.id)}
+                      disabled={locating === w.id}
+                      className="text-[11px] bg-white/[0.04] hover:bg-blue-600/20 hover:text-blue-300 border border-white/10 hover:border-blue-500/40 transition-colors rounded-lg px-3 py-2 text-white/50 flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40 w-full"
+                    >
+                      <Search size={12} />
+                      {locating === w.id ? "detecting..." : "find my location"}
+                    </button>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] text-white/40">mouse follow panel</span>
+                      <Toggle checked={!!w.mouseFollow} onChange={(v) => updateWidget(w.id, { mouseFollow: v })} />
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
