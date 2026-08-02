@@ -1,4 +1,4 @@
-import { Braces, Database, Hash } from "lucide-react";
+import { Braces, Database } from "lucide-react";
 import {
   SiC,
   SiCplusplus,
@@ -20,9 +20,7 @@ import {
   SiTypescript,
 } from "react-icons/si";
 
-type IconComponent = ({ size, color }: { size?: number; color?: string }) => JSX.Element;
-
-const ICON_MAP: Record<string, { Icon: IconComponent; color: string }> = {
+const ICON_MAP: Record<string, { Icon: typeof SiJavascript; color: string }> = {
   javascript: { Icon: SiJavascript, color: "#F7DF1E" },
   js: { Icon: SiJavascript, color: "#F7DF1E" },
   typescript: { Icon: SiTypescript, color: "#3178C6" },

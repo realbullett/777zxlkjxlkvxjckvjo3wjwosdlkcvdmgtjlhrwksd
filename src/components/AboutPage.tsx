@@ -50,18 +50,16 @@ export default function AboutPage({
 
 function TagsCard({ tags }: { tags: string[] }) {
   return (
-    <div className="glass-card w-full rounded-3xl px-7 py-6">
-      <div className="flex flex-wrap gap-2.5">
-        {tags.map((t) => (
-          <span
-            key={t}
-            className="flex items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.06] px-4 py-1.5 text-sm font-semibold text-white/90 backdrop-blur-sm"
-          >
-            <TagIcon tag={t} size={13} />
-            {t}
-          </span>
-        ))}
-      </div>
+    <div className="w-full flex flex-wrap gap-2.5">
+      {tags.map((t) => (
+        <span
+          key={t}
+          className="flex items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.06] px-4 py-1.5 text-sm font-semibold text-white/90 backdrop-blur-sm"
+        >
+          <TagIcon tag={t} size={13} />
+          {t}
+        </span>
+      ))}
     </div>
   );
 }
