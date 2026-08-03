@@ -1,11 +1,14 @@
 import { createClient } from "@supabase/supabase-js";
 import crypto from "crypto";
+import { Readable } from "node:stream";
 import React from "react";
 import { ImageResponse } from "@vercel/og";
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const supabase = SUPABASE_URL && SUPABASE_SERVICE_KEY ? createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY) : null;
+const ASSET_PUBLIC_PREFIX = SUPABASE_URL ? `${SUPABASE_URL}/storage/v1/object/public/assets/` : "";
+const ASSET_PROXY_PREFIX = "https://sire.lol/a/";
 const SECRET = process.env.SESSION_SECRET || "sire-dev-secret-do-not-use-in-prod";
 
 function unsignToken(token) {
@@ -237,6 +240,31 @@ async function hostServe(req, res) {
     .then(() => {}).catch(() => {});
 }
 
+async function assetServe(req, res) {
+  const path = String(req.query.p || req.params?.path || "").trim().replace(/^\/+/, "");
+  if (!path || path.includes("..") || path.length > 300) {
+    res.status(400).json({ error: "Invalid path" });
+    return;
+  }
+  const upstream = `${ASSET_PUBLIC_PREFIX}${path}`;
+  try {
+    const up = await fetch(upstream, { redirect: "follow" });
+    if (!up.ok) {
+      res.status(404).json({ error: "Not found" });
+      return;
+    }
+    const type = (up.headers.get("content-type") || "application/octet-stream").split(";")[0];
+    res.status(200)
+      .setHeader("Content-Type", type)
+      .setHeader("Cache-Control", "public, max-age=31536000, s-maxage=31536000, immutable");
+    if (up.headers.get("content-length")) res.setHeader("Content-Length", up.headers.get("content-length"));
+    Readable.fromWeb(up.body).pipe(res);
+  } catch {
+    if (!res.headersSent) res.status(502).json({ error: "Upstream error" });
+    else res.end();
+  }
+}
+
 const OG_FONT_URL = "https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,800&display=swap";
 
 const ogEl = (type, props, ...children) => React.createElement(type, props || null, ...children);
@@ -360,6 +388,7 @@ export default async function handler(req, res) {
     if (action === "og") return ogImage(req, res);
     if (action === "hostList") return hostList(req, res);
     if (action === "serveMedia" || action === "serveFile" || req.params?.code) return hostServe(req, res);
+    if (action === "asset") return assetServe(req, res);
     if (action === "track") return trackInfo(req, res);
     const sessionToken = req.query.sessionToken || req.query.s;
     const uid = unsignToken(sessionToken);
@@ -496,8 +525,13 @@ export default async function handler(req, res) {
         res.status(400).json({ error: "Invalid asset" });
         return;
       }
+      let stored = url;
+      if (ASSET_PUBLIC_PREFIX && url.startsWith(ASSET_PUBLIC_PREFIX)) {
+        const path = url.slice(ASSET_PUBLIC_PREFIX.length).split("?")[0];
+        stored = `${ASSET_PROXY_PREFIX}${path}?t=${Date.now()}`;
+      }
       const { error } = await supabase.from("assets").upsert(
-        { user_id: uid, type, url },
+        { user_id: uid, type, url: stored },
         { onConflict: "user_id,type" }
       );
       if (error) {

@@ -4,6 +4,7 @@
     { "source": "/api/(.*)", "destination": "/api/$1" },
     { "source": "/i/(.*)", "destination": "/api/me?action=serveMedia&code=$1&k=media" },
     { "source": "/f/(.*)", "destination": "/api/me?action=serveFile&code=$1&k=file" },
+    { "source": "/a/(.*)", "destination": "/api/me?action=asset&p=$1" },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "headers": [

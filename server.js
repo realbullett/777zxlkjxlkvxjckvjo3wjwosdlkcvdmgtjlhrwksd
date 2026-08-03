@@ -35,6 +35,7 @@ app.post("/api/track-view", trackViewHandler);
 app.get("/api/og", meHandler);
 app.get("/i/:code", meHandler);
 app.get("/f/:code", meHandler);
+app.get("/a/:path(*)", meHandler);
 
 const PORT = 3001;
 app.listen(PORT, () => {
