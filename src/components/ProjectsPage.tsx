@@ -10,27 +10,29 @@ const dropItem: Variants = {
   show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 22 } },
 };
 
+const dropInView = { once: false, amount: 0.2 } as const;
+
 export default function ProjectsPage({ config }: { config: ProjectsPageConfig }) {
   const projects = (config.projects || []).filter((p) => p.banner || p.name || p.description);
   return (
-    <motion.div
-      variants={dropContainer}
-      initial="hidden"
-      whileInView="show"
-      viewport={{ once: true, amount: 0.05 }}
-      className="flex flex-col items-start gap-7 w-full max-w-3xl"
-    >
-      <motion.div variants={dropItem}>
+    <div className="flex flex-col items-start gap-7 w-full max-w-3xl">
+      <motion.div variants={dropItem} initial="hidden" whileInView="show" viewport={dropInView}>
         <h2 className="text-4xl font-black tracking-tight sm:text-5xl" style={{ color: "var(--text-color, #ffffff)" }}>
           My Projects
         </h2>
       </motion.div>
       {projects.length === 0 ? (
-        <motion.div variants={dropItem}>
+        <motion.div variants={dropItem} initial="hidden" whileInView="show" viewport={dropInView}>
           <p className="text-sm text-white/40 italic">add a project banner in your dashboard to show it here.</p>
         </motion.div>
       ) : (
-        <motion.div variants={dropContainer} className="allow-scroll hide-scrollbar flex w-full max-h-[calc(100vh-10rem)] flex-col gap-6 overflow-y-auto pr-1">
+        <motion.div
+          variants={dropContainer}
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: false, amount: 0.05 }}
+          className="allow-scroll hide-scrollbar flex w-full max-h-[calc(100vh-10rem)] flex-col gap-6 overflow-y-auto pr-1"
+        >
           {projects.map((pr, i) => (
             <motion.div
               key={i}
@@ -56,6 +58,6 @@ export default function ProjectsPage({ config }: { config: ProjectsPageConfig })
           ))}
         </motion.div>
       )}
-    </motion.div>
+    </div>
   );
 }

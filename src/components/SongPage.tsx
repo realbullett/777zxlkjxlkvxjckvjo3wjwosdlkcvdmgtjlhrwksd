@@ -4,14 +4,12 @@ import { motion, type Variants } from "motion/react";
 import { parseSongUrl } from "../lib/song";
 import SongPlayer from "./SongPlayer";
 
-const dropContainer: Variants = {
-  hidden: {},
-  show: { transition: { staggerChildren: 0.12, delayChildren: 0.05 } },
-};
 const dropItem: Variants = {
   hidden: { opacity: 0, y: -28 },
   show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 22 } },
 };
+
+const dropInView = { once: false, amount: 0.2 } as const;
 
 type TrackInfo = {
   title: string;
@@ -415,19 +413,13 @@ function SpotifyPlayerLyrics({ id, autoPlay = false }: { id: string; autoPlay?: 
 export default function SongPage({ url, autoPlay = false }: { url: string; autoPlay?: boolean }) {
   const parsed = parseSongUrl(url);
   return (
-    <motion.div
-      variants={dropContainer}
-      initial="hidden"
-      whileInView="show"
-      viewport={{ once: true, amount: 0.1 }}
-      className="flex flex-col items-start gap-7 w-full max-w-3xl"
-    >
-      <motion.div variants={dropItem}>
+    <div className="flex flex-col items-start gap-7 w-full max-w-3xl">
+      <motion.div variants={dropItem} initial="hidden" whileInView="show" viewport={dropInView}>
         <h2 className="text-4xl font-black tracking-tight sm:text-5xl" style={{ color: "var(--text-color, #ffffff)" }}>
           Now Playing
         </h2>
       </motion.div>
-      <motion.div variants={dropItem} className="w-full">
+      <motion.div variants={dropItem} initial="hidden" whileInView="show" viewport={dropInView} className="w-full">
         {parsed ? (
           parsed.platform === "spotify" ? (
             <SpotifyPlayerLyrics id={parsed.id} autoPlay={autoPlay} />
@@ -438,6 +430,6 @@ export default function SongPage({ url, autoPlay = false }: { url: string; autoP
           <p className="text-sm text-white/40 italic">add a spotify track link in your dashboard to show live lyrics here.</p>
         )}
       </motion.div>
-    </motion.div>
+    </div>
   );
 }
