@@ -13,12 +13,15 @@ function signUid(uid) {
 
 async function upsertUser(provider, providerId, username, email, avatarUrl) {
   if (!supabase) return null;
-  const { data, error } = await supabase.from("users").upsert(
-    { provider, provider_id: providerId, username, email, avatar_url: avatarUrl },
-    { onConflict: "provider,provider_id" }
-  ).select("id").single();
+  const { data, error } = await supabase.rpc("upsert_user_preserve_username", {
+    p_provider: provider,
+    p_provider_id: providerId,
+    p_username: username,
+    p_email: email,
+    p_avatar_url: avatarUrl,
+  });
   if (error) { console.error("Supabase upsert error:", error); return null; }
-  return data?.id;
+  return data?.[0]?.id ?? null;
 }
 
 export default async function handler(req, res) {
