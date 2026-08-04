@@ -58,6 +58,7 @@ create table if not exists users (
   discord_rpc_offset_x integer default 0,
   discord_rpc_offset_y integer default 0,
   discord_rpc_enabled boolean default false,
+  views_blacklisted boolean not null default false,
   created_at timestamptz default now(),
   unique (provider, provider_id)
 );
@@ -71,6 +72,9 @@ create unique index if not exists users_discord_id_unique on users (discord_id) 
 
 -- discord_rpc_enabled lets a user opt into showing their Discord presence on their public biolink.
 alter table users add column if not exists discord_rpc_enabled boolean default false;
+
+-- views_blacklisted disables view collection and replaces the public count with BLACKLISTED.
+alter table users add column if not exists views_blacklisted boolean not null default false;
 
 -- Add display_name on existing databases (create table above only applies to fresh installs).
 alter table users add column if not exists display_name text;
@@ -110,7 +114,7 @@ grant select (
   avatar_size, avatar_offset_x, avatar_offset_y, name_offset_x, name_offset_y,
   badge_offset_x, badge_offset_y, desc_offset_x, desc_offset_y, song_offset_x,
   song_offset_y, discord_rpc_offset_x, discord_rpc_offset_y, panel_opacity, panel_hidden, created_at,
-  discord_id, discord_rpc_enabled, widgets
+  discord_id, discord_rpc_enabled, views_blacklisted, widgets
 ) on users to anon;
 
 create table if not exists assets (
@@ -284,7 +288,8 @@ as $$
   from page_views pv
   join users u on u.id = pv.user_id
   where
-    case
+    u.views_blacklisted = false
+    and case
       when period_type = 'month' then pv.viewed_at >= date_trunc('month', now())
       else true
     end

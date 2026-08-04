@@ -51,6 +51,7 @@ type User = {
   avatar_url: string;
   discord_id: string | null;
   discord_rpc_enabled: boolean | null;
+  views_blacklisted: boolean;
   description: string | null;
   accent_color: string | null;
   text_color: string | null;
@@ -141,7 +142,7 @@ export default function Biolink() {
     activePageRef.current = 0;
     setActivePage(0);
     if (!username) return;
-    supabase.from("users").select("id,username,alias,display_name,avatar_url,description,accent_color,text_color,background_color,icon_color,bg_effect_color,primary_color,secondary_color,show_username,display_effect,font,video_audio,bg_effect,song_platform,song_id,entry_text,entry_font,entry_color,entry_effect,desc_effect,desc_effect_speed,desc_lines,monochrome_icons,monochrome_badges,banner_enabled,seo_title,seo_description,seo_image,seo_favicon,panel_mouse_follow,audio_volume,audio_autoplay,audio_loop,audio_shuffle,cursor_effect,avatar_shape,avatar_size,avatar_offset_x,avatar_offset_y,name_offset_x,name_offset_y,badge_offset_x,badge_offset_y,desc_offset_x,desc_offset_y,song_offset_x,song_offset_y,discord_rpc_offset_x,discord_rpc_offset_y,panel_opacity,panel_hidden,discord_id,discord_rpc_enabled,widgets").or(`username.eq.${username},alias.eq.${username}`).then(({ data, error }) => {
+    supabase.from("users").select("id,username,alias,display_name,avatar_url,description,accent_color,text_color,background_color,icon_color,bg_effect_color,primary_color,secondary_color,show_username,display_effect,font,video_audio,bg_effect,song_platform,song_id,entry_text,entry_font,entry_color,entry_effect,desc_effect,desc_effect_speed,desc_lines,monochrome_icons,monochrome_badges,banner_enabled,seo_title,seo_description,seo_image,seo_favicon,panel_mouse_follow,audio_volume,audio_autoplay,audio_loop,audio_shuffle,cursor_effect,avatar_shape,avatar_size,avatar_offset_x,avatar_offset_y,name_offset_x,name_offset_y,badge_offset_x,badge_offset_y,desc_offset_x,desc_offset_y,song_offset_x,song_offset_y,discord_rpc_offset_x,discord_rpc_offset_y,panel_opacity,panel_hidden,discord_id,discord_rpc_enabled,views_blacklisted,widgets").or(`username.eq.${username},alias.eq.${username}`).then(({ data, error }) => {
       const rows = data || [];
       const match = rows.find((r) => r.username === username) || rows[0];
       if (error || !match) setNotFound(true);
@@ -419,7 +420,7 @@ export default function Biolink() {
     setEntered(true);
     const wcfg = user ? normalizeWidgets(user.widgets) : null;
     const hasSongPage = !!wcfg && wcfg.pages >= 3 && !!wcfg.song;
-    if (user) {
+    if (user && !user.views_blacklisted) {
       const vid = getVisitorId();
       const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
       const { data: existing } = await supabase
@@ -740,10 +741,12 @@ export default function Biolink() {
               )}
             </motion.div>
             <motion.div variants={dropItem}>
-              {viewCount !== null && (
+              {(user.views_blacklisted || viewCount !== null) && (
                 <div className="absolute bottom-4 left-4 flex items-center gap-2 rounded-xl bg-white/10 px-3 py-1.5 backdrop-blur-sm">
                   <Eye size={16} className="text-white" />
-                  <span className="text-sm font-bold text-white">{viewCount}</span>
+                  <span className="text-sm font-bold text-white">
+                    {user.views_blacklisted ? "NULL" : viewCount}
+                  </span>
                 </div>
               )}
             </motion.div>

@@ -37,6 +37,25 @@ export default async function handler(req, res) {
 
   if (!supabaseAdmin) { res.status(500).json({ error: "Supabase not configured" }); return; }
 
+  const { data: target, error: targetError } = await supabaseAdmin
+    .from("users")
+    .select("id,views_blacklisted")
+    .eq("id", user_id)
+    .maybeSingle();
+  if (targetError) {
+    console.error("track-view user lookup error:", targetError);
+    res.status(500).json({ error: "Failed to check profile" });
+    return;
+  }
+  if (!target) {
+    res.status(404).json({ error: "User not found" });
+    return;
+  }
+  if (target.views_blacklisted) {
+    res.status(200).json({ counted: false, blacklisted: true });
+    return;
+  }
+
   const ipHash = hashIp(getClientIp(req));
   const now = Date.now();
   const since20 = new Date(now - 20 * 1000).toISOString();
