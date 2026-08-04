@@ -29,9 +29,13 @@ export default async function handler(req, res) {
     return;
   }
 
-  const { user_id, visitor_id } = req.body || {};
+  const { user_id, visitor_id, dwell_ms } = req.body || {};
   if (!Number.isInteger(user_id) || typeof visitor_id !== "string" || !visitor_id.trim()) {
     res.status(400).json({ error: "Missing fields" });
+    return;
+  }
+  if (!Number.isInteger(dwell_ms) || dwell_ms < 3000) {
+    res.status(200).json({ counted: false });
     return;
   }
 

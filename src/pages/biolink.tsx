@@ -133,6 +133,7 @@ export default function Biolink() {
   const wheelAccumRef = useRef(0);
   const scrollAnimRef = useRef(0);
   const touchRef = useRef<{ y: number; allow: boolean } | null>(null);
+  const enterTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const getPageTops = () =>
     Array.from(document.querySelectorAll<HTMLElement>(".snap-page")).map((el) => el.getBoundingClientRect().top + window.scrollY);
@@ -413,6 +414,12 @@ export default function Biolink() {
     return vid;
   };
 
+  useEffect(() => {
+    return () => {
+      if (enterTimerRef.current) clearTimeout(enterTimerRef.current);
+    };
+  }, []);
+
   const handleEnter = async () => {
     window.scrollTo({ top: 0, behavior: "instant" });
     activePageRef.current = 0;
@@ -420,25 +427,29 @@ export default function Biolink() {
     setEntered(true);
     const wcfg = user ? normalizeWidgets(user.widgets) : null;
     const hasSongPage = !!wcfg && wcfg.pages >= 3 && !!wcfg.song;
+    const enteredAt = Date.now();
     if (user && !user.views_blacklisted) {
-      const vid = getVisitorId();
-      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-      const { data: existing } = await supabase
-        .from("page_views")
-        .select("id")
-        .eq("user_id", user.id)
-        .eq("visitor_id", vid)
-        .gte("viewed_at", sevenDaysAgo)
-        .maybeSingle();
-      if (!existing) {
-        const r = await fetch("/api/track-view", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ user_id: user.id, visitor_id: vid }),
-        });
-        const res = await r.json().catch(() => ({}));
-        if (res.counted) setViewCount((prev) => (prev !== null ? prev + 1 : prev));
-      }
+      enterTimerRef.current = setTimeout(async () => {
+        if (document.visibilityState !== "visible") return;
+        const vid = getVisitorId();
+        const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+        const { data: existing } = await supabase
+          .from("page_views")
+          .select("id")
+          .eq("user_id", user.id)
+          .eq("visitor_id", vid)
+          .gte("viewed_at", sevenDaysAgo)
+          .maybeSingle();
+        if (!existing) {
+          const r = await fetch("/api/track-view", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ user_id: user.id, visitor_id: vid, dwell_ms: Date.now() - enteredAt }),
+          });
+          const res = await r.json().catch(() => ({}));
+          if (res.counted) setViewCount((prev) => (prev !== null ? prev + 1 : prev));
+        }
+      }, 3000);
     }
     if (audioRef.current && !hasSongPage && (user?.audio_autoplay ?? true)) {
       audioRef.current.volume = (user?.audio_volume ?? 30) / 100;
