@@ -8,7 +8,7 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const supabase = SUPABASE_URL && SUPABASE_SERVICE_KEY ? createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY) : null;
 const ASSET_PUBLIC_PREFIX = SUPABASE_URL ? `${SUPABASE_URL}/storage/v1/object/public/assets/` : "";
-const ASSET_PROXY_PREFIX = "https://sire.lol/a/";
+const ASSET_PROXY_PREFIX = "https://www.sire.lol/a/";
 const SECRET = process.env.SESSION_SECRET || "sire-dev-secret-do-not-use-in-prod";
 
 function unsignToken(token) {
