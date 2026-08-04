@@ -84,16 +84,17 @@ export default function AboutPage({
 
 function TagsCard({ tags }: { tags: string[] }) {
   return (
-    <div className="w-full flex flex-wrap gap-2.5">
+    <motion.div variants={dropContainer} className="w-full flex flex-wrap gap-2.5">
       {tags.map((t) => (
-        <span
+        <motion.span
           key={t}
+          variants={dropItem}
           className="flex items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.06] px-4 py-1.5 text-sm font-semibold text-white/90 backdrop-blur-sm"
         >
           <TagIcon tag={t} size={13} />
           {t}
-        </span>
+        </motion.span>
       ))}
-    </div>
+    </motion.div>
   );
 }
