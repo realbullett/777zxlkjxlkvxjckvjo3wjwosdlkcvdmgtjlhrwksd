@@ -4,12 +4,16 @@ import DiscordRPC from "./DiscordRPC";
 import ClockWidget from "./ClockWidget";
 import TagIcon from "./TagIcon";
 
+const dropContainer: Variants = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.12, delayChildren: 0.05 } },
+};
 const dropItem: Variants = {
   hidden: { opacity: 0, y: -28 },
   show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 22 } },
 };
 
-const dropInView = { once: false, amount: 0.2 } as const;
+const dropInView = { once: false, amount: 0.1 } as const;
 
 export default function AboutPage({
   config,
@@ -25,14 +29,20 @@ export default function AboutPage({
   const hasRow = showDiscord || !!config.clock;
   const showTags = tags.length > 0;
   return (
-    <div className="flex flex-col items-start gap-7 text-left w-full max-w-4xl">
-      <motion.div variants={dropItem} initial="hidden" whileInView="show" viewport={dropInView}>
+    <motion.div
+      variants={dropContainer}
+      initial="hidden"
+      whileInView="show"
+      viewport={dropInView}
+      className="flex flex-col items-start gap-7 text-left w-full max-w-4xl"
+    >
+      <motion.div variants={dropItem}>
         <h2 className="text-4xl font-black tracking-tight sm:text-5xl" style={{ color: "var(--text-color, #ffffff)" }}>
           {config.title || "About me"}
         </h2>
       </motion.div>
       {config.description ? (
-        <motion.div variants={dropItem} initial="hidden" whileInView="show" viewport={dropInView} className="w-full">
+        <motion.div variants={dropItem} className="w-full">
           <div className="glass-card w-full rounded-3xl px-9 py-8">
             <p className="text-lg leading-relaxed sm:text-xl whitespace-pre-wrap" style={{ color: "var(--text-color, #ffffff)", opacity: 0.85 }}>
               {config.description}
@@ -41,7 +51,7 @@ export default function AboutPage({
         </motion.div>
       ) : null}
       {hasRow && (
-        <motion.div variants={dropItem} initial="hidden" whileInView="show" viewport={dropInView} className="w-full">
+        <motion.div variants={dropItem} className="w-full">
           <div className="grid w-full grid-cols-1 sm:grid-cols-2 items-stretch gap-5">
             <div className="flex w-full flex-col gap-5">
               {showDiscord && (
@@ -58,11 +68,11 @@ export default function AboutPage({
         </motion.div>
       )}
       {!hasRow && showTags && (
-        <motion.div variants={dropItem} initial="hidden" whileInView="show" viewport={dropInView} className="w-full">
+        <motion.div variants={dropItem} className="w-full">
           <TagsCard tags={tags} />
         </motion.div>
       )}
-    </div>
+    </motion.div>
   );
 }
 

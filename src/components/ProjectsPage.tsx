@@ -10,19 +10,25 @@ const dropItem: Variants = {
   show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 22 } },
 };
 
-const dropInView = { once: false, amount: 0.2 } as const;
+const dropInView = { once: false, amount: 0.1 } as const;
 
 export default function ProjectsPage({ config }: { config: ProjectsPageConfig }) {
   const projects = (config.projects || []).filter((p) => p.banner || p.name || p.description);
   return (
-    <div className="flex flex-col items-start gap-7 w-full max-w-3xl">
-      <motion.div variants={dropItem} initial="hidden" whileInView="show" viewport={dropInView}>
+    <motion.div
+      variants={dropContainer}
+      initial="hidden"
+      whileInView="show"
+      viewport={dropInView}
+      className="flex flex-col items-start gap-7 w-full max-w-3xl"
+    >
+      <motion.div variants={dropItem}>
         <h2 className="text-4xl font-black tracking-tight sm:text-5xl" style={{ color: "var(--text-color, #ffffff)" }}>
           My Projects
         </h2>
       </motion.div>
       {projects.length === 0 ? (
-        <motion.div variants={dropItem} initial="hidden" whileInView="show" viewport={dropInView}>
+        <motion.div variants={dropItem}>
           <p className="text-sm text-white/40 italic">add a project banner in your dashboard to show it here.</p>
         </motion.div>
       ) : (
@@ -58,6 +64,6 @@ export default function ProjectsPage({ config }: { config: ProjectsPageConfig })
           ))}
         </motion.div>
       )}
-    </div>
+    </motion.div>
   );
 }
