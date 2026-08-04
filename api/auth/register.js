@@ -42,6 +42,11 @@ export default async function handler(req, res) {
     return;
   }
 
+  if (Date.now() < new Date("2026-08-30T00:00:00Z").getTime()) {
+    res.status(403).json({ error: "New registrations using email are temporarily disabled. Sign up with Gmail or Discord instead." });
+    return;
+  }
+
   const { username: rawUsername, email, password } = req.body;
   const username = String(rawUsername || "").trim().toLowerCase();
   if (!username || !email || !password) { res.status(400).json({ error: "Missing fields" }); return; }

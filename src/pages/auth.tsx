@@ -3,6 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "motion/react";
 import SEO from "../components/SEO";
 
+const EMAIL_REGISTRATIONS_DISABLED_UNTIL = new Date("2026-08-30T00:00:00Z");
+const emailRegistrationsDisabled = Date.now() < EMAIL_REGISTRATIONS_DISABLED_UNTIL.getTime();
+
 export default function AuthPage() {
   const navigate = useNavigate();
   const params = new URLSearchParams(window.location.search);
@@ -230,6 +233,12 @@ export default function AuthPage() {
                 )}
                 {error && <p className="text-[11px] text-red-400/80 text-center">{error}</p>}
                 </>
+              ) : (isSignUp && emailRegistrationsDisabled ? (
+                <div className="rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-4 text-center">
+                  <p className="text-xs text-amber-200/90 leading-relaxed">
+                    new user registrations using emails have been disabled. use <span className="font-semibold">gmail</span> or <span className="font-semibold">discord</span> to sign up.
+                  </p>
+                </div>
               ) : (<>
                 <div className="relative flex items-center bg-white/[0.04] border border-blue-500/25 rounded-xl focus-within:border-blue-500/50 focus-within:shadow-[0_0_16px_rgba(59,130,246,0.1)] transition-all">
                   <span className="absolute left-4 text-sm font-semibold tracking-tight pointer-events-none select-none"><span className="text-white/70">sire</span><span className="text-blue-500">.</span><span className="text-white/70">lol/</span></span>
@@ -312,7 +321,7 @@ export default function AuthPage() {
               </button>
               {error && <p className="text-[11px] text-red-400/80 text-center">{error}</p>}
               </>
-              )}
+              ))}
             </form>
 
             <div className="relative my-6">
