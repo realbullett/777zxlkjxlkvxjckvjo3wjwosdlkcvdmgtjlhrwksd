@@ -3,7 +3,7 @@ import type { ProjectsPageConfig } from "../lib/widgets";
 
 const dropContainer: Variants = {
   hidden: {},
-  show: { transition: { staggerChildren: 0.12, delayChildren: 0.05 } },
+  show: { transition: { staggerChildren: 0.3, delayChildren: 0.05 } },
 };
 const dropItem: Variants = {
   hidden: { opacity: 0, y: -28 },
