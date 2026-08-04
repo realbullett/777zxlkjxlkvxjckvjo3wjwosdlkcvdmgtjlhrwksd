@@ -1,7 +1,17 @@
+import { motion, type Variants } from "motion/react";
 import type { AboutPageConfig } from "../lib/widgets";
 import DiscordRPC from "./DiscordRPC";
 import ClockWidget from "./ClockWidget";
 import TagIcon from "./TagIcon";
+
+const dropContainer: Variants = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.12, delayChildren: 0.05 } },
+};
+const dropItem: Variants = {
+  hidden: { opacity: 0, y: -28 },
+  show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 22 } },
+};
 
 export default function AboutPage({
   config,
@@ -17,34 +27,50 @@ export default function AboutPage({
   const hasRow = showDiscord || !!config.clock;
   const showTags = tags.length > 0;
   return (
-    <div className="flex flex-col items-start gap-7 text-left w-full max-w-4xl">
-      <h2 className="text-4xl font-black tracking-tight sm:text-5xl" style={{ color: "var(--text-color, #ffffff)" }}>
-        {config.title || "About me"}
-      </h2>
+    <motion.div
+      variants={dropContainer}
+      initial="hidden"
+      whileInView="show"
+      viewport={{ once: true, amount: 0.1 }}
+      className="flex flex-col items-start gap-7 text-left w-full max-w-4xl"
+    >
+      <motion.div variants={dropItem}>
+        <h2 className="text-4xl font-black tracking-tight sm:text-5xl" style={{ color: "var(--text-color, #ffffff)" }}>
+          {config.title || "About me"}
+        </h2>
+      </motion.div>
       {config.description ? (
-        <div className="glass-card w-full rounded-3xl px-9 py-8">
-          <p className="text-lg leading-relaxed sm:text-xl whitespace-pre-wrap" style={{ color: "var(--text-color, #ffffff)", opacity: 0.85 }}>
-            {config.description}
-          </p>
-        </div>
+        <motion.div variants={dropItem} className="w-full">
+          <div className="glass-card w-full rounded-3xl px-9 py-8">
+            <p className="text-lg leading-relaxed sm:text-xl whitespace-pre-wrap" style={{ color: "var(--text-color, #ffffff)", opacity: 0.85 }}>
+              {config.description}
+            </p>
+          </div>
+        </motion.div>
       ) : null}
       {hasRow && (
-        <div className="grid w-full grid-cols-1 sm:grid-cols-2 items-stretch gap-5">
-          <div className="flex w-full flex-col gap-5">
-            {showDiscord && (
-              <DiscordRPC discordId={discordId!} wide />
-            )}
-            {showTags && <TagsCard tags={tags} />}
-          </div>
-          {config.clock && (
-            <div className="w-full">
-              <ClockWidget widget={config.clock} />
+        <motion.div variants={dropItem} className="w-full">
+          <div className="grid w-full grid-cols-1 sm:grid-cols-2 items-stretch gap-5">
+            <div className="flex w-full flex-col gap-5">
+              {showDiscord && (
+                <DiscordRPC discordId={discordId!} wide />
+              )}
+              {showTags && <TagsCard tags={tags} />}
             </div>
-          )}
-        </div>
+            {config.clock && (
+              <div className="w-full">
+                <ClockWidget widget={config.clock} />
+              </div>
+            )}
+          </div>
+        </motion.div>
       )}
-      {!hasRow && showTags && <TagsCard tags={tags} />}
-    </div>
+      {!hasRow && showTags && (
+        <motion.div variants={dropItem} className="w-full">
+          <TagsCard tags={tags} />
+        </motion.div>
+      )}
+    </motion.div>
   );
 }
 
