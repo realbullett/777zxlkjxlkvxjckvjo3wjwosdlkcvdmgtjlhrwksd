@@ -185,6 +185,8 @@ async function EnsureSchema() {
   const Stmts = [
     "ALTER TABLE hosted_files ADD COLUMN content BLOB",
     "ALTER TABLE templates ADD COLUMN tags TEXT",
+    "ALTER TABLE templates ADD COLUMN badge_offset_x INTEGER DEFAULT 0",
+    "ALTER TABLE templates ADD COLUMN badge_offset_y INTEGER DEFAULT 0",
     "CREATE TABLE IF NOT EXISTS template_installs (user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, template_user_id INTEGER NOT NULL, created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')), UNIQUE (user_id, template_user_id))",
     "CREATE TABLE IF NOT EXISTS template_favorites (user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, template_user_id INTEGER NOT NULL, created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')), UNIQUE (user_id, template_user_id))",
   ];

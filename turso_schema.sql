@@ -108,7 +108,10 @@ CREATE TABLE IF NOT EXISTS templates (
   avatar_offset_x INTEGER DEFAULT 0,
   avatar_offset_y INTEGER DEFAULT 0,
   name_offset_x INTEGER DEFAULT 0,
-  name_offset_y INTEGER DEFAULT 0
+  name_offset_y INTEGER DEFAULT 0,
+  badge_offset_x INTEGER DEFAULT 0,
+  badge_offset_y INTEGER DEFAULT 0,
+  tags TEXT DEFAULT '[]'
 );
 
 CREATE TABLE IF NOT EXISTS links (
