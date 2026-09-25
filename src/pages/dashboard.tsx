@@ -238,7 +238,7 @@ return (
             <div className="flex flex-col gap-0.5 px-3">
               {tabs.filter((t) => t.id !== "admin" || user?.id === 1).map((t) => {
                 const Icon = t.icon;
-                const isPremiumTab = t.id === "widgets" || t.id === "premium";
+                const isPremiumTab = t.id === "widgets" || t.id === "premium" || t.id === "imagehost" || t.id === "filehost";
                 return (
                   <button
                     key={t.id}
@@ -1065,7 +1065,7 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
       body: JSON.stringify({ sessionToken: token, filename: file.name, contentBase64, contentType: file.type || null, kind: "media" }),
     });
     const hd = await hr.json().catch(() => null);
-    if (!hr.ok || !hd || hd.error || !hd.url) { setSaving(null); return; }
+    if (!hr.ok || !hd || hd.error || !hd.url) { setSaving(null); alert(hd?.error || "upload failed"); return; }
     const busted = `${hd.url}?t=${Date.now()}`;
     const { error: upsertError } = await apiCall("asset_upsert", { type, url: busted });
     if (upsertError) console.error("upsert error:", upsertError);
@@ -3991,7 +3991,7 @@ function Premium({ user }: { user: User | null }) {
                   </span>
                 )}
               </div>
-              <p className="text-[11px] text-white/40 mt-1">upload images and videos up to 30mb, get a sire.lol link for each one.</p>
+              <p className="text-[11px] text-white/40 mt-1">upload images, videos and audio up to 30mb, get a sire.lol link for each one.</p>
             </div>
             <div className="group relative rounded-2xl overflow-hidden border border-blue-500/20 bg-white/[0.03] p-4 transition-all hover:border-blue-400/50 hover:shadow-[0_0_30px_rgba(37,99,235,0.25)]">
               <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-blue-400/60 to-transparent" />
@@ -4093,6 +4093,8 @@ function HostManager({
   lockedDesc: string;
 }) {
   const [loaded, setLoaded] = useState(false);
+  const [premium, setPremium] = useState(false);
+  const [premiumChecked, setPremiumChecked] = useState(false);
   const [items, setItems] = useState<HostedFile[]>([]);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
@@ -4102,6 +4104,10 @@ function HostManager({
   useEffect(() => {
     if (!user) return;
     loadItems().finally(() => setLoaded(true));
+    FetchProfile(user.username).then((J) => {
+      setPremium(Array.isArray(J?.badges) && J.badges.includes("premium"));
+      setPremiumChecked(true);
+    }).catch(() => setPremiumChecked(true));
   }, [user]);
 
   const loadItems = async () => {
@@ -4153,6 +4159,21 @@ function HostManager({
     if (bytes >= 1024) return `${Math.round(bytes / 1024)}kb`;
     return `${bytes}b`;
   };
+
+  if (premiumChecked && !premium) {
+    return (
+      <div className="relative">
+        <div className="absolute inset-0 pointer-events-none -z-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_0%,rgba(37,99,235,0.12),transparent_70%)]" />
+        <div className="relative z-10 flex flex-col items-center justify-center text-center py-20 gap-4">
+          <div className="h-14 w-14 rounded-2xl bg-blue-600/20 border border-blue-400/40 flex items-center justify-center shadow-[0_0_25px_rgba(37,99,235,0.4)]">
+            <Crown size={24} className="text-blue-300" />
+          </div>
+          <h1 className="text-lg font-semibold text-gradient-blue lowercase">{title} is premium</h1>
+          <p className="text-sm text-white/50 max-w-sm">{lockedDesc}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative">
@@ -4266,7 +4287,7 @@ function MediaHost({ user }: { user: User | null }) {
       kind="media"
       title="media host"
       accept="image/png,image/jpeg,image/gif,image/webp,image/avif,image/bmp,video/mp4,video/webm,video/quicktime,video/x-matroska,audio/mpeg,audio/wav,audio/ogg,audio/mp4,audio/flac"
-      hint="png, jpg, gif, webp, avif, bmp, mp4, webm, mov, mkv — max 30mb"
+      hint="png, jpg, gif, webp, avif, bmp, mp4, webm, mov, mkv, mp3, wav, ogg, m4a, flac — max 30mb"
       emptyText="no media hosted yet"
       lockedDesc="media host lets you upload images and videos and get a sire.lol link for each one. only premium users can use it."
     />

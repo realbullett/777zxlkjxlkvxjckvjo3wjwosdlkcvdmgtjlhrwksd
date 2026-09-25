@@ -206,6 +206,8 @@ async function hostPrepare(req, res) {
   if (!uid) { res.status(401).json({ error: "Unauthorized" }); return; }
   const Me = await One("SELECT id FROM users WHERE id = ?", [uid]);
   if (!Me) { res.status(401).json({ error: "Unauthorized" }); return; }
+  const Prem = await One("SELECT badge FROM badges WHERE user_id = ? AND badge = 'premium'", [uid]);
+  if (!Prem) { res.status(403).json({ error: "Media/file hosting is a premium feature." }); return; }
 
   const kind = req.body.kind === "file" ? "file" : "media";
   const name = String(req.body.filename || "").trim().toLowerCase();
@@ -215,7 +217,7 @@ async function hostPrepare(req, res) {
   let contentType;
   if (kind === "media") {
     contentType = HOST_MEDIA_TYPES[ext];
-    if (!contentType) { res.status(400).json({ error: "Unsupported media type. Images and videos only." }); return; }
+    if (!contentType) { res.status(400).json({ error: "Unsupported media type. Images, videos and audio only." }); return; }
   } else {
     contentType = HOST_FILE_TYPES[ext] || String(req.body.contentType || "") || "application/octet-stream";
   }
