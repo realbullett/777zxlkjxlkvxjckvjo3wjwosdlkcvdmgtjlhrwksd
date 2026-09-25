@@ -176,13 +176,13 @@ export default function Dashboard() {
     const sessionToken = token || (saved ? (() => { try { const p = JSON.parse(saved); return p.sessionToken; } catch { return null; } })() : null);
     const qs = token ? `token=${encodeURIComponent(token)}` : (sessionToken ? `s=${encodeURIComponent(sessionToken)}` : "");
     fetch(`/api/auth/verify?${qs}`).then(r => r.json()).then((session) => {
-      if (!session.authed || session.uid !== Number(uid)) { setUnauth(true); return; }
+      if (!session.authed || session.uid !== Number(uid)) { localStorage.removeItem("sl_auth"); setUnauth(true); return; }
       if (session.sessionToken) {
         localStorage.setItem("sl_auth", JSON.stringify({ uid: Number(uid), sessionToken: session.sessionToken }));
       }
       fetchMe().then((data) => {
         if (data) setUser(data);
-        else setUnauth(true);
+        else { localStorage.removeItem("sl_auth"); setUnauth(true); }
       });
     }).catch(() => setUnauth(true));
   }, [searchParams]);
@@ -192,9 +192,9 @@ export default function Dashboard() {
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(37,99,235,0.08),transparent_70%)]" />
       <div className="text-center relative">
         <p className="text-6xl font-black text-white/10 mb-4">404</p>
-        <p className="text-white/20 text-sm mb-6">You're viewing a 404 page</p>
-        <Link to="/dashboard" className="text-sm text-blue-400 hover:text-blue-300 transition-colors">
-          head back to dashboard
+        <p className="text-white/20 text-sm mb-6">Session expired, please sign in again</p>
+        <Link to="/auth" className="text-sm text-blue-400 hover:text-blue-300 transition-colors">
+          back to login
         </Link>
       </div>
     </div>

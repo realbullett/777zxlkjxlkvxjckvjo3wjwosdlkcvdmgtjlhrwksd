@@ -57,9 +57,16 @@ export default function AuthPage() {
     const saved = localStorage.getItem("sl_auth");
     if (saved) {
       try {
-        const { uid: savedUid } = JSON.parse(saved);
-        if (savedUid) { navigate(`/dashboard?uid=${savedUid}`, { replace: true }); return; }
+        const { uid: savedUid, sessionToken } = JSON.parse(saved);
+        if (savedUid && sessionToken) {
+          fetch(`/api/me?sessionToken=${encodeURIComponent(sessionToken)}`).then(r => r.json()).then((d) => {
+            if (d.user) navigate(`/dashboard?uid=${savedUid}`, { replace: true });
+            else localStorage.removeItem("sl_auth");
+          }).catch(() => {});
+          return;
+        }
       } catch {}
+      localStorage.removeItem("sl_auth");
     }
     fetch("/api/auth/verify").then(r => r.json()).then((data) => {
       if (data.authed) navigate(`/dashboard?uid=${data.uid}`, { replace: true });
