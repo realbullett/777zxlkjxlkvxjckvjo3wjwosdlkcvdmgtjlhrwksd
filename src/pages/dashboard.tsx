@@ -171,21 +171,47 @@ export default function Dashboard() {
   useEffect(() => {
     const uid = searchParams.get("uid");
     const token = searchParams.get("token");
-    if (!uid) { navigate("/"); return; }
-    const saved = localStorage.getItem("sl_auth");
-    const sessionToken = token || (saved ? (() => { try { const p = JSON.parse(saved); return p.sessionToken; } catch { return null; } })() : null);
-    const qs = token ? `token=${encodeURIComponent(token)}` : (sessionToken ? `s=${encodeURIComponent(sessionToken)}` : "");
-    fetch(`/api/auth/verify?${qs}`).then(r => r.json()).then((session) => {
-      if (!session.authed || session.uid !== Number(uid)) { localStorage.removeItem("sl_auth"); setUnauth(true); return; }
-      if (session.sessionToken) {
-        localStorage.setItem("sl_auth", JSON.stringify({ uid: Number(uid), sessionToken: session.sessionToken }));
-      }
+    if (!uid) { navigate("/", { replace: true }); return; }
+    let storedToken: string | null = null;
+    try {
+      const saved = JSON.parse(localStorage.getItem("sl_auth") || "null");
+      storedToken = saved?.sessionToken || null;
+    } catch {}
+    const qs = token ? `token=${encodeURIComponent(token)}` : (storedToken ? `s=${encodeURIComponent(storedToken)}` : "");
+    const loadMe = () => {
       fetchMe().then((data) => {
         if (data) setUser(data);
-        else { localStorage.removeItem("sl_auth"); setUnauth(true); }
+        else { localStorage.clear(); setUnauth(true); }
       });
-    }).catch(() => setUnauth(true));
+    };
+    fetch(`/api/auth/verify?${qs}`).then(r => r.json()).then((session) => {
+      if (session?.authed) {
+        if (session.sessionToken) {
+          localStorage.setItem("sl_auth", JSON.stringify({ uid: session.uid, sessionToken: session.sessionToken }));
+        }
+        if (session.uid !== Number(uid)) {
+          navigate(`/dashboard?uid=${session.uid}`, { replace: true });
+          return;
+        }
+        if (token) navigate(`/dashboard?uid=${session.uid}`, { replace: true });
+        loadMe();
+        return;
+      }
+      if (token && storedToken) {
+        fetch(`/api/auth/verify?s=${encodeURIComponent(storedToken)}`).then(r => r.json()).then((s2) => {
+          if (s2?.authed) {
+            navigate(`/dashboard?uid=${s2.uid}`, { replace: true });
+            return;
+          }
+          localStorage.clear(); setUnauth(true);
+        }).catch(() => { localStorage.clear(); setUnauth(true); });
+        return;
+      }
+      localStorage.clear(); setUnauth(true);
+    }).catch(() => { localStorage.clear(); setUnauth(true); });
   }, [searchParams]);
+
+  useEffect(() => { if (unauth) localStorage.clear(); }, [unauth]);
 
   if (unauth) return (
     <div className="relative min-h-screen flex items-center justify-center bg-black">
