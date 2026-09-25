@@ -1,42 +1,39 @@
-import { createClient } from "@supabase/supabase-js";
 import crypto from "crypto";
+import { GetTurso } from "../../_lib/turso.js";
 
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const supabase = SUPABASE_URL && SUPABASE_SERVICE_KEY ? createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY) : null;
-const SECRET = process.env.SESSION_SECRET || "sire-dev-secret-do-not-use-in-prod";
+const Secret = process.env.SESSION_SECRET || "sire-dev-secret-do-not-use-in-prod";
 
-function signUid(uid) {
-  const payload = `${uid}:${crypto.createHmac("sha256", SECRET).update(String(uid)).digest("hex")}`;
-  return Buffer.from(payload).toString("base64url");
+function SignUid(Uid) {
+  const Payload = `${Uid}:${crypto.createHmac("sha256", Secret).update(String(Uid)).digest("hex")}`;
+  return Buffer.from(Payload).toString("base64url");
 }
 
-function unsignToken(token) {
+function UnsignToken(Token) {
   try {
-    const payload = Buffer.from(token, "base64url").toString();
-    const colon = payload.indexOf(":");
-    if (colon === -1) return null;
-    const uid = payload.slice(0, colon);
-    const sig = payload.slice(colon + 1);
-    const expected = crypto.createHmac("sha256", SECRET).update(uid).digest("hex");
-    if (sig !== expected || !uid) return null;
-    return Number(uid);
+    const Payload = Buffer.from(String(Token), "base64url").toString();
+    const Colon = Payload.indexOf(":");
+    if (Colon === -1) return null;
+    const Uid = Payload.slice(0, Colon);
+    const Sig = Payload.slice(Colon + 1);
+    const Expected = crypto.createHmac("sha256", Secret).update(Uid).digest("hex");
+    if (Sig !== Expected || !Uid) return null;
+    return Number(Uid);
   } catch {
     return null;
   }
 }
 
-function getSessionUid(req) {
-  const raw = (req.headers.cookie || "").match(/(?:^|;\s*)sl_session=([^;]+)/)?.[1];
-  if (!raw) return null;
+function GetSessionUid(Req) {
+  const Raw = (Req.headers.cookie || "").match(/(?:^|;\s*)sl_session=([^;]+)/)?.[1];
+  if (!Raw) return null;
   try {
-    return unsignToken(decodeURIComponent(raw));
+    return UnsignToken(decodeURIComponent(Raw));
   } catch {
     return null;
   }
 }
 
-const DEFAULT_COLORS = {
+const DefaultColors = {
   accent_color: "rgba(255, 255, 255, 0.05)",
   text_color: "#ffffff",
   background_color: "#080808",
@@ -46,149 +43,127 @@ const DEFAULT_COLORS = {
   secondary_color: "rgba(255, 255, 255, 0.15)",
 };
 
-async function makeUniqueUsername(base) {
-  const sanitized = String(base || "user").replace(/[^a-zA-Z0-9_]/g, "").toLowerCase().slice(0, 20) || "user";
-  let username = sanitized;
-  let i = 1;
+async function MakeUniqueUsername(Base, Db) {
+  const Sanitized = String(Base || "user").replace(/[^a-zA-Z0-9_]/g, "").toLowerCase().slice(0, 20) || "user";
+  let Username = Sanitized;
+  let I = 1;
   for (;;) {
-    const { data } = await supabase.from("users").select("id").eq("username", username).maybeSingle();
-    if (!data) return username;
-    username = `${sanitized}_${i}`.slice(0, 24);
-    i += 1;
+    const Rs = await Db.execute({ sql: "SELECT id FROM users WHERE username = ? LIMIT 1", args: [Username] });
+    if ((Rs.rows?.length || 0) === 0) return Username;
+    Username = `${Sanitized}_${I}`.slice(0, 24);
+    I += 1;
   }
 }
 
 export default async function handler(req, res) {
-  const CLIENT_ID = process.env.DISCORD_CLIENT_ID;
-  const CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
-
-  if (!CLIENT_ID || !CLIENT_SECRET) {
+  const ClientId = process.env.DISCORD_CLIENT_ID;
+  const ClientSecret = process.env.DISCORD_CLIENT_SECRET;
+  if (!ClientId || !ClientSecret) {
     res.status(500).json({ error: "Discord OAuth not configured" });
     return;
   }
-
-  const { code } = req.query;
-  if (!code) {
+  const { code: Code } = req.query || {};
+  if (!Code) {
     res.status(400).json({ error: "Missing authorization code" });
     return;
   }
-
-  const APP_URL = process.env.APP_URL || `http://localhost:${process.env.PORT || 3000}`;
-  const REDIRECT_URI = `${APP_URL}/api/auth/discord/callback`;
-
+  const AppUrl = process.env.APP_URL || `http://localhost:${process.env.PORT || 3000}`;
+  const RedirectUri = `${AppUrl}/api/auth/discord/callback`;
   try {
-    const tokenRes = await fetch("https://discord.com/api/oauth2/token", {
+    const TokenRes = await fetch("https://discord.com/api/oauth2/token", {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({
-        client_id: CLIENT_ID,
-        client_secret: CLIENT_SECRET,
+        client_id: ClientId,
+        client_secret: ClientSecret,
         grant_type: "authorization_code",
-        code,
-        redirect_uri: REDIRECT_URI,
+        code: String(Code),
+        redirect_uri: RedirectUri,
       }),
     });
-
-    if (!tokenRes.ok) {
-      const err = await tokenRes.text();
-      console.error("Discord token error:", err);
+    if (!TokenRes.ok) {
+      const ErrText = await TokenRes.text();
+      console.error("Discord token error:", ErrText);
       res.status(500).json({ error: "Token exchange failed" });
       return;
     }
-
-    const { access_token } = await tokenRes.json();
-    const userRes = await fetch("https://discord.com/api/users/@me", { headers: { Authorization: `Bearer ${access_token}` } });
-    const user = await userRes.json();
-
-    const discordId = String(user.id);
-    const discordName = user.global_name || user.username;
-    const avatarUrl = `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png`;
-
-    if (!supabase) { res.status(500).json({ error: "Supabase not configured" }); return; }
-
-    const sessionUid = getSessionUid(req);
-    let uid;
-
-    if (sessionUid) {
-      // Already logged in -> LINK Discord to the existing account, never create a new one.
-      const { data: current, error: curErr } = await supabase
-        .from("users")
-        .select("id, provider, provider_id, discord_id")
-        .eq("id", sessionUid)
-        .maybeSingle();
-      if (curErr || !current) {
+    const { access_token: AccessToken } = await TokenRes.json();
+    const UserRes = await fetch("https://discord.com/api/users/@me", { headers: { Authorization: `Bearer ${AccessToken}` } });
+    const User = await UserRes.json();
+    const DiscordId = String(User.id);
+    const DiscordName = User.global_name || User.username;
+    const AvatarUrl = `https://cdn.discordapp.com/avatars/${User.id}/${User.avatar}.png`;
+    const Db = GetTurso();
+    if (!Db) { res.status(500).json({ error: "turso not configured" }); return; }
+    const SessionUid = GetSessionUid(req);
+    let Uid;
+    if (SessionUid) {
+      const CurRs = await Db.execute({ sql: "SELECT id, provider, provider_id, discord_id FROM users WHERE id = ? LIMIT 1", args: [SessionUid] });
+      const Current = CurRs.rows?.[0];
+      if (!Current) {
         res.status(401).json({ error: "Account not found" });
         return;
       }
-
-      if (current.discord_id === discordId || (current.provider === "discord" && current.provider_id === discordId)) {
-        uid = current.id;
+      if (Current.discord_id === DiscordId || (Current.provider === "discord" && Current.provider_id === DiscordId)) {
+        Uid = Current.id;
       } else {
-        const { data: clashById } = await supabase.from("users").select("id").eq("discord_id", discordId).neq("id", current.id).limit(1).maybeSingle();
-        const { data: clashByProvider } = await supabase.from("users").select("id").eq("provider", "discord").eq("provider_id", discordId).neq("id", current.id).limit(1).maybeSingle();
-        if (clashById || clashByProvider) {
+        const ClashIdRs = await Db.execute({ sql: "SELECT id FROM users WHERE discord_id = ? AND id != ? LIMIT 1", args: [DiscordId, Current.id] });
+        const ClashProvRs = await Db.execute({ sql: "SELECT id FROM users WHERE provider = 'discord' AND provider_id = ? AND id != ? LIMIT 1", args: [DiscordId, Current.id] });
+        if ((ClashIdRs.rows?.length || 0) > 0 || (ClashProvRs.rows?.length || 0) > 0) {
           res.status(409).json({ error: "This Discord account is already linked to a different sire.lol account." });
           return;
         }
-
-        const { error: upErr } = await supabase
-          .from("users")
-          .update({ discord_id: discordId, avatar_url: avatarUrl })
-          .eq("id", current.id);
-        if (upErr) {
-          console.error("Discord link error:", upErr);
+        try {
+          await Db.execute({ sql: "UPDATE users SET discord_id = ?, avatar_url = ? WHERE id = ?", args: [DiscordId, AvatarUrl, Current.id] });
+        } catch (UpErr) {
+          console.error("Discord link error:", UpErr);
           res.status(500).json({ error: "Failed to link Discord" });
           return;
         }
-        uid = current.id;
+        Uid = Current.id;
       }
     } else {
-      // Not logged in -> sign in (or sign up) with Discord.
-      const { data: byLinked } = await supabase.from("users").select("id").eq("discord_id", discordId).maybeSingle();
-      if (byLinked) {
-        uid = byLinked.id;
+      const ByLinkedRs = await Db.execute({ sql: "SELECT id FROM users WHERE discord_id = ? LIMIT 1", args: [DiscordId] });
+      const ByLinked = ByLinkedRs.rows?.[0];
+      if (ByLinked) {
+        Uid = ByLinked.id;
       } else {
-        const { data: legacy } = await supabase.from("users").select("id").eq("provider", "discord").eq("provider_id", discordId).maybeSingle();
-        if (legacy) {
-          uid = legacy.id;
-          await supabase.from("users").update({ discord_id: discordId }).eq("id", legacy.id);
+        const LegacyRs = await Db.execute({ sql: "SELECT id FROM users WHERE provider = 'discord' AND provider_id = ? LIMIT 1", args: [DiscordId] });
+        const Legacy = LegacyRs.rows?.[0];
+        if (Legacy) {
+          Uid = Legacy.id;
+          await Db.execute({ sql: "UPDATE users SET discord_id = ? WHERE id = ?", args: [DiscordId, Legacy.id] });
         } else {
-          const username = await makeUniqueUsername(discordName);
-          const { data: created, error: insertError } = await supabase.from("users").insert({
-            provider: "discord",
-            provider_id: discordId,
-            username,
-            email: user.email || null,
-            avatar_url: avatarUrl,
-            discord_id: discordId,
-            ...DEFAULT_COLORS,
-          }).select("id").single();
-          if (insertError || !created) {
-            console.error("User creation error:", insertError);
+          const Username = await MakeUniqueUsername(DiscordName, Db);
+          try {
+            const Ins = await Db.execute({
+              sql: "INSERT INTO users (provider, provider_id, username, email, avatar_url, discord_id, accent_color, text_color, background_color, icon_color, bg_effect_color, primary_color, secondary_color) VALUES ('discord', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+              args: [DiscordId, Username, User.email || null, AvatarUrl, DiscordId, DefaultColors.accent_color, DefaultColors.text_color, DefaultColors.background_color, DefaultColors.icon_color, DefaultColors.bg_effect_color, DefaultColors.primary_color, DefaultColors.secondary_color]
+            });
+            Uid = Number(Ins.lastInsertRowid);
+          } catch (InsErr) {
+            console.error("User creation error:", InsErr);
             res.status(500).json({ error: "User creation failed" });
             return;
           }
-          uid = created.id;
         }
       }
     }
-
-    const BOT_TOKEN = process.env.DISCORD_BOT_TOKEN;
-    const GUILD_ID = process.env.DISCORD_GUILD_ID;
-    if (BOT_TOKEN && GUILD_ID) {
-      fetch(`https://discord.com/api/guilds/${GUILD_ID}/members/${user.id}`, {
+    const BotToken = process.env.DISCORD_BOT_TOKEN;
+    const GuildId = process.env.DISCORD_GUILD_ID;
+    if (BotToken && GuildId) {
+      fetch(`https://discord.com/api/guilds/${GuildId}/members/${User.id}`, {
         method: "PUT",
-        headers: { "Authorization": `Bot ${BOT_TOKEN}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ access_token }),
+        headers: { "Authorization": `Bot ${BotToken}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ access_token: AccessToken }),
       }).catch(() => {});
     }
-
-    const signed = signUid(uid);
-    res.setHeader("Set-Cookie", `sl_session=${signed}; HttpOnly; SameSite=Lax; Max-Age=${30 * 24 * 60 * 60}; Path=/`);
-    res.writeHead(302, { Location: `${APP_URL}/auth?discord_success=true&uid=${uid}&token=${encodeURIComponent(signed)}` });
+    const Signed = SignUid(Uid);
+    res.setHeader("Set-Cookie", `sl_session=${Signed}; HttpOnly; SameSite=Lax; Max-Age=${30 * 24 * 60 * 60}; Path=/`);
+    res.writeHead(302, { Location: `${AppUrl}/auth?discord_success=true&uid=${Uid}&token=${encodeURIComponent(Signed)}` });
     res.end();
-  } catch (err) {
-    console.error("Discord callback error:", err);
+  } catch (Err) {
+    console.error("Discord callback error:", Err);
     res.status(500).json({ error: "Internal server error" });
   }
 }

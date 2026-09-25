@@ -1,14 +1,8 @@
-import { createClient } from "@supabase/supabase-js";
 import crypto from "crypto";
-import { Readable } from "node:stream";
 import React from "react";
 import { ImageResponse } from "@vercel/og";
+import { GetTurso } from "./_lib/turso.js";
 
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const supabase = SUPABASE_URL && SUPABASE_SERVICE_KEY ? createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY) : null;
-const ASSET_PUBLIC_PREFIX = SUPABASE_URL ? `${SUPABASE_URL}/storage/v1/object/public/assets/` : "";
-const ASSET_PROXY_PREFIX = "https://www.sire.lol/a/";
 const SECRET = process.env.SESSION_SECRET || "sire-dev-secret-do-not-use-in-prod";
 
 function unsignToken(token) {
@@ -72,7 +66,6 @@ const ADMIN_DELETE_TABLES = ["badges", "links", "page_views", "templates", "song
 
 const HOST_MAX_BYTES = 30 * 1024 * 1024;
 const HOST_MAX_ITEMS = 10;
-const HOST_BUCKET = "hosted";
 const HOST_MEDIA_TYPES = {
   png: "image/png",
   jpg: "image/jpeg",
@@ -113,22 +106,100 @@ function getSessionUid(req) {
   return unsignToken(req.query.sessionToken || req.query.s);
 }
 
-async function isPremiumUser(uid) {
-  const { data } = await supabase.from("badges").select("badge").eq("user_id", uid).eq("badge", "premium").limit(1);
-  return !!(data && data.length > 0);
+function Db() {
+  return GetTurso();
 }
 
-async function ensureHostBucket() {
+async function One(Sql, Args) {
+  const R = await Db().execute({ sql: Sql, args: Args || [] });
+  return (R.rows && R.rows[0]) || null;
+}
+
+async function All(Sql, Args) {
+  const R = await Db().execute({ sql: Sql, args: Args || [] });
+  return R.rows || [];
+}
+
+function ParseJson(V, Fallback) {
+  if (V === null || V === undefined) return Fallback;
+  if (typeof V !== "string") return V;
+  const S = V.trim();
+  if (!S) return Fallback;
   try {
-    await supabase.storage.createBucket(HOST_BUCKET, { public: false });
-  } catch {}
+    return JSON.parse(S);
+  } catch {
+    return Fallback;
+  }
+}
+
+const BOOL_COLS = new Set([
+  "show_username", "video_audio", "monochrome_icons", "monochrome_badges",
+  "banner_enabled", "panel_mouse_follow", "audio_autoplay", "audio_loop",
+  "audio_shuffle", "panel_hidden", "discord_rpc_enabled", "views_blacklisted",
+]);
+
+function NormalizeUser(Row) {
+  if (!Row) return Row;
+  const Out = { ...Row };
+  Out.widgets = ParseJson(Row.widgets, Row.widgets ?? []);
+  Out.desc_lines = ParseJson(Row.desc_lines, Row.desc_lines ?? null);
+  for (const K of BOOL_COLS) {
+    if (Out[K] !== undefined && Out[K] !== null && typeof Out[K] === "number") Out[K] = !!Out[K];
+  }
+  return Out;
+}
+
+function SerializeVal(V) {
+  if (V !== null && typeof V === "object") return JSON.stringify(V);
+  if (typeof V === "boolean") return V ? 1 : 0;
+  return V;
+}
+
+function BlobToBuffer(V) {
+  if (!V) return null;
+  if (Buffer.isBuffer(V)) return V;
+  if (V instanceof Uint8Array) return Buffer.from(V);
+  if (V instanceof ArrayBuffer) return Buffer.from(new Uint8Array(V));
+  if (typeof V === "string") {
+    try {
+      const B = Buffer.from(V, "base64");
+      return B.length ? B : null;
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+let SchemaReady = false;
+
+async function EnsureSchema() {
+  if (SchemaReady) return;
+  const D = Db();
+  const Stmts = [
+    "ALTER TABLE hosted_files ADD COLUMN content BLOB",
+    "ALTER TABLE templates ADD COLUMN tags TEXT",
+    "CREATE TABLE IF NOT EXISTS template_installs (user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, template_user_id INTEGER NOT NULL, created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')), UNIQUE (user_id, template_user_id))",
+    "CREATE TABLE IF NOT EXISTS template_favorites (user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, template_user_id INTEGER NOT NULL, created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')), UNIQUE (user_id, template_user_id))",
+  ];
+  for (const S of Stmts) {
+    try {
+      await D.execute(S);
+    } catch {}
+  }
+  SchemaReady = true;
+}
+
+async function isPremiumUser(uid) {
+  const R = await One("SELECT 1 AS ok FROM badges WHERE user_id = ? AND badge = 'premium' LIMIT 1", [uid]);
+  return !!R;
 }
 
 async function hostPrepare(req, res) {
   const uid = getSessionUid(req) || unsignToken(req.body?.sessionToken);
   if (!uid) { res.status(401).json({ error: "Unauthorized" }); return; }
-  const { data: user } = await supabase.from("users").select("id").eq("id", uid).maybeSingle();
-  if (!user) { res.status(401).json({ error: "Unauthorized" }); return; }
+  const Me = await One("SELECT id FROM users WHERE id = ?", [uid]);
+  if (!Me) { res.status(401).json({ error: "Unauthorized" }); return; }
   if (!(await isPremiumUser(uid))) { res.status(403).json({ error: "This is a premium feature." }); return; }
 
   const kind = req.body.kind === "file" ? "file" : "media";
@@ -141,65 +212,77 @@ async function hostPrepare(req, res) {
     contentType = HOST_MEDIA_TYPES[ext];
     if (!contentType) { res.status(400).json({ error: "Unsupported media type. Images and videos only." }); return; }
   } else {
-    contentType = HOST_FILE_TYPES[ext] || "application/octet-stream";
+    contentType = HOST_FILE_TYPES[ext] || String(req.body.contentType || "") || "application/octet-stream";
   }
 
-  const size = Number(req.body.size);
-  if (!size || size <= 0) { res.status(400).json({ error: "Invalid file size" }); return; }
-  if (size > HOST_MAX_BYTES) { res.status(413).json({ error: "File too large (max 30MB)." }); return; }
+  let Raw = req.body.contentBase64 || req.body.content || null;
+  if (typeof Raw === "string" && Raw.startsWith("data:")) {
+    const Marker = Raw.indexOf("base64,");
+    if (Marker !== -1) Raw = Raw.slice(Marker + 7);
+  }
+  if (!Raw || typeof Raw !== "string" || !Raw.length) {
+    res.status(400).json({ error: "Missing file content. Send { filename, contentBase64, contentType, kind }." });
+    return;
+  }
+  if (Raw.length > Math.ceil((HOST_MAX_BYTES * 4) / 3) + 1024) {
+    res.status(413).json({ error: "File too large (max 30MB)." });
+    return;
+  }
+  let Buf = null;
+  try {
+    Buf = Buffer.from(Raw, "base64");
+  } catch {
+    res.status(400).json({ error: "Invalid base64 content" });
+    return;
+  }
+  if (!Buf || !Buf.length) { res.status(400).json({ error: "Invalid file content" }); return; }
+  if (Buf.length > HOST_MAX_BYTES) { res.status(413).json({ error: "File too large (max 30MB)." }); return; }
 
-  const { count } = await supabase.from("hosted_files").select("id", { count: "exact", head: true }).eq("user_id", uid).eq("kind", kind);
-  if ((count || 0) >= HOST_MAX_ITEMS) {
+  const C = await One("SELECT COUNT(*) AS c FROM hosted_files WHERE user_id = ? AND kind = ?", [uid, kind]);
+  if (Number(C?.c || 0) >= HOST_MAX_ITEMS) {
     res.status(403).json({ error: `You can only host up to ${HOST_MAX_ITEMS} ${kind === "media" ? "media items" : "files"}. Delete some to make room.` });
     return;
   }
 
-  await ensureHostBucket();
-
   let id = null;
   for (let i = 0; i < 5; i++) {
     const candidate = hostShortcode();
-    const { data: existing } = await supabase.from("hosted_files").select("id").eq("id", candidate).maybeSingle();
+    const existing = await One("SELECT id FROM hosted_files WHERE id = ?", [candidate]);
     if (!existing) { id = candidate; break; }
   }
   if (!id) { res.status(500).json({ error: "Could not allocate a unique id" }); return; }
 
   const path = `${kind}/${uid}/${id}.${ext}`;
-  const { data: signed, error: signError } = await supabase.storage.from(HOST_BUCKET).createSignedUploadUrl(path);
-  if (signError || !signed) {
-    console.error("host prepare sign error:", signError);
-    res.status(500).json({ error: "Could not prepare upload" });
-    return;
-  }
-
-  const { error: insertError } = await supabase.from("hosted_files").insert({
-    id, user_id: uid, kind, filename: name, content_type: contentType, size, path,
-  });
-  if (insertError) {
-    console.error("host prepare insert error:", insertError);
-    res.status(500).json({ error: "Could not prepare upload" });
+  try {
+    await Db().execute({
+      sql: "INSERT INTO hosted_files (id, user_id, kind, filename, content_type, size, path, content) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+      args: [id, uid, kind, name, contentType, Buf.length, path, Buf],
+    });
+  } catch (e) {
+    console.error("host prepare insert error:", e);
+    res.status(500).json({ error: "Could not store upload" });
     return;
   }
 
   const appUrl = process.env.APP_URL || "https://sire.lol";
   const slug = kind === "media" ? "i" : "f";
-  res.status(200).json({ id, url: `${appUrl}/${slug}/${id}`, signedUrl: signed.signedUrl, path: signed.path, token: signed.token });
+  res.status(200).json({ id, url: `${appUrl}/${slug}/${id}`, size: Buf.length, contentType });
 }
 
 async function hostList(req, res) {
   const uid = getSessionUid(req);
   if (!uid) { res.status(401).json({ error: "Unauthorized" }); return; }
-  const { data, error } = await supabase.from("hosted_files")
-    .select("id, kind, filename, content_type, size, views, created_at")
-    .eq("user_id", uid)
-    .order("created_at", { ascending: false });
-  if (error) {
-    console.error("host list error:", error);
+  try {
+    const Rows = await All(
+      "SELECT id, kind, filename, content_type, size, views, created_at FROM hosted_files WHERE user_id = ? ORDER BY created_at DESC",
+      [uid]
+    );
+    const appUrl = process.env.APP_URL || "https://sire.lol";
+    res.status(200).json({ items: Rows.map((r) => ({ ...r, url: `${appUrl}/${r.kind === "media" ? "i" : "f"}/${r.id}` })) });
+  } catch (e) {
+    console.error("host list error:", e);
     res.status(500).json({ error: "Failed to load" });
-    return;
   }
-  const appUrl = process.env.APP_URL || "https://sire.lol";
-  res.status(200).json({ items: (data || []).map((r) => ({ ...r, url: `${appUrl}/${r.kind === "media" ? "i" : "f"}/${r.id}` })) });
 }
 
 async function hostDelete(req, res) {
@@ -207,62 +290,71 @@ async function hostDelete(req, res) {
   if (!uid) { res.status(401).json({ error: "Unauthorized" }); return; }
   const id = String(req.query.id || "");
   if (!id) { res.status(400).json({ error: "Missing id" }); return; }
-  const { data: row } = await supabase.from("hosted_files").select("path").eq("id", id).eq("user_id", uid).maybeSingle();
+  const row = await One("SELECT id FROM hosted_files WHERE id = ? AND user_id = ?", [id, uid]);
   if (!row) { res.status(404).json({ error: "Not found" }); return; }
-  await supabase.storage.from(HOST_BUCKET).remove([row.path]);
-  await supabase.from("hosted_files").delete().eq("id", id).eq("user_id", uid);
+  await Db().execute({ sql: "DELETE FROM hosted_files WHERE id = ? AND user_id = ?", args: [id, uid] });
   res.status(200).json({ ok: true });
 }
 
 async function hostServe(req, res) {
-  const code = String(req.params?.code || req.query?.code || "").trim();
+  const code = String(req.params?.code || req.query?.code || "").trim().split("?")[0].split("/")[0];
   const viaPath = String(req.path || "").startsWith("/f/");
   const kind = req.query.k === "file" || viaPath ? "file" : "media";
   if (!code) { res.status(404).json({ error: "Not found" }); return; }
 
-  const { data: row } = await supabase.from("hosted_files").select("*").eq("id", code).eq("kind", kind).maybeSingle();
+  let row = await One("SELECT * FROM hosted_files WHERE id = ? AND kind = ?", [code, kind]);
+  if (!row) row = await One("SELECT * FROM hosted_files WHERE id = ?", [code]);
   if (!row) { res.status(404).json({ error: "Not found" }); return; }
 
-  const { data: blob, error } = await supabase.storage.from(HOST_BUCKET).download(row.path);
-  if (error || !blob) { res.status(404).json({ error: "Not found" }); return; }
+  const buffer = BlobToBuffer(row.content);
+  if (!buffer || !buffer.length) { res.status(404).json({ error: "Not found" }); return; }
 
-  const buffer = Buffer.from(await blob.arrayBuffer());
   res.status(200)
-    .setHeader("Content-Type", row.content_type)
+    .setHeader("Content-Type", row.content_type || "application/octet-stream")
     .setHeader("Content-Length", buffer.byteLength)
     .setHeader("Cache-Control", "public, max-age=31536000, immutable");
-  if (kind === "file") {
+  if (row.kind === "file") {
     res.setHeader("Content-Disposition", `inline; filename="${String(row.filename || "file")}"`);
   }
   res.send(buffer);
 
-  supabase.from("hosted_files").update({ views: (row.views || 0) + 1 }).eq("id", code)
-    .then(() => {}).catch(() => {});
+  try {
+    await Db().execute({ sql: "UPDATE hosted_files SET views = ? WHERE id = ?", args: [Number(row.views || 0) + 1, code] });
+  } catch {}
 }
 
 async function assetServe(req, res) {
-  const path = String(req.query.p || req.params?.path || "").trim().replace(/^\/+/, "");
-  if (!path || path.includes("..") || path.length > 300) {
+  const Raw = String(req.query.p || req.params?.path || "").trim().replace(/^\/+/, "").split("?")[0].split("#")[0];
+  if (!Raw || Raw.includes("..") || Raw.length > 300) {
     res.status(400).json({ error: "Invalid path" });
     return;
   }
-  const upstream = `${ASSET_PUBLIC_PREFIX}${path}`;
-  try {
-    const up = await fetch(upstream, { redirect: "follow" });
-    if (!up.ok) {
-      res.status(404).json({ error: "Not found" });
-      return;
-    }
-    const type = (up.headers.get("content-type") || "application/octet-stream").split(";")[0];
-    res.status(200)
-      .setHeader("Content-Type", type)
-      .setHeader("Cache-Control", "public, max-age=31536000, s-maxage=31536000, immutable");
-    if (up.headers.get("content-length")) res.setHeader("Content-Length", up.headers.get("content-length"));
-    Readable.fromWeb(up.body).pipe(res);
-  } catch {
-    if (!res.headersSent) res.status(502).json({ error: "Upstream error" });
-    else res.end();
+  const Segs = Raw.split("/").filter(Boolean);
+  const Base = Segs.length ? Segs[Segs.length - 1] : "";
+  const Candidates = [Raw, Base];
+  if (Base.includes(".")) Candidates.push(Base.split(".")[0]);
+  let row = null;
+  for (const C of Candidates) {
+    if (!C) continue;
+    row = await One("SELECT * FROM hosted_files WHERE id = ?", [C]);
+    if (row) break;
+    row = await One("SELECT * FROM hosted_files WHERE path = ?", [C]);
+    if (row) break;
   }
+  if (!row) { res.status(404).json({ error: "Not found" }); return; }
+  const buffer = BlobToBuffer(row.content);
+  if (!buffer || !buffer.length) { res.status(404).json({ error: "Not found" }); return; }
+  res.status(200)
+    .setHeader("Content-Type", row.content_type || "application/octet-stream")
+    .setHeader("Content-Length", buffer.byteLength)
+    .setHeader("Cache-Control", "public, max-age=31536000, immutable");
+  if (row.kind === "file") {
+    res.setHeader("Content-Disposition", `inline; filename="${String(row.filename || "file")}"`);
+  }
+  res.send(buffer);
+  try {
+    await Db().execute({ sql: "UPDATE hosted_files SET views = ? WHERE id = ?", args: [Number(row.views || 0) + 1, row.id] });
+  } catch {}
 }
 
 const OG_FONT_URL = "https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,800&display=swap";
@@ -300,11 +392,8 @@ async function ogImage(req, res) {
     return;
   }
 
-  const { data: user } = await supabase
-    .from("users")
-    .select("username,display_name,avatar_url")
-    .or(`username.eq.${username},alias.eq.${username}`)
-    .maybeSingle();
+  let user = await One("SELECT username, display_name, avatar_url FROM users WHERE username = ? LIMIT 1", [username]);
+  if (!user) user = await One("SELECT username, display_name, avatar_url FROM users WHERE alias = ? LIMIT 1", [username]);
   if (!user) {
     res.status(404).json({ error: "not found" });
     return;
@@ -378,10 +467,13 @@ async function ogImage(req, res) {
 }
 
 export default async function handler(req, res) {
-  if (!supabase) {
-    res.status(500).json({ error: "Supabase not configured" });
+  if (!Db()) {
+    res.status(500).json({ error: "Turso not configured" });
     return;
   }
+  try {
+    await EnsureSchema();
+  } catch {}
 
   if (req.method === "GET") {
     const action = req.query.action;
@@ -393,9 +485,9 @@ export default async function handler(req, res) {
     const sessionToken = req.query.sessionToken || req.query.s;
     const uid = unsignToken(sessionToken);
     if (!uid) { res.status(401).json({ error: "Unauthorized" }); return; }
-    const { data } = await supabase.from("users").select("*").eq("id", uid).single();
-    if (!data) { res.status(404).json({ error: "User not found" }); return; }
-    res.status(200).json({ user: data });
+    const Row = await One("SELECT * FROM users WHERE id = ?", [uid]);
+    if (!Row) { res.status(404).json({ error: "User not found" }); return; }
+    res.status(200).json({ user: NormalizeUser(Row) });
     return;
   }
 
@@ -433,7 +525,15 @@ export default async function handler(req, res) {
           res.status(403).json({ error: "This is a premium feature." });
           return;
         }
-        const w = data.widgets;
+        let w = data.widgets;
+        if (typeof w === "string") {
+          try {
+            w = JSON.parse(w);
+          } catch {
+            res.status(400).json({ error: "Invalid widgets" });
+            return;
+          }
+        }
         if (!w || typeof w !== "object" || Array.isArray(w)) {
           res.status(400).json({ error: "Invalid widgets" });
           return;
@@ -478,6 +578,13 @@ export default async function handler(req, res) {
           projects: { projects: projectList },
         };
       }
+      if (data.desc_lines !== undefined && data.desc_lines !== null && typeof data.desc_lines !== "string" && typeof data.desc_lines !== "number") {
+        if (Array.isArray(data.desc_lines)) {
+          data.desc_lines = data.desc_lines.map((l) => String(l || "")).slice(0, 20);
+        } else {
+          data.desc_lines = null;
+        }
+      }
       const premiumField = Object.keys(data).find((k) => PREMIUM_VALUES[k] && PREMIUM_VALUES[k].has(String(data[k])));
       if (premiumField && !(await isPremiumUser(uid))) {
         res.status(403).json({ error: "This is a premium feature." });
@@ -489,8 +596,8 @@ export default async function handler(req, res) {
           res.status(400).json({ error: "Username can only contain letters, numbers, and underscores (max 20)" });
           return;
         }
-        const { data: clashU } = await supabase.from("users").select("id").eq("username", data.username).neq("id", uid).maybeSingle();
-        const { data: clashA } = await supabase.from("users").select("id").eq("alias", data.username).neq("id", uid).maybeSingle();
+        const clashU = await One("SELECT id FROM users WHERE username = ? AND id != ? LIMIT 1", [data.username, uid]);
+        const clashA = await One("SELECT id FROM users WHERE alias = ? AND id != ? LIMIT 1", [data.username, uid]);
         if (clashU || clashA) { res.status(409).json({ error: "Username taken" }); return; }
       }
       if (data.alias !== undefined && data.alias !== null) {
@@ -502,19 +609,23 @@ export default async function handler(req, res) {
             res.status(400).json({ error: "Alias can only contain letters, numbers, and underscores (max 20)" });
             return;
           }
-          const { data: clashU } = await supabase.from("users").select("id").eq("username", data.alias).neq("id", uid).maybeSingle();
-          const { data: clashA } = await supabase.from("users").select("id").eq("alias", data.alias).neq("id", uid).maybeSingle();
+          const clashU = await One("SELECT id FROM users WHERE username = ? AND id != ? LIMIT 1", [data.alias, uid]);
+          const clashA = await One("SELECT id FROM users WHERE alias = ? AND id != ? LIMIT 1", [data.alias, uid]);
           if (clashU || clashA) { res.status(409).json({ error: "Alias taken" }); return; }
         }
       }
-      const { error } = await supabase.from("users").update(data).eq("id", uid);
-      if (error) {
-        console.error("me update error:", error);
+      const Keys = Object.keys(data);
+      const Sets = Keys.map((K) => `${K} = ?`).join(", ");
+      const Vals = Keys.map((K) => SerializeVal(data[K]));
+      try {
+        await Db().execute({ sql: `UPDATE users SET ${Sets} WHERE id = ?`, args: [...Vals, uid] });
+      } catch (e) {
+        console.error("me update error:", e);
         res.status(500).json({ error: "Failed to save" });
         return;
       }
-      const { data: fresh } = await supabase.from("users").select("*").eq("id", uid).single();
-      res.status(200).json({ ok: true, user: fresh });
+      const fresh = await One("SELECT * FROM users WHERE id = ?", [uid]);
+      res.status(200).json({ ok: true, user: NormalizeUser(fresh) });
       return;
     }
 
@@ -525,17 +636,13 @@ export default async function handler(req, res) {
         res.status(400).json({ error: "Invalid asset" });
         return;
       }
-      let stored = url;
-      if (ASSET_PUBLIC_PREFIX && url.startsWith(ASSET_PUBLIC_PREFIX)) {
-        const path = url.slice(ASSET_PUBLIC_PREFIX.length).split("?")[0];
-        stored = `${ASSET_PROXY_PREFIX}${path}?t=${Date.now()}`;
-      }
-      const { error } = await supabase.from("assets").upsert(
-        { user_id: uid, type, url: stored },
-        { onConflict: "user_id,type" }
-      );
-      if (error) {
-        console.error("me asset_upsert error:", error);
+      try {
+        await Db().execute({
+          sql: "INSERT INTO assets (user_id, type, url) VALUES (?, ?, ?) ON CONFLICT(user_id, type) DO UPDATE SET url = excluded.url",
+          args: [uid, type, url],
+        });
+      } catch (e) {
+        console.error("me asset_upsert error:", e);
         res.status(500).json({ error: "Failed to save asset" });
         return;
       }
@@ -549,7 +656,7 @@ export default async function handler(req, res) {
         res.status(400).json({ error: "Invalid asset" });
         return;
       }
-      await supabase.from("assets").delete().eq("user_id", uid).eq("type", type);
+      await Db().execute({ sql: "DELETE FROM assets WHERE user_id = ? AND type = ?", args: [uid, type] });
       res.status(200).json({ ok: true });
       return;
     }
@@ -566,12 +673,13 @@ export default async function handler(req, res) {
         res.status(400).json({ error: "URL too long" });
         return;
       }
-      const { error } = await supabase.from("links").upsert(
-        { user_id: uid, platform, url },
-        { onConflict: "user_id,platform" }
-      );
-      if (error) {
-        console.error("me link_upsert error:", error);
+      try {
+        await Db().execute({
+          sql: "INSERT INTO links (user_id, platform, url) VALUES (?, ?, ?) ON CONFLICT(user_id, platform) DO UPDATE SET url = excluded.url",
+          args: [uid, platform, url],
+        });
+      } catch (e) {
+        console.error("me link_upsert error:", e);
         res.status(500).json({ error: "Failed to save link" });
         return;
       }
@@ -580,7 +688,7 @@ export default async function handler(req, res) {
     }
 
     case "link_delete": {
-      await supabase.from("links").delete().eq("user_id", uid).eq("platform", String(req.body.platform || ""));
+      await Db().execute({ sql: "DELETE FROM links WHERE user_id = ? AND platform = ?", args: [uid, String(req.body.platform || "")] });
       res.status(200).json({ ok: true });
       return;
     }
@@ -593,9 +701,9 @@ export default async function handler(req, res) {
         return;
       }
       if (action === "badge_set") {
-        await supabase.from("badges").upsert({ user_id: uid, badge }, { onConflict: "user_id,badge" });
+        await Db().execute({ sql: "INSERT OR IGNORE INTO badges (user_id, badge) VALUES (?, ?)", args: [uid, badge] });
       } else {
-        await supabase.from("badges").delete().eq("user_id", uid).eq("badge", badge);
+        await Db().execute({ sql: "DELETE FROM badges WHERE user_id = ? AND badge = ?", args: [uid, badge] });
       }
       res.status(200).json({ ok: true });
       return;
@@ -603,40 +711,48 @@ export default async function handler(req, res) {
 
     case "template_toggle": {
       if (req.body.on !== true) {
-        await supabase.from("templates").delete().eq("user_id", uid);
+        await Db().execute({ sql: "DELETE FROM templates WHERE user_id = ?", args: [uid] });
         res.status(200).json({ ok: true });
         return;
       }
-      const { data: user } = await supabase.from("users").select("*").eq("id", uid).single();
+      const user = await One("SELECT * FROM users WHERE id = ?", [uid]);
       if (!user) { res.status(404).json({ error: "User not found" }); return; }
       const t = {};
       for (const f of TEMPLATE_FIELDS) {
-        if (user[f] !== undefined) t[f] = user[f];
+        if (f === "tags") continue;
+        if (user[f] !== undefined && user[f] !== null) t[f] = user[f];
       }
       if (Array.isArray(req.body.tags)) {
-        t.tags = req.body.tags.slice(0, 10).map((x) => String(x).toLowerCase().trim()).filter(Boolean);
+        t.tags = JSON.stringify(req.body.tags.slice(0, 10).map((x) => String(x).toLowerCase().trim()).filter(Boolean));
       } else {
-        t.tags = [];
+        t.tags = JSON.stringify([]);
       }
-      const { error } = await supabase.from("templates").upsert({ user_id: uid, ...t }, { onConflict: "user_id" });
-      if (error) {
-        console.error("me template_toggle error:", error);
+      const Cols = Object.keys(t);
+      try {
+        if (!Cols.length) {
+          await Db().execute({ sql: "INSERT OR IGNORE INTO templates (user_id) VALUES (?)", args: [uid] });
+        } else {
+          const Names = ["user_id", ...Cols].join(", ");
+          const Place = ["?", ...Cols.map(() => "?")].join(", ");
+          const Sets = Cols.map((C) => `${C} = excluded.${C}`).join(", ");
+          const Vals = Cols.map((C) => SerializeVal(t[C]));
+          await Db().execute({ sql: `INSERT INTO templates (${Names}) VALUES (${Place}) ON CONFLICT(user_id) DO UPDATE SET ${Sets}`, args: [uid, ...Vals] });
+        }
+      } catch (e) {
+        console.error("me template_toggle error:", e);
         res.status(500).json({ error: "Failed to save template" });
         return;
       }
-      res.status(200).json({ ok: true, tags: t.tags });
+      res.status(200).json({ ok: true, tags: JSON.parse(t.tags) });
       return;
     }
 
     case "template_install": {
       const targetUserId = Number(req.body.targetUserId);
       if (!targetUserId || targetUserId === uid) { res.status(400).json({ error: "Invalid target" }); return; }
-      const { data: exists } = await supabase.from("templates").select("user_id").eq("user_id", targetUserId).maybeSingle();
+      const exists = await One("SELECT user_id FROM templates WHERE user_id = ? LIMIT 1", [targetUserId]);
       if (!exists) { res.status(404).json({ error: "Template not found" }); return; }
-      await supabase.from("template_installs").upsert(
-        { user_id: uid, template_user_id: targetUserId },
-        { onConflict: "user_id,template_user_id", ignoreDuplicates: true }
-      );
+      await Db().execute({ sql: "INSERT OR IGNORE INTO template_installs (user_id, template_user_id) VALUES (?, ?)", args: [uid, targetUserId] });
       res.status(200).json({ ok: true });
       return;
     }
@@ -644,12 +760,9 @@ export default async function handler(req, res) {
     case "template_favorite": {
       const targetUserId = Number(req.body.targetUserId);
       if (!targetUserId || targetUserId === uid) { res.status(400).json({ error: "Invalid target" }); return; }
-      const { data: exists } = await supabase.from("templates").select("user_id").eq("user_id", targetUserId).maybeSingle();
+      const exists = await One("SELECT user_id FROM templates WHERE user_id = ? LIMIT 1", [targetUserId]);
       if (!exists) { res.status(404).json({ error: "Template not found" }); return; }
-      await supabase.from("template_favorites").upsert(
-        { user_id: uid, template_user_id: targetUserId },
-        { onConflict: "user_id,template_user_id", ignoreDuplicates: true }
-      );
+      await Db().execute({ sql: "INSERT OR IGNORE INTO template_favorites (user_id, template_user_id) VALUES (?, ?)", args: [uid, targetUserId] });
       res.status(200).json({ ok: true });
       return;
     }
@@ -657,21 +770,27 @@ export default async function handler(req, res) {
     case "template_unfavorite": {
       const targetUserId = Number(req.body.targetUserId);
       if (!targetUserId) { res.status(400).json({ error: "Invalid target" }); return; }
-      await supabase.from("template_favorites").delete().eq("user_id", uid).eq("template_user_id", targetUserId);
+      await Db().execute({ sql: "DELETE FROM template_favorites WHERE user_id = ? AND template_user_id = ?", args: [uid, targetUserId] });
       res.status(200).json({ ok: true });
       return;
     }
 
     case "template_favorites": {
-      const { data: rows } = await supabase.from("template_favorites").select("template_user_id").eq("user_id", uid);
-      res.status(200).json({ favorites: (rows || []).map((r) => r.template_user_id) });
+      const rows = await All("SELECT template_user_id FROM template_favorites WHERE user_id = ?", [uid]);
+      res.status(200).json({ favorites: rows.map((r) => r.template_user_id) });
       return;
     }
 
     case "delete_account": {
-      const { error } = await supabase.from("users").delete().eq("id", uid);
-      if (error) {
-        console.error("me delete_account error:", error);
+      try {
+        for (const table of ["badges", "links", "page_views", "templates", "assets", "hosted_files", "template_installs", "template_favorites"]) {
+          try {
+            await Db().execute({ sql: `DELETE FROM ${table} WHERE user_id = ?`, args: [uid] });
+          } catch {}
+        }
+        await Db().execute({ sql: "DELETE FROM users WHERE id = ?", args: [uid] });
+      } catch (e) {
+        console.error("me delete_account error:", e);
         res.status(500).json({ error: "Failed to delete account" });
         return;
       }
@@ -684,12 +803,15 @@ export default async function handler(req, res) {
       if (uid !== 1) { res.status(403).json({ error: "Forbidden" }); return; }
       const targetUid = Number(req.body.targetUid);
       if (!targetUid) { res.status(400).json({ error: "Missing targetUid" }); return; }
-      for (const table of ADMIN_DELETE_TABLES) {
-        await supabase.from(table).delete().eq("user_id", targetUid);
+      for (const table of [...ADMIN_DELETE_TABLES, "assets", "hosted_files", "template_favorites"]) {
+        try {
+          await Db().execute({ sql: `DELETE FROM ${table} WHERE user_id = ?`, args: [targetUid] });
+        } catch {}
       }
-      const { error } = await supabase.from("users").delete().eq("id", targetUid);
-      if (error) {
-        console.error("me admin_delete_user error:", error);
+      try {
+        await Db().execute({ sql: "DELETE FROM users WHERE id = ?", args: [targetUid] });
+      } catch (e) {
+        console.error("me admin_delete_user error:", e);
         res.status(500).json({ error: "Failed to delete user" });
         return;
       }
@@ -707,9 +829,9 @@ export default async function handler(req, res) {
         return;
       }
       if (action === "admin_badge_set") {
-        await supabase.from("badges").upsert({ user_id: targetUid, badge }, { onConflict: "user_id,badge" });
+        await Db().execute({ sql: "INSERT OR IGNORE INTO badges (user_id, badge) VALUES (?, ?)", args: [targetUid, badge] });
       } else {
-        await supabase.from("badges").delete().eq("user_id", targetUid).eq("badge", badge);
+        await Db().execute({ sql: "DELETE FROM badges WHERE user_id = ? AND badge = ?", args: [targetUid, badge] });
       }
       res.status(200).json({ ok: true });
       return;

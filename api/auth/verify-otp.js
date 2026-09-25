@@ -1,14 +1,11 @@
-import { createClient } from "@supabase/supabase-js";
 import crypto from "crypto";
+import { GetTurso } from "../_lib/turso.js";
 
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const supabaseAdmin = SUPABASE_URL && SUPABASE_SERVICE_KEY ? createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY) : null;
-const SECRET = process.env.SESSION_SECRET || "sire-dev-secret-do-not-use-in-prod";
+const Secret = process.env.SESSION_SECRET || "sire-dev-secret-do-not-use-in-prod";
 
-function signUid(uid) {
-  const payload = `${uid}:${crypto.createHmac("sha256", SECRET).update(String(uid)).digest("hex")}`;
-  return Buffer.from(payload).toString("base64url");
+function SignUid(Uid) {
+  const Payload = `${Uid}:${crypto.createHmac("sha256", Secret).update(String(Uid)).digest("hex")}`;
+  return Buffer.from(Payload).toString("base64url");
 }
 
 export default async function handler(req, res) {
@@ -16,64 +13,40 @@ export default async function handler(req, res) {
     res.status(405).json({ error: "Method not allowed" });
     return;
   }
-
-  const { email, otp } = req.body;
-  if (!email || !otp) { res.status(400).json({ error: "Missing fields" }); return; }
-
-  if (!supabaseAdmin) { res.status(500).json({ error: "Supabase not configured" }); return; }
-
-  // Get pending registration
-  const { data: pending, error: pendingError } = await supabaseAdmin
-    .from("pending_registrations")
-    .select("*")
-    .eq("email", email)
-    .maybeSingle();
-
-  if (pendingError || !pending) {
+  const { email: Email, otp: Otp } = req.body || {};
+  if (!Email || !Otp) { res.status(400).json({ error: "Missing fields" }); return; }
+  const Db = GetTurso();
+  if (!Db) { res.status(500).json({ error: "turso not configured" }); return; }
+  const PendingRs = await Db.execute({ sql: "SELECT * FROM pending_registrations WHERE email = ? LIMIT 1", args: [String(Email)] });
+  const Pending = PendingRs.rows?.[0];
+  if (!Pending) {
     res.status(400).json({ error: "No pending registration for this email" });
     return;
   }
-
-  // Check OTP
-  const { data: stored } = await supabaseAdmin.from("otps").select("*").eq("email", email).maybeSingle();
-  if (!stored || stored.otp !== otp || new Date(stored.expires_at) < new Date()) {
+  const OtpRs = await Db.execute({ sql: "SELECT * FROM otps WHERE email = ? LIMIT 1", args: [String(Email)] });
+  const Stored = OtpRs.rows?.[0];
+  const NowIso = new Date().toISOString();
+  if (!Stored || String(Stored.otp) !== String(Otp) || String(Stored.expires_at) <= NowIso) {
     res.status(400).json({ error: "Invalid or expired OTP" });
     return;
   }
-
-  // Delete OTP
-  await supabaseAdmin.from("otps").delete().eq("email", email);
-
-  // Create user
-  const { data: user, error: userError } = await supabaseAdmin.from("users").insert({
-    provider: "email",
-    provider_id: email,
-    username: pending.username,
-    email: pending.email,
-    password_hash: pending.password_hash,
-    email_verified: true,
-    accent_color: "rgba(255, 255, 255, 0.05)",
-    text_color: "#ffffff",
-    background_color: "#080808",
-    icon_color: "#ffffff",
-    bg_effect_color: "rgba(255, 255, 255, 0.08)",
-    primary_color: "rgba(255, 255, 255, 0.1)",
-    secondary_color: "rgba(255, 255, 255, 0.15)",
-  }).select("id").single();
-
-  if (userError || !user) {
-    console.error("User creation error:", userError);
+  await Db.execute({ sql: "DELETE FROM otps WHERE email = ?", args: [String(Email)] });
+  let Uid = null;
+  try {
+    const Ins = await Db.execute({
+      sql: "INSERT INTO users (provider, provider_id, username, email, password_hash, email_verified, accent_color, text_color, background_color, icon_color, bg_effect_color, primary_color, secondary_color) VALUES ('email', ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?)",
+      args: [String(Pending.email), String(Pending.username), String(Pending.email), String(Pending.password_hash), "rgba(255, 255, 255, 0.05)", "#ffffff", "#080808", "#ffffff", "rgba(255, 255, 255, 0.08)", "rgba(255, 255, 255, 0.1)", "rgba(255, 255, 255, 0.15)"]
+    });
+    Uid = Number(Ins.lastInsertRowid);
+  } catch (Err) {
+    console.error("User creation error:", Err);
     res.status(500).json({ error: "Failed to create account" });
     return;
   }
-
-  // Log IP registration
-  await supabaseAdmin.from("ip_registrations").insert({ ip: pending.ip });
-
-  // Delete pending registration
-  await supabaseAdmin.from("pending_registrations").delete().eq("email", email);
-
-  const signed = signUid(user.id);
-  res.setHeader("Set-Cookie", `sl_session=${signed}; HttpOnly; SameSite=Lax; Max-Age=${30 * 24 * 60 * 60}; Path=/`);
-  res.status(200).json({ ok: true, uid: user.id, sessionToken: signed });
+  if (!Uid) { res.status(500).json({ error: "Failed to create account" }); return; }
+  await Db.execute({ sql: "INSERT OR IGNORE INTO ip_registrations (ip, created_at) VALUES (?, ?)", args: [String(Pending.ip), NowIso] });
+  await Db.execute({ sql: "DELETE FROM pending_registrations WHERE email = ?", args: [String(Email)] });
+  const Signed = SignUid(Uid);
+  res.setHeader("Set-Cookie", `sl_session=${Signed}; HttpOnly; SameSite=Lax; Max-Age=${30 * 24 * 60 * 60}; Path=/`);
+  res.status(200).json({ ok: true, uid: Uid, sessionToken: Signed });
 }

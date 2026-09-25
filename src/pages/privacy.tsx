@@ -35,7 +35,7 @@ export default function PrivacyPage() {
 
             <section>
               <h2 className="text-base font-semibold text-white mb-3">Data Storage and Security</h2>
-              <p>Your data is stored securely using Supabase, a hosted database service. We implement industry standard security measures including encrypted connections and secure authentication tokens.</p>
+              <p>Your data is stored securely using Turso, a hosted database service. We implement industry standard security measures including encrypted connections and secure authentication tokens.</p>
               <p className="mt-2">You can delete your account and associated data at any time by contacting us through our Discord server. Upon deletion, all your profile data, links, uploaded assets, and page views will be permanently removed.</p>
             </section>
 
@@ -46,7 +46,7 @@ export default function PrivacyPage() {
 
             <section>
               <h2 className="text-base font-semibold text-white mb-3">Third Party Services</h2>
-              <p>We use Supabase for database and storage, Discord and Google for authentication, and Vercel for hosting. Each service has its own privacy policy governing how they handle data.</p>
+              <p>We use Turso for database and storage, Discord and Google for authentication, and Vercel for hosting. Each service has its own privacy policy governing how they handle data.</p>
             </section>
 
             <section>

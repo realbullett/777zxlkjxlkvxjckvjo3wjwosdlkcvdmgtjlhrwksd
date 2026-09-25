@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Crown, Eye, Trophy, X } from "lucide-react";
-import { supabase } from "../lib/supabase";
 
 type Entry = {
   rank: number;
@@ -32,16 +31,17 @@ export default function Leaderboard({ open, onClose }: { open: boolean; onClose:
   useEffect(() => {
     if (!open) return;
     setLoading(true);
-    supabase.rpc("get_leaderboard", { period_type: period }).then(({ data, error }) => {
-      if (error || !data) { setLoading(false); return; }
-      setData((data as any[]).map((e: any, i: number) => ({
+    fetch(`/api/leaderboard?period=${period}`).then(async (R) => {
+      const J = await R.json().catch(() => null);
+      const Rows = J?.entries || [];
+      setData(Rows.map((e: any, i: number) => ({
         rank: i + 1,
         username: e.username || "unknown",
         avatar_url: e.avatar_url,
-        views: e.views,
+        views: Number(e.views || 0),
       })));
       setLoading(false);
-    });
+    }).catch(() => setLoading(false));
   }, [open, period]);
 
   const top3 = data.slice(0, 3);

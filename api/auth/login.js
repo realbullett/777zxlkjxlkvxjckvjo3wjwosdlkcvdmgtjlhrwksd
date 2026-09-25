@@ -1,46 +1,42 @@
-import { createClient } from "@supabase/supabase-js";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
+import { GetTurso } from "../_lib/turso.js";
 
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const supabase = SUPABASE_URL && SUPABASE_SERVICE_KEY ? createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY) : null;
-const SECRET = process.env.SESSION_SECRET || "sire-dev-secret-do-not-use-in-prod";
+const Secret = process.env.SESSION_SECRET || "sire-dev-secret-do-not-use-in-prod";
+const EmailJsServiceId = process.env.EMAILJS_SERVICE_ID;
+const EmailJsTemplateId = process.env.EMAILJS_TEMPLATE_ID;
+const EmailJsUserId = process.env.EMAILJS_USER_ID;
+const EmailJsAccessToken = process.env.EMAILJS_ACCESS_TOKEN;
 
-const EMAILJS_SERVICE_ID = process.env.EMAILJS_SERVICE_ID;
-const EMAILJS_TEMPLATE_ID = process.env.EMAILJS_TEMPLATE_ID;
-const EMAILJS_USER_ID = process.env.EMAILJS_USER_ID;
-const EMAILJS_ACCESS_TOKEN = process.env.EMAILJS_ACCESS_TOKEN;
-
-function signUid(uid) {
-  const payload = `${uid}:${crypto.createHmac("sha256", SECRET).update(String(uid)).digest("hex")}`;
-  return Buffer.from(payload).toString("base64url");
+function SignUid(Uid) {
+  const Payload = `${Uid}:${crypto.createHmac("sha256", Secret).update(String(Uid)).digest("hex")}`;
+  return Buffer.from(Payload).toString("base64url");
 }
 
-function generateOtp() {
+function GenerateOtp() {
   return String(Math.floor(100000 + Math.random() * 900000));
 }
 
-async function sendOtpEmail(email, otp) {
-  if (!EMAILJS_SERVICE_ID || !EMAILJS_TEMPLATE_ID || !EMAILJS_USER_ID) {
-    console.log("EmailJS not configured, OTP for", email, "is", otp);
+async function SendOtpEmail(Email, Otp) {
+  if (!EmailJsServiceId || !EmailJsTemplateId || !EmailJsUserId) {
+    console.log("EmailJS not configured, OTP for", Email, "is", Otp);
     return true;
   }
   try {
-    const res = await fetch("https://api.emailjs.com/api/v1.0/email/send", {
+    const Res = await fetch("https://api.emailjs.com/api/v1.0/email/send", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        service_id: EMAILJS_SERVICE_ID,
-        template_id: EMAILJS_TEMPLATE_ID,
-        user_id: EMAILJS_USER_ID,
-        accessToken: EMAILJS_ACCESS_TOKEN,
-        template_params: { to_email: email, otp },
+        service_id: EmailJsServiceId,
+        template_id: EmailJsTemplateId,
+        user_id: EmailJsUserId,
+        accessToken: EmailJsAccessToken,
+        template_params: { to_email: Email, otp: Otp },
       }),
     });
-    if (!res.ok) { const t = await res.text(); console.error("EmailJS error:", t); return false; }
+    if (!Res.ok) { const Text = await Res.text(); console.error("EmailJS error:", Text); return false; }
     return true;
-  } catch (e) { console.error("EmailJS send error:", e); return false; }
+  } catch (Err) { console.error("EmailJS send error:", Err); return false; }
 }
 
 export default async function handler(req, res) {
@@ -48,33 +44,28 @@ export default async function handler(req, res) {
     res.status(405).json({ error: "Method not allowed" });
     return;
   }
-
-  const { login, password } = req.body;
-  if (!login || !password) { res.status(400).json({ error: "Missing fields" }); return; }
-
-  if (!supabase) { res.status(500).json({ error: "Supabase not configured" }); return; }
-
-  const field = login.includes("@") ? "email" : "username";
-  const { data: user } = await supabase.from("users").select("*").eq(field, login).maybeSingle();
-  if (!user) { res.status(401).json({ error: "Invalid credentials" }); return; }
-  if (user.provider !== "email") { res.status(401).json({ error: "Use OAuth for this account" }); return; }
-
-  const match = await bcrypt.compare(password, user.password_hash || "");
-  if (!match) { res.status(401).json({ error: "Invalid credentials" }); return; }
-
-  if (!user.email_verified) {
-    const otp = generateOtp();
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
-    await supabase.from("otps").upsert(
-      { email: user.email, otp, expires_at: expiresAt },
-      { onConflict: "email" }
-    );
-    await sendOtpEmail(user.email, otp);
-    res.status(200).json({ needsOtp: true, email: user.email });
+  const { login: Login, password: Password } = req.body || {};
+  if (!Login || !Password) { res.status(400).json({ error: "Missing fields" }); return; }
+  const Db = GetTurso();
+  if (!Db) { res.status(500).json({ error: "turso not configured" }); return; }
+  const IsEmail = String(Login).includes("@");
+  const UserRs = IsEmail
+    ? await Db.execute({ sql: "SELECT * FROM users WHERE email = ? LIMIT 1", args: [String(Login)] })
+    : await Db.execute({ sql: "SELECT * FROM users WHERE username = ? LIMIT 1", args: [String(Login)] });
+  const User = UserRs.rows?.[0];
+  if (!User) { res.status(401).json({ error: "Invalid credentials" }); return; }
+  if (User.provider !== "email") { res.status(401).json({ error: "Use OAuth for this account" }); return; }
+  const Match = await bcrypt.compare(String(Password), User.password_hash || "");
+  if (!Match) { res.status(401).json({ error: "Invalid credentials" }); return; }
+  if (Number(User.email_verified) !== 1) {
+    const Otp = GenerateOtp();
+    const ExpiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+    await Db.execute({ sql: "INSERT OR REPLACE INTO otps (email, otp, expires_at) VALUES (?, ?, ?)", args: [User.email, Otp, ExpiresAt] });
+    await SendOtpEmail(User.email, Otp);
+    res.status(200).json({ needsOtp: true, email: User.email });
     return;
   }
-
-  const signed = signUid(user.id);
-  res.setHeader("Set-Cookie", `sl_session=${signed}; HttpOnly; SameSite=Lax; Max-Age=${30 * 24 * 60 * 60}; Path=/`);
-  res.status(200).json({ ok: true, uid: user.id, sessionToken: signed });
+  const Signed = SignUid(User.id);
+  res.setHeader("Set-Cookie", `sl_session=${Signed}; HttpOnly; SameSite=Lax; Max-Age=${30 * 24 * 60 * 60}; Path=/`);
+  res.status(200).json({ ok: true, uid: User.id, sessionToken: Signed });
 }

@@ -9,22 +9,11 @@ export default async function middleware(req) {
     const ua = (req.headers.get("user-agent") || "").toLowerCase();
     const isBot = BOT_AGENTS.some((b) => ua.includes(b));
     if (!isBot) return;
-
-    const supabaseUrl = process.env.SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_ANON_KEY;
-    if (!supabaseUrl || !supabaseKey) return;
-
     try {
-      const res = await fetch(
-        `${supabaseUrl}/rest/v1/users?select=username,updated_at&order=updated_at.desc&limit=5000`,
-        {
-          headers: {
-            apikey: supabaseKey,
-            Authorization: `Bearer ${supabaseKey}`,
-          },
-        }
-      );
-      const rows = await res.json();
+      const base = new URL(req.url).origin;
+      const res = await fetch(`${base}/api/leaderboard?period=all`, { headers: { "user-agent": ua } });
+      const j = await res.json().catch(() => null);
+      const rows = Array.isArray(j?.entries) ? j.entries : [];
       const now = new Date().toISOString().split("T")[0];
       const urls = rows
         .map((r) => {
@@ -92,10 +81,6 @@ ${urls}
   if (!isBot) return;
 
   const username = segments[0];
-  const supabaseUrl = process.env.SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_ANON_KEY;
-  if (!supabaseUrl || !supabaseKey) return;
-
   let title = "sire.lol — free biolink | one link for everything";
   let description = "create your free biolink on sire.lol — drop your links, host your files, tell your story. no templates, no bullshit.";
   let image = "https://sire.lol/logo.png";
@@ -103,19 +88,12 @@ ${urls}
   let found = false;
 
   try {
-    const res = await fetch(
-      `${supabaseUrl}/rest/v1/users?or=(username.eq.${encodeURIComponent(username)},alias.eq.${encodeURIComponent(username)})&select=username,alias,display_name,description,desc_effect,desc_lines,seo_title,seo_description,seo_image`,
-      {
-        headers: {
-          apikey: supabaseKey,
-          Authorization: `Bearer ${supabaseKey}`,
-        },
-      }
-    );
-    const rows = await res.json();
-    if (rows && rows.length > 0) {
+    const base = new URL(req.url).origin;
+    const res = await fetch(`${base}/api/profile?username=${encodeURIComponent(username)}`, { headers: { "user-agent": ua } });
+    const j = await res.json().catch(() => null);
+    const data = j?.user;
+    if (data) {
       found = true;
-      const data = rows[0];
       title = data.seo_title || data.alias || `${username} — sire.lol`;
       const twLines = data.desc_effect === "typewriter" && Array.isArray(data.desc_lines) && data.desc_lines.length
         ? data.desc_lines.join(" / ")

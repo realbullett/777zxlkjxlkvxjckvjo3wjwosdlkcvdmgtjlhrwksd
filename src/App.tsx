@@ -11,7 +11,6 @@ import { Features } from "./components/Features";
 import { Comparison } from "./components/Comparison";
 import { FAQ } from "./components/FAQ";
 import { Background } from "./components/Background";
-import { supabase } from "./lib/supabase";
 import SEO from "./components/SEO";
 
 export default function App() {
@@ -23,20 +22,12 @@ export default function App() {
 
   useEffect(() => {
     if (!marqueeInView) return;
-    supabase
-      .from("users")
-      .select("avatar_url")
-      .not("avatar_url", "is", null)
-      .limit(30)
-      .then(({ data }) => {
-        if (data) {
-          const urls = data
-            .map((a) => a.avatar_url)
-            .filter(Boolean)
-            .sort(() => Math.random() - 0.5) as string[];
-          setAvatars(urls);
-        }
-      });
+    fetch(`/api/leaderboard?period=all`).then(async (R) => {
+      const J = await R.json().catch(() => null);
+      const Rows = J?.entries || [];
+      const Urls = Rows.map((E: any) => E.avatar_url).filter(Boolean).sort(() => Math.random() - 0.5) as string[];
+      setAvatars(Urls.slice(0, 30));
+    }).catch(() => {});
   }, [marqueeInView]);
 
   const scrollToHero = () => {

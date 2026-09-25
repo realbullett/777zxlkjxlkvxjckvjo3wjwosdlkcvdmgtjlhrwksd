@@ -2,7 +2,6 @@ import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence, LayoutGroup, type Variants } from "motion/react";
 import { Eye, Link as LinkIcon } from "lucide-react";
-import { supabase } from "../lib/supabase";
 import { PLATFORMS } from "../lib/platforms";
 import { FONTS } from "../lib/fonts";
 import { SparkleText } from "../components/SparkleText";
@@ -143,30 +142,17 @@ export default function Biolink() {
     activePageRef.current = 0;
     setActivePage(0);
     if (!username) return;
-    supabase.from("users").select("id,username,alias,display_name,avatar_url,description,accent_color,text_color,background_color,icon_color,bg_effect_color,primary_color,secondary_color,show_username,display_effect,font,video_audio,bg_effect,song_platform,song_id,entry_text,entry_font,entry_color,entry_effect,desc_effect,desc_effect_speed,desc_lines,monochrome_icons,monochrome_badges,banner_enabled,seo_title,seo_description,seo_image,seo_favicon,panel_mouse_follow,audio_volume,audio_autoplay,audio_loop,audio_shuffle,cursor_effect,avatar_shape,avatar_size,avatar_offset_x,avatar_offset_y,name_offset_x,name_offset_y,badge_offset_x,badge_offset_y,desc_offset_x,desc_offset_y,song_offset_x,song_offset_y,discord_rpc_offset_x,discord_rpc_offset_y,panel_opacity,panel_hidden,discord_id,discord_rpc_enabled,views_blacklisted,widgets").or(`username.eq.${username},alias.eq.${username}`).then(({ data, error }) => {
-      const rows = data || [];
-      const match = rows.find((r) => r.username === username) || rows[0];
-      if (error || !match) setNotFound(true);
-      else {
-        setUser(match);
-        supabase.from("page_views").select("*", { count: "exact", head: true }).eq("user_id", match.id).then(({ count }) => {
-          if (count !== null) setViewCount(count);
-        });
-        supabase.from("badges").select("badge").eq("user_id", match.id).then(({ data: b }) => {
-          if (b) setBadges(b.map((r) => r.badge));
-        });
-        supabase.from("assets").select("type,url").eq("user_id", match.id).then(({ data: a }) => {
-          if (a) setAssets(a);
-        });
-        supabase.from("links").select("platform,url").eq("user_id", match.id).then(({ data: l }) => {
-          if (l) {
-            const m: Record<string, string> = {};
-            for (const x of l) m[x.platform] = x.url;
-            setLinks(m);
-          }
-        });
-      }
-    });
+    // son turso via /api kills cached egress :sob:
+    fetch(`/api/profile?username=${encodeURIComponent(username)}`).then(async (R) => {
+      if (!R.ok) { setNotFound(true); return; }
+      const J = await R.json().catch(() => null);
+      if (!J?.user) { setNotFound(true); return; }
+      setUser(J.user);
+      if (typeof J.views === "number") setViewCount(J.views);
+      if (Array.isArray(J.badges)) setBadges(J.badges);
+      if (J.links) setLinks(J.links);
+      if (Array.isArray(J.assets)) setAssets(J.assets);
+    }).catch(() => setNotFound(true));
   }, [username]);
 
   const animateScrollTo = (targetY: number, duration = 900) => {
@@ -432,23 +418,13 @@ export default function Biolink() {
       enterTimerRef.current = setTimeout(async () => {
         if (document.visibilityState !== "visible") return;
         const vid = getVisitorId();
-        const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-        const { data: existing } = await supabase
-          .from("page_views")
-          .select("id")
-          .eq("user_id", user.id)
-          .eq("visitor_id", vid)
-          .gte("viewed_at", sevenDaysAgo)
-          .maybeSingle();
-        if (!existing) {
-          const r = await fetch("/api/track-view", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ user_id: user.id, visitor_id: vid, dwell_ms: Date.now() - enteredAt }),
-          });
-          const res = await r.json().catch(() => ({}));
-          if (res.counted) setViewCount((prev) => (prev !== null ? prev + 1 : prev));
-        }
+        const r = await fetch("/api/track-view", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ user_id: user.id, visitor_id: vid, dwell_ms: Date.now() - enteredAt }),
+        });
+        const res = await r.json().catch(() => ({}));
+        if (res.counted) setViewCount((prev) => (prev !== null ? prev + 1 : prev));
       }, 3000);
     }
     if (audioRef.current && !hasSongPage && (user?.audio_autoplay ?? true)) {

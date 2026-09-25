@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { supabase } from "../lib/supabase";
 
 type PresenceRow = {
   discord_id: string;
@@ -46,14 +45,10 @@ export default function DiscordRPC({ discordId, wide = false }: { discordId: str
     let cancelled = false;
     let timer: ReturnType<typeof setInterval> | null = null;
     const load = () =>
-      supabase
-        .from("discord_presence")
-        .select("*")
-        .eq("discord_id", discordId)
-        .maybeSingle()
-        .then(({ data }) => {
-          if (!cancelled && data) setData(data);
-        });
+      fetch(`/api/presence?discord_id=${encodeURIComponent(discordId)}`).then(async (R) => {
+        const J = await R.json().catch(() => null);
+        if (!cancelled && J?.presence) setData(J.presence);
+      }).catch(() => {});
     const start = () => {
       load();
       timer = setInterval(() => {

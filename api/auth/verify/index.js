@@ -1,64 +1,60 @@
 import crypto from "crypto";
 
-const SECRET = process.env.SESSION_SECRET || "sire-dev-secret-do-not-use-in-prod";
-const consumedTokens = new Set();
+const Secret = process.env.SESSION_SECRET || "sire-dev-secret-do-not-use-in-prod";
+const ConsumedTokens = new Set();
 
-function signUid(uid) {
-  const payload = `${uid}:${crypto.createHmac("sha256", SECRET).update(String(uid)).digest("hex")}`;
-  return Buffer.from(payload).toString("base64url");
+function SignUid(Uid) {
+  const Payload = `${Uid}:${crypto.createHmac("sha256", Secret).update(String(Uid)).digest("hex")}`;
+  return Buffer.from(Payload).toString("base64url");
 }
 
-function unsignToken(token) {
+function UnsignToken(Token) {
   try {
-    const payload = Buffer.from(token, "base64url").toString();
-    const colon = payload.indexOf(":");
-    if (colon === -1) return null;
-    const uid = payload.slice(0, colon);
-    const sig = payload.slice(colon + 1);
-    const expected = crypto.createHmac("sha256", SECRET).update(uid).digest("hex");
-    if (sig !== expected || !uid) return null;
-    return Number(uid);
+    const Payload = Buffer.from(String(Token), "base64url").toString();
+    const Colon = Payload.indexOf(":");
+    if (Colon === -1) return null;
+    const Uid = Payload.slice(0, Colon);
+    const Sig = Payload.slice(Colon + 1);
+    const Expected = crypto.createHmac("sha256", Secret).update(Uid).digest("hex");
+    if (Sig !== Expected || !Uid) return null;
+    return Number(Uid);
   } catch { return null; }
 }
 
-export default async function handler(req, res) {
-  const magicToken = req.query.token;
-  const sessionToken = req.query.s;
-  const cookie = parseCookies(req.headers.cookie);
-  const cookieSession = cookie?.sl_session;
-
-  if (magicToken) {
-    if (consumedTokens.has(magicToken)) { res.status(200).json({ authed: false }); return; }
-    const uid = unsignToken(magicToken);
-    if (!uid) { res.status(200).json({ authed: false }); return; }
-    consumedTokens.add(magicToken);
-    const newSession = signUid(uid);
-    res.setHeader("Set-Cookie", `sl_session=${newSession}; HttpOnly; SameSite=Lax; Max-Age=${30 * 24 * 60 * 60}; Path=/`);
-    res.status(200).json({ authed: true, uid, sessionToken: newSession });
-    return;
-  }
-
-  if (sessionToken) {
-    const uid = unsignToken(sessionToken);
-    if (!uid) { res.status(200).json({ authed: false }); return; }
-    res.status(200).json({ authed: true, uid });
-    return;
-  }
-
-  if (cookieSession) {
-    const uid = unsignToken(cookieSession);
-    if (uid) { res.status(200).json({ authed: true, uid }); return; }
-  }
-
-  res.status(200).json({ authed: false });
+function ParseCookies(CookieHeader) {
+  if (!CookieHeader) return {};
+  const Result = {};
+  String(CookieHeader).split(";").forEach((Pair) => {
+    const [Key, ...Rest] = Pair.trim().split("=");
+    if (Key) Result[Key.trim()] = Rest.join("=").trim();
+  });
+  return Result;
 }
 
-function parseCookies(cookieHeader) {
-  if (!cookieHeader) return {};
-  const result = {};
-  cookieHeader.split(";").forEach((pair) => {
-    const [key, ...rest] = pair.trim().split("=");
-    if (key) result[key.trim()] = rest.join("=").trim();
-  });
-  return result;
+export default async function handler(req, res) {
+  const MagicToken = req.query.token;
+  const SessionToken = req.query.s;
+  const Cookie = ParseCookies(req.headers.cookie);
+  const CookieSession = Cookie?.sl_session;
+  if (MagicToken) {
+    if (ConsumedTokens.has(String(MagicToken))) { res.status(200).json({ authed: false }); return; }
+    const Uid = UnsignToken(String(MagicToken));
+    if (!Uid) { res.status(200).json({ authed: false }); return; }
+    ConsumedTokens.add(String(MagicToken));
+    const NewSession = SignUid(Uid);
+    res.setHeader("Set-Cookie", `sl_session=${NewSession}; HttpOnly; SameSite=Lax; Max-Age=${30 * 24 * 60 * 60}; Path=/`);
+    res.status(200).json({ authed: true, uid: Uid, sessionToken: NewSession });
+    return;
+  }
+  if (SessionToken) {
+    const Uid = UnsignToken(String(SessionToken));
+    if (!Uid) { res.status(200).json({ authed: false }); return; }
+    res.status(200).json({ authed: true, uid: Uid });
+    return;
+  }
+  if (CookieSession) {
+    const Uid = UnsignToken(String(CookieSession));
+    if (Uid) { res.status(200).json({ authed: true, uid: Uid }); return; }
+  }
+  res.status(200).json({ authed: false });
 }

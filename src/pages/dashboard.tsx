@@ -2,7 +2,6 @@ import { useEffect, useState, useRef } from "react";
 import { useNavigate, useSearchParams, Link as RouterLink, Link } from "react-router-dom";
 import { motion, AnimatePresence, LayoutGroup, useMotionValue } from "motion/react";
 import { User, Paintbrush, Link as LucideLink, Image, Crown, Layout, Shield, Home, AtSign, Hash, Eye, User as UserIcon, Volume2, X, Music, Play, Pause, Trash2, Upload, LogOut, Check, Database, Award, Copy, Lock, HardDrive, Layers, Type, Star, Clock, Search, TrendingUp } from "lucide-react";
-import { supabase } from "../lib/supabase";
 import { PLATFORMS } from "../lib/platforms";
 import { FONTS } from "../lib/fonts";
 import { SparkleText } from "../components/SparkleText";
@@ -121,17 +120,33 @@ const getSessionToken = () => {
   return null;
 };
 
+const FetchProfile = async (Username: string) => {
+  const R = await fetch(`/api/profile?username=${encodeURIComponent(Username)}`);
+  if (!R.ok) return null;
+  return R.json().catch(() => null);
+};
+
+const FileToBase64 = (File: File): Promise<string> => new Promise((Resolve, Reject) => {
+  const Reader = new FileReader();
+  Reader.onload = () => {
+    const Result = String(Reader.result || "");
+    const Marker = Result.indexOf("base64,");
+    Resolve(Marker === -1 ? Result : Result.slice(Marker + 7));
+  };
+  Reader.onerror = () => Reject(new Error("Could not read file"));
+  Reader.readAsDataURL(File);
+});
+
 const uploadFile = async (file: File, kind: "media" | "file") => {
   const token = getSessionToken();
+  const contentBase64 = await FileToBase64(file);
   const r = await fetch(`/api/me?action=hostPrepare`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ sessionToken: token, filename: file.name, size: file.size, kind }),
+    body: JSON.stringify({ sessionToken: token, filename: file.name, contentBase64, contentType: file.type || null, kind }),
   });
   const d = await r.json();
   if (!r.ok || d.error) throw new Error(d.error || "Upload failed");
-  const { data, error } = await supabase.storage.from("hosted").uploadToSignedUrl(d.path, d.token, file);
-  if (error || !data) throw new Error(error?.message || "Upload failed");
   return d;
 };
 
@@ -322,43 +337,19 @@ function AccountOverview({ user, onTab, onUpdateUser }: { user: User | null; onT
   const [uniqueVisitors, setUniqueVisitors] = useState<number>(0);
 
   useEffect(() => {
-    if (user) {
-      supabase.from("page_views").select("id", { count: "exact", head: true }).eq("user_id", user.id).then(({ count }) => {
-        if (count !== null) setTotalViews(count);
-      });
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-      supabase.from("page_views").select("id", { count: "exact", head: true }).eq("user_id", user.id).gte("viewed_at", sevenDaysAgo.toISOString()).then(({ count }) => {
-        if (count !== null) setRecentViews(count);
-      });
-      supabase.from("page_views").select("viewed_at").eq("user_id", user.id).gte("viewed_at", sevenDaysAgo.toISOString()).then(({ data }) => {
-        if (data) {
-          const byDay: Record<string, number> = {};
-          for (const row of data) {
-            const d = new Date(row.viewed_at).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
-            byDay[d] = (byDay[d] || 0) + 1;
-          }
-          const labels: string[] = [];
-          for (let i = 6; i >= 0; i--) {
-            const d = new Date(); d.setDate(d.getDate() - i);
-            labels.push(d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }));
-          }
-          setDailyViews(labels.map((l) => ({ date: l, count: byDay[l] || 0 })));
-        }
-      });
-      supabase.from("page_views").select("visitor_id").eq("user_id", user.id).then(({ data }) => {
-        if (data) {
-          const unique = new Set(data.map((r) => r.visitor_id).filter(Boolean));
-          setUniqueVisitors(unique.size);
-        }
-      });
-    }
+    if (!user) return;
+    const token = getSessionToken();
+    if (!token) return;
+    fetch(`/api/stats?sessionToken=${encodeURIComponent(token)}`).then(async (R) => {
+      const J = await R.json().catch(() => null);
+      if (!J || J.error) return;
+      if (typeof J.totalViews === "number") setTotalViews(J.totalViews);
+      if (typeof J.recentViews === "number") setRecentViews(J.recentViews);
+      if (Array.isArray(J.daily)) setDailyViews(J.daily);
+      if (typeof J.uniqueVisitors === "number") setUniqueVisitors(J.uniqueVisitors);
+      if (typeof J.totalUsers === "number") setTotalUsers(J.totalUsers);
+    }).catch(() => {});
   }, [user]);
-  useEffect(() => {
-    supabase.from("users").select("id", { count: "exact", head: true }).then(({ count }) => {
-      if (count) setTotalUsers(count);
-    });
-  }, []);
 
   useEffect(() => {
     if (user?.username) setNewUsername(user.username);
@@ -432,8 +423,9 @@ function AccountOverview({ user, onTab, onUpdateUser }: { user: User | null; onT
     setIsSaving(true);
     setErrorMsg("");
 
-    const { data: existing } = await supabase.from("users").select("id").eq("username", target).single();
-    if (existing) {
+    const CheckR = await fetch(`/api/check-username?u=${encodeURIComponent(target)}`);
+    const CheckJ = await CheckR.json().catch(() => null);
+    if (CheckJ && CheckJ.available === false) {
       setErrorMsg("username is already taken");
       setIsSaving(false);
       return;
@@ -984,9 +976,9 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
 
   useEffect(() => {
     if (!user) return;
-    supabase.from("assets").select("type,url").eq("user_id", user.id).then(({ data }) => {
-      if (!data) return;
-      for (const a of data) {
+    FetchProfile(user.username).then((J) => {
+      if (!J) return;
+      for (const a of J.assets || []) {
         if (a.type === "background") setBackground(a.url);
         if (a.type === "audio" || a.type === "audio_1") setAudio1(a.url);
         if (a.type === "audio_2") setAudio2(a.url);
@@ -995,10 +987,8 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
         if (a.type === "video_background") setVideoBg(a.url);
         if (a.type === "banner") setBanner(a.url);
       }
-    });
-    supabase.from("badges").select("badge").eq("user_id", user.id).then(({ data }) => {
-      if (data) setMyBadges(data.map((r) => r.badge));
-    });
+      if (Array.isArray(J.badges)) setMyBadges(J.badges);
+    }).catch(() => {});
   }, [user]);
 
   const saveDesc = async () => {
@@ -1066,13 +1056,17 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
   const uploadAsset = async (type: string, file: File) => {
     if (!user) return;
     setSaving(type);
-    const ext = file.name.split(".").pop();
-    const nonce = Math.random().toString(36).slice(2, 8);
-    const path = `${type}s/${user.id}/${nonce}.${ext}`;
-    const { error: uploadError } = await supabase.storage.from("assets").upload(path, file, { upsert: true });
-    if (uploadError) { console.error("Upload error:", uploadError); setSaving(null); return; }
-    const { data: { publicUrl } } = supabase.storage.from("assets").getPublicUrl(path);
-    const busted = `${publicUrl}?t=${Date.now()}`;
+    const token = getSessionToken();
+    const contentBase64 = await FileToBase64(file).catch(() => null);
+    if (!contentBase64) { setSaving(null); return; }
+    const hr = await fetch(`/api/me?action=hostPrepare`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sessionToken: token, filename: file.name, contentBase64, contentType: file.type || null, kind: "media" }),
+    });
+    const hd = await hr.json().catch(() => null);
+    if (!hr.ok || !hd || hd.error || !hd.url) { setSaving(null); return; }
+    const busted = `${hd.url}?t=${Date.now()}`;
     const { error: upsertError } = await apiCall("asset_upsert", { type, url: busted });
     if (upsertError) console.error("upsert error:", upsertError);
     if (type === "background") setBackground(busted);
@@ -2754,10 +2748,10 @@ function UserBadges({ user }: { user: User | null }) {
 
   useEffect(() => {
     if (!user) return;
-    supabase.from("badges").select("badge").eq("user_id", user.id).then(({ data }) => {
-      setMyBadges(data ? data.map((r) => r.badge) : []);
+    FetchProfile(user.username).then((J) => {
+      setMyBadges(Array.isArray(J?.badges) ? J.badges : []);
       setLoading(false);
-    });
+    }).catch(() => setLoading(false));
   }, [user]);
 
   const toggleBadge = async (badge: string) => {
@@ -2916,11 +2910,12 @@ function AdminBadges() {
     if (!search.trim()) return;
     setLoading(true);
     setMsg("");
-    const { data } = await supabase.from("users").select("id,username,alias").eq("username", search.trim()).single();
-    if (data) {
-      setTargetUser(data);
-      const { data: b } = await supabase.from("badges").select("badge").eq("user_id", data.id);
-      setUserBadges(b ? b.map((r) => r.badge) : []);
+    const token = getSessionToken();
+    const R = await fetch(`/api/admin-user?u=${encodeURIComponent(search.trim())}&sessionToken=${encodeURIComponent(token || "")}`);
+    const J = await R.json().catch(() => null);
+    if (J?.user) {
+      setTargetUser(J.user);
+      setUserBadges(Array.isArray(J.badges) ? J.badges : []);
     } else {
       setTargetUser(null);
       setUserBadges([]);
@@ -3038,9 +3033,11 @@ function AdminBanUser() {
     setLoading(true);
     setMsg("");
     try {
-      const { data } = await supabase.from("users").select("id,username,alias").eq("username", search.trim().toLowerCase()).single();
-      if (data) {
-        setTargetUser({ id: data.id, username: data.username, alias: data.alias });
+      const token = getSessionToken();
+      const R = await fetch(`/api/admin-user?u=${encodeURIComponent(search.trim().toLowerCase())}&sessionToken=${encodeURIComponent(token || "")}`);
+      const J = await R.json().catch(() => null);
+      if (J?.user) {
+        setTargetUser({ id: J.user.id, username: J.user.username, alias: J.user.alias });
       } else {
         setMsg("user not found");
         setTargetUser(null);
@@ -3134,12 +3131,10 @@ function Links({ user }: { user: User | null }) {
 
   useEffect(() => {
     if (!user) return;
-    supabase.from("links").select("platform,url").eq("user_id", user.id).then(({ data }) => {
-      if (!data) return;
-      const m: Record<string, string> = {};
-      for (const l of data) m[l.platform] = l.url;
-      setLinks(m);
-    });
+    FetchProfile(user.username).then((J) => {
+      if (!J?.links) return;
+      setLinks(J.links);
+    }).catch(() => {});
   }, [user]);
 
   const saveLink = async (platform: string, url: string) => {
@@ -3372,66 +3367,27 @@ function Templates({ user, onTab, onUpdateUser }: { user: User | null; onTab: (t
   useEffect(() => {
     if (!user) return;
     setLoading(true);
-    supabase.from("templates").select("user_id, tags").eq("user_id", user.id).maybeSingle().then(({ data }) => {
-      setEnabled(!!data);
-      if (data?.tags?.length) setTags(data.tags);
-    });
-    supabase.from("templates").select(`
-      user_id,
-      description,
-      accent_color,
-      text_color,
-      background_color,
-      icon_color,
-      bg_effect_color,
-      primary_color,
-      secondary_color,
-      display_effect,
-      font,
-      bg_effect,
-      entry_text,
-      entry_font,
-      entry_color,
-      entry_effect,
-      monochrome_icons,
-      show_username,
-      panel_mouse_follow,
-      audio_volume,
-      audio_autoplay,
-      audio_loop,
-      audio_shuffle,
-      cursor_effect,
-      avatar_shape,
-      avatar_size,
-      avatar_offset_x,
-      avatar_offset_y,
-      name_offset_x,
-      name_offset_y,
-      badge_offset_x,
-      badge_offset_y,
-      tags,
-      users!templates_user_id_fkey ( username, alias, avatar_url )
-    `).then(({ data }) => {
-      if (data) {
-        const mapped = data.map((t: any) => ({
-          ...t,
-          username: (t.users as any).username,
-          alias: (t.users as any).alias,
-          avatar_url: (t.users as any).avatar_url,
-        }));
-        setTemplates(mapped);
+    const token = getSessionToken();
+    fetch(`/api/templates?sessionToken=${encodeURIComponent(token || "")}`).then(async (R) => {
+      const J = await R.json().catch(() => null);
+      if (J?.mine) {
+        setEnabled(true);
+        const MineTags = Array.isArray(J.mine.tags) ? J.mine.tags : [];
+        if (MineTags.length) setTags(MineTags);
+      } else {
+        setEnabled(false);
       }
-      setLoading(false);
-    });
-    supabase.rpc("get_template_stats").then(({ data }) => {
-      if (data) {
+      if (Array.isArray(J?.templates)) setTemplates(J.templates);
+      if (J?.stats) {
         const map: Record<number, { installs: number; stars: number; recent_installs: number }> = {};
-        (data as any[]).forEach((s) => {
-          map[s.template_user_id] = { installs: s.installs, stars: s.stars, recent_installs: s.recent_installs };
-        });
+        for (const [K, V] of Object.entries(J.stats)) {
+          const S = V as { installs: number; stars: number; recent_installs: number };
+          map[Number(K)] = { installs: S.installs, stars: S.stars, recent_installs: S.recent_installs };
+        }
         setStats(map);
       }
-    });
+      setLoading(false);
+    }).catch(() => setLoading(false));
     apiCall("template_favorites", {}).then((d) => setFavorites(new Set(d.favorites || [])));
   }, [user]);
 
@@ -3981,10 +3937,10 @@ function Premium({ user }: { user: User | null }) {
 
   useEffect(() => {
     if (!user) return;
-    supabase.from("badges").select("badge").eq("user_id", user.id).then(({ data }) => {
-      setPremium(!!data?.some((r) => r.badge === "premium"));
+    FetchProfile(user.username).then((J) => {
+      setPremium(Array.isArray(J?.badges) && J.badges.includes("premium"));
       setLoaded(true);
-    });
+    }).catch(() => setLoaded(true));
   }, [user]);
 
   return (
@@ -4146,10 +4102,10 @@ function HostManager({
 
   useEffect(() => {
     if (!user) return;
-    supabase.from("badges").select("badge").eq("user_id", user.id).then(({ data }) => {
-      setPremium(!!data?.some((r) => r.badge === "premium"));
+    FetchProfile(user.username).then((J) => {
+      setPremium(Array.isArray(J?.badges) && J.badges.includes("premium"));
       setLoaded(true);
-    });
+    }).catch(() => setLoaded(true));
   }, [user]);
 
   const loadItems = async () => {
@@ -4377,10 +4333,10 @@ function Widgets({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (u:
 
   useEffect(() => {
     if (!user) return;
-    supabase.from("badges").select("badge").eq("user_id", user.id).then(({ data }) => {
-      setPremium(!!data?.some((r) => r.badge === "premium"));
+    FetchProfile(user.username).then((J) => {
+      setPremium(Array.isArray(J?.badges) && J.badges.includes("premium"));
       setLoaded(true);
-    });
+    }).catch(() => setLoaded(true));
   }, [user]);
 
   useEffect(() => {

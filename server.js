@@ -13,10 +13,17 @@ import discordCallbackHandler from "./api/auth/discord/callback.js";
 import googleHandler from "./api/auth/google.js";
 import googleCallbackHandler from "./api/auth/google/callback.js";
 import trackViewHandler from "./api/track-view.js";
+import profileHandler from "./api/profile.js";
+import leaderboardHandler from "./api/leaderboard.js";
+import presenceHandler from "./api/presence.js";
+import statsHandler from "./api/stats.js";
+import checkUsernameHandler from "./api/check-username.js";
+import adminUserHandler from "./api/admin-user.js";
+import templatesHandler from "./api/templates.js";
 
 const app = express();
 
-app.use(express.json({ limit: "2mb" }));
+app.use(express.json({ limit: "40mb" }));
 
 app.get("/api/auth/discord", discordHandler);
 app.get("/api/auth/discord/callback", discordCallbackHandler);
@@ -32,6 +39,13 @@ app.get("/api/me", meHandler);
 app.post("/api/me", meHandler);
 app.delete("/api/me", meHandler);
 app.post("/api/track-view", trackViewHandler);
+app.get("/api/profile", profileHandler);
+app.get("/api/leaderboard", leaderboardHandler);
+app.get("/api/presence", presenceHandler);
+app.get("/api/stats", statsHandler);
+app.get("/api/check-username", checkUsernameHandler);
+app.get("/api/admin-user", adminUserHandler);
+app.get("/api/templates", templatesHandler);
 app.get("/api/og", meHandler);
 app.get("/i/:code", meHandler);
 app.get("/f/:code", meHandler);

@@ -1,9 +1,5 @@
-import { createClient } from "@supabase/supabase-js";
 import crypto from "crypto";
-
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const supabaseAdmin = SUPABASE_URL && SUPABASE_SERVICE_KEY ? createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY) : null;
+import { GetTurso, HasTurso } from "./_lib/turso.js";
 const IP_PEPPER = process.env.VIEW_IP_PEPPER || process.env.SESSION_SECRET || "sire-view-ip-secret";
 
 function getClientIp(req) {
@@ -23,6 +19,44 @@ function hashIp(ip) {
   return crypto.createHmac("sha256", IP_PEPPER).update(String(ip)).digest("hex");
 }
 
+function IsoAgo(Ms) {
+  return new Date(Date.now() - Ms).toISOString();
+}
+
+async function TrackTurso(UserId, VisitorId, IpHash) {
+  const Db = GetTurso();
+  const Since20 = IsoAgo(20 * 1000);
+  const Since60 = IsoAgo(60 * 1000);
+  const SevenAgo = IsoAgo(7 * 24 * 60 * 60 * 1000);
+  const Target = await Db.execute({ sql: "SELECT id, views_blacklisted FROM users WHERE id = ?", args: [UserId] });
+  const Row = Target.rows?.[0];
+  if (!Row) return { status: 404 };
+  if (Number(Row.views_blacklisted) === 1) return { status: 200, body: { counted: false, blacklisted: true } };
+  const IpCount = await Db.execute({ sql: "SELECT COUNT(*) AS c FROM page_views WHERE user_id = ? AND ip_hash = ? AND viewed_at >= ?", args: [UserId, IpHash, Since20] });
+  if (Number(IpCount.rows?.[0]?.c || 0) >= 8) {
+    await Db.execute({ sql: "DELETE FROM page_views WHERE user_id = ? AND ip_hash = ? AND viewed_at >= ?", args: [UserId, IpHash, Since20] });
+    return { status: 429, body: { counted: false } };
+  }
+  const [C20, C60] = await Promise.all([
+    Db.execute({ sql: "SELECT COUNT(*) AS c FROM page_views WHERE user_id = ? AND viewed_at >= ?", args: [UserId, Since20] }),
+    Db.execute({ sql: "SELECT COUNT(*) AS c FROM page_views WHERE user_id = ? AND viewed_at >= ?", args: [UserId, Since60] })
+  ]);
+  if (Number(C20.rows?.[0]?.c || 0) >= 10) {
+    await Db.execute({ sql: "DELETE FROM page_views WHERE user_id = ? AND viewed_at >= ?", args: [UserId, Since20] });
+    return { status: 429, body: { counted: false } };
+  }
+  if (Number(C60.rows?.[0]?.c || 0) >= 50) {
+    await Db.execute({ sql: "DELETE FROM page_views WHERE user_id = ? AND viewed_at >= ?", args: [UserId, Since60] });
+    return { status: 429, body: { counted: false } };
+  }
+  const ByIp = await Db.execute({ sql: "SELECT id FROM page_views WHERE user_id = ? AND ip_hash = ? AND viewed_at >= ? LIMIT 1", args: [UserId, IpHash, SevenAgo] });
+  if (ByIp.rows?.length) return { status: 200, body: { counted: false } };
+  const ByVis = await Db.execute({ sql: "SELECT id FROM page_views WHERE user_id = ? AND visitor_id = ? AND viewed_at >= ? LIMIT 1", args: [UserId, VisitorId, SevenAgo] });
+  if (ByVis.rows?.length) return { status: 200, body: { counted: false } };
+  await Db.execute({ sql: "INSERT INTO page_views (user_id, visitor_id, ip_hash) VALUES (?, ?, ?)", args: [UserId, VisitorId, IpHash] });
+  return { status: 200, body: { counted: true, source: "turso" } };
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     res.status(405).json({ error: "Method not allowed" });
@@ -39,93 +73,15 @@ export default async function handler(req, res) {
     return;
   }
 
-  if (!supabaseAdmin) { res.status(500).json({ error: "Supabase not configured" }); return; }
-
-  const { data: target, error: targetError } = await supabaseAdmin
-    .from("users")
-    .select("id,views_blacklisted")
-    .eq("id", user_id)
-    .maybeSingle();
-  if (targetError) {
-    console.error("track-view user lookup error:", targetError);
-    res.status(500).json({ error: "Failed to check profile" });
-    return;
-  }
-  if (!target) {
+  const IpHash = hashIp(getClientIp(req));
+  const Visitor = visitor_id.trim();
+  if (!HasTurso()) { res.status(500).json({ error: "No DB configured" }); return; }
+  try {
+    const Out = await TrackTurso(user_id, Visitor, IpHash);
+    if (Out.status !== 404) { res.status(Out.status).json(Out.body || { counted: false }); return; }
     res.status(404).json({ error: "User not found" });
-    return;
-  }
-  if (target.views_blacklisted) {
-    res.status(200).json({ counted: false, blacklisted: true });
-    return;
-  }
-
-  const ipHash = hashIp(getClientIp(req));
-  const now = Date.now();
-  const since20 = new Date(now - 20 * 1000).toISOString();
-  const since60 = new Date(now - 60 * 1000).toISOString();
-
-  // Per-IP + per-user bulk limit: 8+ views from the same IP in 20s = refresh loop/bot, discard.
-  const { count: ipCount } = await supabaseAdmin
-    .from("page_views")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", user_id)
-    .eq("ip_hash", ipHash)
-    .gte("viewed_at", since20);
-  if ((ipCount ?? 0) >= 8) {
-    await supabaseAdmin.from("page_views").delete().eq("user_id", user_id).eq("ip_hash", ipHash).gte("viewed_at", since20);
-    res.status(429).json({ counted: false });
-    return;
-  }
-
-  // Per-user bulk limits: 10+ views in 20s or 50+ in 60s = likely botted, discard.
-  const [c20, c60] = await Promise.all([
-    supabaseAdmin.from("page_views").select("id", { count: "exact", head: true }).eq("user_id", user_id).gte("viewed_at", since20),
-    supabaseAdmin.from("page_views").select("id", { count: "exact", head: true }).eq("user_id", user_id).gte("viewed_at", since60),
-  ]);
-  if ((c20.count ?? 0) >= 10) {
-    await supabaseAdmin.from("page_views").delete().eq("user_id", user_id).gte("viewed_at", since20);
-    res.status(429).json({ counted: false });
-    return;
-  }
-  if ((c60.count ?? 0) >= 50) {
-    await supabaseAdmin.from("page_views").delete().eq("user_id", user_id).gte("viewed_at", since60);
-    res.status(429).json({ counted: false });
-    return;
-  }
-
-  // Dedup: same IP within 7 days (stops refresh bots, incognito abuse, randomized visitor_ids).
-  const sevenDaysAgo = new Date(now - 7 * 24 * 60 * 60 * 1000).toISOString();
-  const { data: byIp } = await supabaseAdmin
-    .from("page_views")
-    .select("id")
-    .eq("user_id", user_id)
-    .eq("ip_hash", ipHash)
-    .gte("viewed_at", sevenDaysAgo)
-    .maybeSingle();
-  if (byIp) {
-    res.status(200).json({ counted: false });
-    return;
-  }
-
-  // Dedup: same visitor (device) within 7 days, even if their IP changed.
-  const { data: existing } = await supabaseAdmin
-    .from("page_views")
-    .select("id")
-    .eq("user_id", user_id)
-    .eq("visitor_id", visitor_id.trim())
-    .gte("viewed_at", sevenDaysAgo)
-    .maybeSingle();
-  if (existing) {
-    res.status(200).json({ counted: false });
-    return;
-  }
-
-  const { error } = await supabaseAdmin.from("page_views").insert({ user_id, visitor_id: visitor_id.trim(), ip_hash: ipHash });
-  if (error) {
-    console.error("track-view error:", error);
+  } catch (Err) {
+    console.error("track-view turso fail:", Err);
     res.status(500).json({ error: "Failed to track view" });
-    return;
   }
-  res.status(200).json({ counted: true });
 }

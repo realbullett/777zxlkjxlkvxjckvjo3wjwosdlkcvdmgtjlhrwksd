@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Crown, Eye, Medal, TrendingUp, Trophy, ChevronRight } from "lucide-react";
 import { motion } from "motion/react";
-import { supabase } from "../lib/supabase";
 import SEO from "../components/SEO";
+// fuhhh profile reads go via /api now cuhhh :broken_heart:
 
 type Entry = {
   rank: number;
@@ -55,17 +55,18 @@ export default function LeaderboardPage() {
 
   useEffect(() => {
     setLoading(true);
-    supabase.rpc("get_leaderboard", { period_type: period }).then(({ data: rows, error }) => {
-      if (error || !rows) { setLoading(false); return; }
-      setData((rows as any[]).map((e: any, i: number) => ({
+    fetch(`/api/leaderboard?period=${period}`).then(async (R) => {
+      const J = await R.json().catch(() => null);
+      const rows = J?.entries || [];
+      setData(rows.map((e: any, i: number) => ({
         rank: i + 1,
         user_id: e.user_id,
         username: e.username || "unknown",
         avatar_url: e.avatar_url,
-        views: e.views,
+        views: Number(e.views || 0),
       })));
       setLoading(false);
-    });
+    }).catch(() => setLoading(false));
   }, [period]);
 
   const top3 = data.slice(0, 3);
