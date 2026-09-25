@@ -62,7 +62,7 @@ CREATE TABLE IF NOT EXISTS users (
   discord_rpc_offset_x INTEGER DEFAULT 0,
   discord_rpc_offset_y INTEGER DEFAULT 0,
   discord_rpc_enabled INTEGER DEFAULT 0,
-  panel_opacity INTEGER,
+  panel_opacity INTEGER DEFAULT 0,
   panel_hidden INTEGER DEFAULT 0,
   widgets TEXT DEFAULT '[]',
   views_blacklisted INTEGER NOT NULL DEFAULT 0,
