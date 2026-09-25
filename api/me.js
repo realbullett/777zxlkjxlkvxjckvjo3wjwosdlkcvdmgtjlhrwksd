@@ -200,7 +200,6 @@ async function hostPrepare(req, res) {
   if (!uid) { res.status(401).json({ error: "Unauthorized" }); return; }
   const Me = await One("SELECT id FROM users WHERE id = ?", [uid]);
   if (!Me) { res.status(401).json({ error: "Unauthorized" }); return; }
-  if (!(await isPremiumUser(uid))) { res.status(403).json({ error: "This is a premium feature." }); return; }
 
   const kind = req.body.kind === "file" ? "file" : "media";
   const name = String(req.body.filename || "").trim().toLowerCase();

@@ -23,6 +23,9 @@ export default async function handler(req, res) {
     const Uid = Match.id;
     Match.widgets = ParseJson(Match.widgets, Match.widgets ?? []);
     Match.desc_lines = ParseJson(Match.desc_lines, Match.desc_lines ?? null);
+    for (const K of ["show_username", "video_audio", "monochrome_icons", "monochrome_badges", "banner_enabled", "panel_mouse_follow", "audio_autoplay", "audio_loop", "audio_shuffle", "panel_hidden", "discord_rpc_enabled", "views_blacklisted"]) {
+      if (Match[K] !== undefined && Match[K] !== null && typeof Match[K] === "number") Match[K] = !!Match[K];
+    }
     const [CountRs, BadgeRs, LinkRs, AssetRs] = await Promise.all([
       Db.execute({ sql: "SELECT COUNT(*) AS c FROM page_views WHERE user_id = ?", args: [Uid] }),
       Db.execute({ sql: "SELECT badge FROM badges WHERE user_id = ?", args: [Uid] }),

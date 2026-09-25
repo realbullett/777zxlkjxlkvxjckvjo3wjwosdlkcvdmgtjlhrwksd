@@ -238,7 +238,7 @@ return (
             <div className="flex flex-col gap-0.5 px-3">
               {tabs.filter((t) => t.id !== "admin" || user?.id === 1).map((t) => {
                 const Icon = t.icon;
-                const isPremiumTab = t.id === "imagehost" || t.id === "filehost" || t.id === "widgets" || t.id === "premium";
+                const isPremiumTab = t.id === "widgets" || t.id === "premium";
                 return (
                   <button
                     key={t.id}
@@ -3968,7 +3968,7 @@ function Premium({ user }: { user: User | null }) {
                 <Crown size={22} className="text-blue-300" />
               </div>
               <p className="relative text-gradient-blue font-bold text-lg">you're on the free plan</p>
-              <p className="relative text-sm text-white/50 max-w-sm">premium unlocks exclusive features like the media host, file host, and more.</p>
+              <p className="relative text-sm text-white/50 max-w-sm">premium unlocks exclusive widgets, effects, the premium badge, and more.</p>
             </>
           )}
         </div>
@@ -4092,7 +4092,6 @@ function HostManager({
   emptyText: string;
   lockedDesc: string;
 }) {
-  const [premium, setPremium] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [items, setItems] = useState<HostedFile[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -4102,10 +4101,7 @@ function HostManager({
 
   useEffect(() => {
     if (!user) return;
-    FetchProfile(user.username).then((J) => {
-      setPremium(Array.isArray(J?.badges) && J.badges.includes("premium"));
-      setLoaded(true);
-    }).catch(() => setLoaded(true));
+    loadItems().finally(() => setLoaded(true));
   }, [user]);
 
   const loadItems = async () => {
@@ -4122,11 +4118,10 @@ function HostManager({
   };
 
   useEffect(() => {
-    if (premium) loadItems();
-  }, [premium]);
+    loadItems();
+  }, [user]);
 
   const upload = async (file: File) => {
-    if (!premium) return;
     setError("");
     setUploading(true);
     try {
@@ -4159,41 +4154,12 @@ function HostManager({
     return `${bytes}b`;
   };
 
-  if (loaded && !premium) {
-    return (
-      <div className="relative">
-        <div className="absolute inset-0 pointer-events-none -z-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_0%,rgba(37,99,235,0.12),transparent_70%)]" />
-        <div className="relative z-10">
-          <div className="flex items-center gap-3 mb-8">
-            <h1 className="text-lg font-semibold text-gradient-blue lowercase">{title}</h1>
-            <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-blue-300 bg-blue-600/15 border border-blue-500/30 rounded-full px-2.5 py-1 shadow-[0_0_15px_rgba(37,99,235,0.25)]">
-              <Crown size={10} /> premium
-            </span>
-          </div>
-          <div className="relative shine-effect rounded-2xl p-12 flex flex-col items-center justify-center gap-4 text-center border border-blue-500/30 bg-gradient-to-br from-blue-600/15 via-blue-500/5 to-white/5 glow-blue">
-            <div className="absolute inset-0 rounded-2xl bg-[radial-gradient(ellipse_60%_40%_at_50%_0%,rgba(255,255,255,0.1),transparent_70%)] pointer-events-none" />
-            <div className="relative h-14 w-14 rounded-2xl bg-blue-600/20 border border-blue-400/40 flex items-center justify-center shadow-[0_0_25px_rgba(37,99,235,0.4)]">
-              <Lock size={22} className="text-blue-300" />
-            </div>
-            <div className="relative">
-              <p className="text-gradient-blue font-bold text-lg">premium feature</p>
-              <p className="text-sm text-white/50 mt-1 max-w-sm">{lockedDesc}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="relative">
       <div className="absolute inset-0 pointer-events-none -z-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_0%,rgba(37,99,235,0.12),transparent_70%)]" />
       <div className="relative z-10">
         <div className="flex items-center gap-3 mb-8">
           <h1 className="text-lg font-semibold text-gradient-blue lowercase">{title}</h1>
-          <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-blue-300 bg-blue-600/15 border border-blue-500/30 rounded-full px-2.5 py-1 shadow-[0_0_15px_rgba(37,99,235,0.25)]">
-            <Crown size={10} /> premium
-          </span>
         </div>
 
         <div
