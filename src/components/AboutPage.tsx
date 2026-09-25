@@ -37,7 +37,7 @@ export default function AboutPage({
       initial={instant ? "show" : "hidden"}
       animate={instant ? "show" : undefined}
       {...scrollAnim}
-      className="flex flex-col items-start gap-7 text-left w-full max-w-4xl"
+      className="m-auto flex flex-col items-start gap-7 text-left w-full max-w-4xl"
     >
       <motion.div variants={dropItem}>
         <h2 className="text-4xl font-black tracking-tight sm:text-5xl" style={{ color: "var(--text-color, #ffffff)" }}>

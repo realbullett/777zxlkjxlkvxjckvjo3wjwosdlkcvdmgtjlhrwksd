@@ -747,7 +747,7 @@ export default function Biolink() {
               initial={{ opacity: 0 }}
               animate={entered ? { opacity: 1 } : {}}
               transition={{ duration: 0.5, delay: 0.1 }}
-              className="relative z-0 flex min-h-screen items-center justify-center px-8 snap-page"
+              className="relative z-0 flex min-h-screen items-center justify-center overflow-y-auto px-8 py-20 snap-page allow-scroll"
             >
               <AboutPage config={widgetCfg.about} discordId={user.discord_id} discordEnabled={user.discord_rpc_enabled} />
             </motion.div>
@@ -758,7 +758,7 @@ export default function Biolink() {
               initial={{ opacity: 0 }}
               animate={entered ? { opacity: 1 } : {}}
               transition={{ duration: 0.5, delay: 0.2 }}
-              className="relative z-0 flex min-h-screen items-center justify-center px-8 snap-page"
+              className="relative z-0 flex min-h-screen items-center justify-center overflow-y-auto px-8 py-20 snap-page allow-scroll"
             >
               <SongPage url={widgetCfg.song.url} autoPlay={entered} />
             </motion.div>
@@ -769,7 +769,7 @@ export default function Biolink() {
               initial={{ opacity: 0 }}
               animate={entered ? { opacity: 1 } : {}}
               transition={{ duration: 0.5, delay: 0.3 }}
-              className="relative z-0 flex min-h-screen items-center justify-center px-8 snap-page"
+              className="relative z-0 flex min-h-screen items-center justify-center overflow-y-auto px-8 py-20 snap-page allow-scroll"
             >
               <ProjectsPage config={widgetCfg.projects} />
             </motion.div>

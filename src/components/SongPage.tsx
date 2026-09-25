@@ -422,7 +422,7 @@ export default function SongPage({ url, autoPlay = false, instant = false }: { u
       initial={instant ? "show" : "hidden"}
       animate={instant ? "show" : undefined}
       {...(instant ? {} : { whileInView: "show" as const, viewport: dropInView })}
-      className="flex flex-col items-start gap-7 w-full max-w-3xl"
+      className="m-auto flex flex-col items-start gap-7 w-full max-w-3xl"
     >
       <motion.div variants={dropItem}>
         <h2 className="text-4xl font-black tracking-tight sm:text-5xl" style={{ color: "var(--text-color, #ffffff)" }}>

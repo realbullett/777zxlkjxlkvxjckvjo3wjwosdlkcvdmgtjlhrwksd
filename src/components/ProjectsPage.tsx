@@ -21,7 +21,7 @@ export default function ProjectsPage({ config, instant = false }: { config: Proj
       initial={instant ? "show" : "hidden"}
       animate={instant ? "show" : undefined}
       {...scrollAnim}
-      className="flex flex-col items-start gap-7 w-full max-w-3xl"
+      className="m-auto flex flex-col items-start gap-7 w-full max-w-3xl"
     >
       <motion.div variants={dropItem}>
         <h2 className="text-4xl font-black tracking-tight sm:text-5xl" style={{ color: "var(--text-color, #ffffff)" }}>
