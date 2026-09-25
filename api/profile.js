@@ -1,4 +1,12 @@
 import { GetTurso, HasTurso, PublicProfileCols } from "../lib/turso.js";
+
+function ParseJson(V, Fallback) {
+  if (V === null || V === undefined) return Fallback;
+  if (typeof V !== "string") return V;
+  const S = V.trim();
+  if (!S) return Fallback;
+  try { return JSON.parse(S); } catch { return Fallback; }
+}
 export default async function handler(req, res) {
   const Name = String(req.query.username || req.query.u || "").trim().toLowerCase();
   if (!Name) { res.status(400).json({ error: "Missing username" }); return; }
@@ -13,6 +21,8 @@ export default async function handler(req, res) {
     const Match = Rows.find((R) => String(R.username || "").toLowerCase() === Name) || Rows[0];
     if (!Match) { res.status(404).json({ error: "Not found" }); return; }
     const Uid = Match.id;
+    Match.widgets = ParseJson(Match.widgets, Match.widgets ?? []);
+    Match.desc_lines = ParseJson(Match.desc_lines, Match.desc_lines ?? null);
     const [CountRs, BadgeRs, LinkRs, AssetRs] = await Promise.all([
       Db.execute({ sql: "SELECT COUNT(*) AS c FROM page_views WHERE user_id = ?", args: [Uid] }),
       Db.execute({ sql: "SELECT badge FROM badges WHERE user_id = ?", args: [Uid] }),
