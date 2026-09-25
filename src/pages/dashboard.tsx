@@ -1163,11 +1163,14 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
           </div>
         </div>
 
-        <div className="relative rounded-2xl p-6 bg-gradient-to-r from-yellow-500/20 via-yellow-600/25 to-yellow-500/20 border border-yellow-500/40 backdrop-blur-xl overflow-hidden mb-8">
-          <div className="relative flex items-center gap-4">
-            <div>
-              <h3 className="text-lg font-bold text-white">Heads up</h3>
-              <p className="text-sm text-yellow-100/80 mt-1">Saving can take a few seconds — wait a moment after clicking save before checking your page</p>
+        <div className="vfx-frame rounded-2xl mb-8 vfx-shake">
+          <div className="relative rounded-xl bg-black/90 backdrop-blur-xl px-6 py-5 overflow-hidden flex items-center gap-4">
+            <div className="vfx-beam" />
+            <div className="vfx-scan absolute inset-0 pointer-events-none" />
+            <svg className="shrink-0 relative vfx-flicker" xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+            <div className="relative vfx-flicker">
+              <h3 className="text-lg font-bold text-white">Heads up!</h3>
+              <p className="text-sm text-white/75 mt-1">saving can take a few seconds — wait a moment after clicking save before checking your page</p>
             </div>
           </div>
         </div>
