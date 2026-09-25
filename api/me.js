@@ -78,6 +78,12 @@ const HOST_MEDIA_TYPES = {
   webm: "video/webm",
   mov: "video/quicktime",
   mkv: "video/x-matroska",
+  mp3: "audio/mpeg",
+  wav: "audio/wav",
+  ogg: "audio/ogg",
+  m4a: "audio/mp4",
+  aac: "audio/aac",
+  flac: "audio/flac",
 };
 const HOST_FILE_TYPES = {
   txt: "text/plain", md: "text/markdown", json: "application/json", csv: "text/csv",

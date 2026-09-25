@@ -4265,7 +4265,7 @@ function MediaHost({ user }: { user: User | null }) {
       user={user}
       kind="media"
       title="media host"
-      accept="image/png,image/jpeg,image/gif,image/webp,image/avif,image/bmp,video/mp4,video/webm,video/quicktime,video/x-matroska"
+      accept="image/png,image/jpeg,image/gif,image/webp,image/avif,image/bmp,video/mp4,video/webm,video/quicktime,video/x-matroska,audio/mpeg,audio/wav,audio/ogg,audio/mp4,audio/flac"
       hint="png, jpg, gif, webp, avif, bmp, mp4, webm, mov, mkv — max 30mb"
       emptyText="no media hosted yet"
       lockedDesc="media host lets you upload images and videos and get a sire.lol link for each one. only premium users can use it."
