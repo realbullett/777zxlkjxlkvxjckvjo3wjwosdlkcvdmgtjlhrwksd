@@ -54,7 +54,7 @@ export default function AboutPage({
         </motion.div>
       ) : null}
       {hasRow && (
-        <motion.div variants={dropContainer} initial={instant ? "show" : "hidden"} animate={instant ? "show" : undefined} className="w-full">
+        <motion.div variants={dropContainer} className="w-full">
           <div className="grid w-full grid-cols-1 sm:grid-cols-2 items-stretch gap-5">
             <div className="flex w-full flex-col gap-5">
               {showDiscord && (
