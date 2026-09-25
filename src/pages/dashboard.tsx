@@ -861,9 +861,9 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
   const [showUsername, setShowUsername] = useState(user?.show_username !== false);
   const linkedDiscordId = user?.discord_id || (user?.provider === "discord" ? user?.provider_id : null) || null;
   const [savedMsg, setSavedMsg] = useState<string | null>(null);
-  const showSaved = (msg: string) => {
-    setSavedMsg(msg);
-    setTimeout(() => setSavedMsg(null), 2000);
+  const showSaved = (msg: string, delayNote = true) => {
+    setSavedMsg(delayNote ? `${msg} — can take a few seconds for changes to take place` : msg);
+    setTimeout(() => setSavedMsg(null), 3500);
   };
 
   useEffect(() => {
@@ -1736,7 +1736,7 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
               <button
                 key={e.id}
                 onClick={() => {
-                  if (locked) { showSaved("that's a premium effect"); return; }
+                  if (locked) { showSaved("that's a premium effect", false); return; }
                   setDisplayEffect(e.id);
                 }}
                 className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border transition-colors cursor-pointer ${
@@ -1915,7 +1915,7 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
               <button
                 key={e.id}
                 onClick={() => {
-                  if (locked) { showSaved("that's a premium effect"); return; }
+                  if (locked) { showSaved("that's a premium effect", false); return; }
                   setBgEffect(e.id);
                 }}
                 className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border transition-colors cursor-pointer ${
@@ -2271,7 +2271,7 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
                   <input ref={bgRef} type="file" accept="image/*" className="hidden" onChange={async () => {
                     const file = bgRef.current?.files?.[0];
                     if (!file) return;
-                    if (file.size > 10 * 1024 * 1024) { showSaved("file too large (max 10MB)"); return; }
+                    if (file.size > 10 * 1024 * 1024) { showSaved("file too large (max 10MB)", false); return; }
                     await uploadAsset("background", file);
                     setIsBgModalOpen(false);
                   }} />
@@ -2288,7 +2288,7 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
                   <input ref={videoBgRef} type="file" accept="video/mp4,video/webm,video/ogg" className="hidden" onChange={async () => {
                     const file = videoBgRef.current?.files?.[0];
                     if (!file) return;
-                    if (file.size > 50 * 1024 * 1024) { showSaved("file too large (max 50MB)"); return; }
+                    if (file.size > 50 * 1024 * 1024) { showSaved("file too large (max 50MB)", false); return; }
                     await uploadAsset("video_background", file);
                     setIsBgModalOpen(false);
                   }} />
@@ -4338,8 +4338,8 @@ function Widgets({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (u:
     setSaving(false);
     if (d.error) { alert(d.error); return; }
     if (d.user) onUpdateUser?.(d.user);
-    setSavedMsg("widgets saved");
-    setTimeout(() => setSavedMsg(""), 2000);
+    setSavedMsg("widgets saved — can take a few seconds for changes to take place");
+    setTimeout(() => setSavedMsg(""), 3500);
   };
 
   const setPages = (n: number) =>
