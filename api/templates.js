@@ -18,8 +18,10 @@ function UnsignToken(Token) {
 }
 
 async function EnsureTables(Db) {
-  await Db.execute("CREATE TABLE IF NOT EXISTS template_installs (user_id INTEGER, template_user_id INTEGER, created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')), PRIMARY KEY (user_id, template_user_id))");
-  await Db.execute("CREATE TABLE IF NOT EXISTS template_favorites (user_id INTEGER, template_user_id INTEGER, created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')), PRIMARY KEY (user_id, template_user_id))");
+  await Promise.allSettled([
+    Db.execute("CREATE TABLE IF NOT EXISTS template_installs (user_id INTEGER, template_user_id INTEGER, created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')), PRIMARY KEY (user_id, template_user_id))"),
+    Db.execute("CREATE TABLE IF NOT EXISTS template_favorites (user_id INTEGER, template_user_id INTEGER, created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')), PRIMARY KEY (user_id, template_user_id))"),
+  ]);
 }
 
 export default async function handler(req, res) {

@@ -1,6 +1,4 @@
 import crypto from "crypto";
-import React from "react";
-import { ImageResponse } from "@vercel/og";
 import { GetTurso } from "../lib/turso.js";
 
 const SECRET = process.env.SESSION_SECRET || "sire-dev-secret-do-not-use-in-prod";
@@ -182,19 +180,10 @@ let SchemaReady = false;
 async function EnsureSchema() {
   if (SchemaReady) return;
   const D = Db();
-  const Stmts = [
-    "ALTER TABLE hosted_files ADD COLUMN content BLOB",
-    "ALTER TABLE templates ADD COLUMN tags TEXT",
-    "ALTER TABLE templates ADD COLUMN badge_offset_x INTEGER DEFAULT 0",
-    "ALTER TABLE templates ADD COLUMN badge_offset_y INTEGER DEFAULT 0",
-    "CREATE TABLE IF NOT EXISTS template_installs (user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, template_user_id INTEGER NOT NULL, created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')), UNIQUE (user_id, template_user_id))",
-    "CREATE TABLE IF NOT EXISTS template_favorites (user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, template_user_id INTEGER NOT NULL, created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')), UNIQUE (user_id, template_user_id))",
-  ];
-  for (const S of Stmts) {
-    try {
-      await D.execute(S);
-    } catch {}
-  }
+  await Promise.allSettled([
+    D.execute("CREATE TABLE IF NOT EXISTS template_installs (user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, template_user_id INTEGER NOT NULL, created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')), UNIQUE (user_id, template_user_id))"),
+    D.execute("CREATE TABLE IF NOT EXISTS template_favorites (user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, template_user_id INTEGER NOT NULL, created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')), UNIQUE (user_id, template_user_id))"),
+  ]);
   SchemaReady = true;
 }
 
@@ -368,7 +357,7 @@ async function assetServe(req, res) {
 
 const OG_FONT_URL = "https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,800&display=swap";
 
-const ogEl = (type, props, ...children) => React.createElement(type, props || null, ...children);
+// El is built inside ogImage via dynamic import so cold starts skip react/@vercel/og.
 
 async function ogLoadFont() {
   try {
@@ -395,6 +384,8 @@ async function ogAvatarDataUrl(url) {
 }
 
 async function ogImage(req, res) {
+  const [{ default: React }, { ImageResponse }] = await Promise.all([import("react"), import("@vercel/og")]);
+  const El = (type, props, ...children) => React.createElement(type, props || null, ...children);
   const username = String(req.query.username || "").trim().toLowerCase();
   if (!username) {
     res.status(400).json({ error: "missing username" });
@@ -417,7 +408,7 @@ async function ogImage(req, res) {
   const initials = (displayName || "?").trim().charAt(0).toUpperCase();
   const textStyle = { fontFamily: "Bricolage Grotesque", fontWeight: 800, color: "#ffffff" };
 
-  const tree = ogEl(
+  const tree = El(
     "div",
     {
       style: {
@@ -431,13 +422,13 @@ async function ogImage(req, res) {
       },
     },
     avatar
-      ? ogEl("img", {
+      ? El("img", {
           src: avatar,
           width: 200,
           height: 200,
           style: { borderRadius: 9999, objectFit: "cover", border: "2px solid rgba(255,255,255,0.1)" },
         })
-      : ogEl(
+      : El(
           "div",
           {
             style: {
@@ -451,10 +442,10 @@ async function ogImage(req, res) {
               justifyContent: "center",
             },
           },
-          ogEl("span", { style: { ...textStyle, fontSize: 80 } }, initials)
+          El("span", { style: { ...textStyle, fontSize: 80 } }, initials)
         ),
-    ogEl("div", { style: { ...textStyle, marginTop: 36, fontSize: 60, textAlign: "center" } }, displayName),
-    ogEl("div", { style: { ...textStyle, fontWeight: 400, marginTop: 14, fontSize: 28, color: "rgba(255,255,255,0.4)", textAlign: "center" } }, `sire.lol/${handle}`)
+    El("div", { style: { ...textStyle, marginTop: 36, fontSize: 60, textAlign: "center" } }, displayName),
+    El("div", { style: { ...textStyle, fontWeight: 400, marginTop: 14, fontSize: 28, color: "rgba(255,255,255,0.4)", textAlign: "center" } }, `sire.lol/${handle}`)
   );
 
   const imageResponse = new ImageResponse(tree, {

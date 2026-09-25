@@ -3424,11 +3424,9 @@ function Templates({ user, onTab, onUpdateUser }: { user: User | null; onTab: (t
   const confirmShare = async () => {
     if (!user) return;
     setShareError(null);
-    const res = await apiCall("template_toggle", { on: true, tags });
-    if (res.error) { setShareError(res.error); return; }
+    const saved = [...tags];
     setEnabled(true);
     setConfirming(false);
-    const saved = res.tags || tags;
     setTags(saved);
     const mine: Template & { views?: number } = {
       user_id: user.id,
@@ -3470,14 +3468,29 @@ function Templates({ user, onTab, onUpdateUser }: { user: User | null; onTab: (t
       tags: saved,
     };
     setTemplates((prev) => [mine, ...prev.filter((t) => t.user_id !== user.id)]);
+    const res = await apiCall("template_toggle", { on: true, tags });
+    if (res.error) {
+      setShareError(res.error);
+      setEnabled(false);
+      setTemplates((prev) => prev.filter((t) => t.user_id !== user.id));
+      return;
+    }
+    if (Array.isArray(res.tags)) {
+      setTags(res.tags);
+      setTemplates((prev) => prev.map((t) => (t.user_id === user.id ? { ...t, tags: res.tags } : t)));
+    }
   };
 
   const saveTags = async () => {
     if (!user || !enabled) return;
-    const res = await apiCall("template_toggle", { on: true, tags });
-    const saved = res.tags || tags;
-    setTags(saved);
+    const saved = [...tags];
     setTemplates((prev) => prev.map((t) => (t.user_id === user.id ? { ...t, tags: saved } : t)));
+    const res = await apiCall("template_toggle", { on: true, tags });
+    if (res.error) { setShareError(res.error); return; }
+    if (Array.isArray(res.tags)) {
+      setTags(res.tags);
+      setTemplates((prev) => prev.map((t) => (t.user_id === user.id ? { ...t, tags: res.tags } : t)));
+    }
   };
 
   const installTemplate = async (t: Template) => {
