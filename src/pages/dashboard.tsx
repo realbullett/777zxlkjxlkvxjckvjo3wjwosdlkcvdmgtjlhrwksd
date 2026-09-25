@@ -211,7 +211,20 @@ export default function Dashboard() {
     }).catch(() => { localStorage.clear(); setUnauth(true); });
   }, [searchParams]);
 
-  useEffect(() => { if (unauth) localStorage.clear(); }, [unauth]);
+  useEffect(() => {
+    if (!unauth) return;
+    localStorage.clear();
+    try {
+      const h = window.location.hostname;
+      const labels = h.split(".");
+      const apex = labels.length > 2 ? labels.slice(1).join(".") : h;
+      for (const d of [h, "." + h, apex, "." + apex]) {
+        document.cookie = `sl_session=; Max-Age=0; Path=/; Domain=${d}`;
+      }
+      document.cookie = "sl_session=; Max-Age=0; Path=/";
+    } catch {}
+    fetch("/api/auth/logout").catch(() => {});
+  }, [unauth]);
 
   if (unauth) return (
     <div className="relative min-h-screen flex items-center justify-center bg-black">
