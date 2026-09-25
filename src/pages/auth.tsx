@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "motion/react";
 import SEO from "../components/SEO";
 
-const EMAIL_REGISTRATIONS_DISABLED_UNTIL = new Date("2026-08-30T00:00:00Z");
+const EMAIL_REGISTRATIONS_DISABLED_UNTIL = new Date("2026-09-30T00:00:00Z");
 const emailRegistrationsDisabled = Date.now() < EMAIL_REGISTRATIONS_DISABLED_UNTIL.getTime();
 const TurnstileSiteKey = (import.meta as any).env?.VITE_TURNSTILE_SITE_KEY || "";
 
