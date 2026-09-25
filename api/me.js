@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import React from "react";
 import { ImageResponse } from "@vercel/og";
-import { GetTurso } from "./_lib/turso.js";
+import { GetTurso } from "../lib/turso.js";
 
 const SECRET = process.env.SESSION_SECRET || "sire-dev-secret-do-not-use-in-prod";
 

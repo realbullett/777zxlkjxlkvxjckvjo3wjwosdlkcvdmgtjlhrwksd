@@ -1,6 +1,10 @@
 {
   "rewrites": [
     { "source": "/api/og", "destination": "/api/me?action=og" },
+    { "source": "/api/auth/discord/callback", "destination": "/api/auth?op=discord-callback" },
+    { "source": "/api/auth/google/callback", "destination": "/api/auth?op=google-callback" },
+    { "source": "/api/auth/verify", "destination": "/api/auth?op=verify" },
+    { "source": "/api/auth/:op", "destination": "/api/auth?op=:op" },
     { "source": "/api/(.*)", "destination": "/api/$1" },
     { "source": "/i/(.*)", "destination": "/api/me?action=serveMedia&code=$1&k=media" },
     { "source": "/f/(.*)", "destination": "/api/me?action=serveFile&code=$1&k=file" },

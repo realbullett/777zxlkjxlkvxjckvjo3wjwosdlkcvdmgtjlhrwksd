@@ -1,4 +1,4 @@
-import { GetTurso, HasTurso, PublicProfileCols } from "./_lib/turso.js";
+import { GetTurso, HasTurso, PublicProfileCols } from "../lib/turso.js";
 export default async function handler(req, res) {
   const Name = String(req.query.username || req.query.u || "").trim().toLowerCase();
   if (!Name) { res.status(400).json({ error: "Missing username" }); return; }

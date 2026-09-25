@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import { GetTurso, HasTurso } from "./_lib/turso.js";
+import { GetTurso, HasTurso } from "../lib/turso.js";
 const IP_PEPPER = process.env.VIEW_IP_PEPPER || process.env.SESSION_SECRET || "sire-view-ip-secret";
 
 function getClientIp(req) {

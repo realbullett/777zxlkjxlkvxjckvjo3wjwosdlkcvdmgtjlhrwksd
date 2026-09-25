@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import { GetTurso, HasTurso } from "./_lib/turso.js";
+import { GetTurso, HasTurso } from "../lib/turso.js";
 
 const Secret = process.env.SESSION_SECRET || "sire-dev-secret-do-not-use-in-prod";
 

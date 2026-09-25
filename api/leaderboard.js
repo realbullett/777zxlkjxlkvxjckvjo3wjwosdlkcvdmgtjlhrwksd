@@ -1,4 +1,4 @@
-import { GetTurso, HasTurso } from "./_lib/turso.js";
+import { GetTurso, HasTurso } from "../lib/turso.js";
 export default async function handler(req, res) {
   const Period = String(req.query.period || "all").toLowerCase() === "month" ? "month" : "all";
   if (!HasTurso()) { res.status(500).json({ error: "No DB configured" }); return; }

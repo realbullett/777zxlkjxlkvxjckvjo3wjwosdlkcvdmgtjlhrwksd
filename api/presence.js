@@ -1,4 +1,4 @@
-import { GetTurso, HasTurso } from "./_lib/turso.js";
+import { GetTurso, HasTurso } from "../lib/turso.js";
 
 export default async function handler(req, res) {
   const DiscordId = String(req.query.discord_id || req.query.discordId || "").trim();
