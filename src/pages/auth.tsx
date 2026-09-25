@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "motion/react";
 import SEO from "../components/SEO";
 
 const EMAIL_REGISTRATIONS_DISABLED_UNTIL = new Date("2026-08-30T00:00:00Z");
 const emailRegistrationsDisabled = Date.now() < EMAIL_REGISTRATIONS_DISABLED_UNTIL.getTime();
+const TurnstileSiteKey = (import.meta as any).env?.VITE_TURNSTILE_SITE_KEY || "";
 
 export default function AuthPage() {
   const navigate = useNavigate();
@@ -22,6 +23,39 @@ export default function AuthPage() {
   const [pendingEmail, setPendingEmail] = useState("");
   const [otpTimer, setOtpTimer] = useState(0);
   const [resending, setResending] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const turnstileWidgetId = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!isSignUp || step !== "form" || emailRegistrationsDisabled || !TurnstileSiteKey) return;
+    let dead = false;
+    const doRender = () => {
+      if (dead) return;
+      const w = (window as any).turnstile;
+      const slot = document.getElementById("TurnstileSlot");
+      if (!w || !slot) { setTimeout(doRender, 300); return; }
+      try {
+        if (turnstileWidgetId.current) w.reset(turnstileWidgetId.current);
+        else turnstileWidgetId.current = w.render(slot, {
+          sitekey: TurnstileSiteKey,
+          theme: "dark",
+          callback: (t: string) => setTurnstileToken(t),
+          "expired-callback": () => setTurnstileToken(""),
+          "error-callback": () => setTurnstileToken(""),
+        });
+      } catch {}
+    };
+    if (!document.getElementById("TurnstileScript")) {
+      const s = document.createElement("script");
+      s.id = "TurnstileScript";
+      s.src = "https://challenges.cloudflare.com/turnstile/v0/api.js";
+      s.async = true;
+      s.defer = true;
+      s.onload = doRender;
+      document.body.appendChild(s);
+    } else doRender();
+    return () => { dead = true; };
+  }, [isSignUp, step]);
 
   useEffect(() => {
     if (step !== "otp") { setOtpTimer(0); return; }
@@ -164,15 +198,22 @@ export default function AuthPage() {
                 if (!username.trim()) { setError("Enter a username"); return; }
                 if (!/^[a-zA-Z0-9_]{1,20}$/.test(username.trim())) { setError("Username can only contain letters, numbers, and underscores (max 20)"); return; }
                 if (!isValidEmail(email)) { setError("Enter a valid email"); return; }
+                if (TurnstileSiteKey && !turnstileToken) { setError("Complete the captcha first"); return; }
                 setLoading(true);
                 try {
                   const r = await fetch("/api/auth/register", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ username: username.trim(), email, password }),
+                    body: JSON.stringify({ username: username.trim(), email, password, turnstileToken }),
                   });
                   const d = await r.json();
-                  if (!r.ok) { setError(d.error || "Registration failed"); setLoading(false); return; }
+                  if (!r.ok) {
+                    setError(d.error || "Registration failed");
+                    setLoading(false);
+                    setTurnstileToken("");
+                    try { (window as any).turnstile?.reset(turnstileWidgetId.current || undefined); } catch {}
+                    return;
+                  }
                   setPendingEmail(email);
                   setStep("otp");
                   setOtpTimer(30);
@@ -319,10 +360,12 @@ export default function AuthPage() {
                   </div>
                 )}
               </div>
+              {isSignUp && TurnstileSiteKey && (
+                <div id="TurnstileSlot" className="flex justify-center" />
+              )}
               <button
                 type="submit"
-                disabled={isSignUp ? (!isValidEmail(email) || !username.trim()) : (!password || (!email.trim() && !username.trim()))}
-                className="shimmer w-full rounded-xl bg-blue-600 py-3 text-sm font-semibold text-white hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
+                disabled={isSignUp ? (!isValidEmail(email) || !username.trim()) : (!password || (!email.trim() && !username.trim()))}                className="shimmer w-full rounded-xl bg-blue-600 py-3 text-sm font-semibold text-white hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
               >
                 {loading ? "please wait..." : (isSignUp ? "create account" : "sign in")}
               </button>
