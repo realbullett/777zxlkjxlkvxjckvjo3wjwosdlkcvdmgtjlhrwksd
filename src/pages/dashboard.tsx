@@ -3532,71 +3532,72 @@ function Templates({ user, onTab, onUpdateUser }: { user: User | null; onTab: (t
     }
   };
 
-  const installTemplate = async (t: Template) => {
+  const installTemplate = (t: Template) => {
     if (!user) return;
-    const { error: updateErr } = await apiCall("update", {
-      data: {
-        description: t.description,
-        accent_color: t.accent_color,
-        text_color: t.text_color,
-        background_color: t.background_color,
-        icon_color: t.icon_color,
-        bg_effect_color: t.bg_effect_color,
-        primary_color: t.primary_color,
-        secondary_color: t.secondary_color,
-        display_effect: t.display_effect,
-        font: t.font,
-        bg_effect: t.bg_effect,
-        entry_text: t.entry_text,
-        entry_font: t.entry_font,
-        entry_color: t.entry_color,
-        entry_effect: t.entry_effect,
-        monochrome_icons: t.monochrome_icons,
-        monochrome_badges: t.monochrome_badges,
-        show_username: t.show_username,
-        panel_mouse_follow: t.panel_mouse_follow,
-        audio_volume: t.audio_volume,
-        audio_autoplay: t.audio_autoplay,
-        audio_loop: t.audio_loop,
-        audio_shuffle: t.audio_shuffle,
-        cursor_effect: t.cursor_effect,
-        avatar_shape: t.avatar_shape,
-        avatar_size: t.avatar_size,
-        avatar_offset_x: t.avatar_offset_x,
-        avatar_offset_y: t.avatar_offset_y,
-        name_offset_x: t.name_offset_x,
-        name_offset_y: t.name_offset_y,
-        badge_offset_x: t.badge_offset_x,
-        badge_offset_y: t.badge_offset_y,
-      },
-    });
-    if (updateErr) { console.error("install error:", updateErr); return; }
-    await apiCall("template_install", { targetUserId: t.user_id });
-    setStats((prev) => ({
-      ...prev,
+    const prev = { ...user };
+    const data = {
+      description: t.description,
+      accent_color: t.accent_color,
+      text_color: t.text_color,
+      background_color: t.background_color,
+      icon_color: t.icon_color,
+      bg_effect_color: t.bg_effect_color,
+      primary_color: t.primary_color,
+      secondary_color: t.secondary_color,
+      display_effect: t.display_effect,
+      font: t.font,
+      bg_effect: t.bg_effect,
+      entry_text: t.entry_text,
+      entry_font: t.entry_font,
+      entry_color: t.entry_color,
+      entry_effect: t.entry_effect,
+      monochrome_icons: t.monochrome_icons,
+      monochrome_badges: t.monochrome_badges,
+      show_username: t.show_username,
+      panel_mouse_follow: t.panel_mouse_follow,
+      audio_volume: t.audio_volume,
+      audio_autoplay: t.audio_autoplay,
+      audio_loop: t.audio_loop,
+      audio_shuffle: t.audio_shuffle,
+      cursor_effect: t.cursor_effect,
+      avatar_shape: t.avatar_shape,
+      avatar_size: t.avatar_size,
+      avatar_offset_x: t.avatar_offset_x,
+      avatar_offset_y: t.avatar_offset_y,
+      name_offset_x: t.name_offset_x,
+      name_offset_y: t.name_offset_y,
+      badge_offset_x: t.badge_offset_x,
+      badge_offset_y: t.badge_offset_y,
+    };
+    onUpdateUser?.({ ...user, ...data });
+    onTab("customize");
+    setStats((prevStats) => ({
+      ...prevStats,
       [t.user_id]: {
-        installs: (prev[t.user_id]?.installs || 0) + 1,
-        stars: prev[t.user_id]?.stars || 0,
-        recent_installs: (prev[t.user_id]?.recent_installs || 0) + 1,
+        installs: (prevStats[t.user_id]?.installs || 0) + 1,
+        stars: prevStats[t.user_id]?.stars || 0,
+        recent_installs: (prevStats[t.user_id]?.recent_installs || 0) + 1,
       },
     }));
-    const data = await fetchMe();
-    if (data) onUpdateUser?.(data);
-    onTab("customize");
+    apiCall("update", { data }).then((res) => {
+      if (res.error) { onUpdateUser?.(prev); return; }
+      apiCall("template_install", { targetUserId: t.user_id });
+      fetchMe().then((fresh) => { if (fresh) onUpdateUser?.(fresh); });
+    });
   };
 
-  const toggleFavorite = async (t: Template) => {
+  const toggleFavorite = (t: Template) => {
     if (!user || t.user_id === user.id) return;
     const faved = favorites.has(t.user_id);
-    if (faved) {
-      await apiCall("template_unfavorite", { targetUserId: t.user_id });
-      setFavorites((prev) => { const s = new Set(prev); s.delete(t.user_id); return s; });
-      setStats((prev) => ({ ...prev, [t.user_id]: { ...(prev[t.user_id] || { installs: 0, stars: 0, recent_installs: 0 }), stars: Math.max(0, (prev[t.user_id]?.stars || 0) - 1) } }));
-    } else {
-      await apiCall("template_favorite", { targetUserId: t.user_id });
-      setFavorites((prev) => new Set(prev).add(t.user_id));
-      setStats((prev) => ({ ...prev, [t.user_id]: { ...(prev[t.user_id] || { installs: 0, stars: 0, recent_installs: 0 }), stars: (prev[t.user_id]?.stars || 0) + 1 } }));
-    }
+    const bump = faved ? -1 : 1;
+    setFavorites((prevFav) => { const s = new Set(prevFav); if (faved) s.delete(t.user_id); else s.add(t.user_id); return s; });
+    setStats((prevStats) => ({ ...prevStats, [t.user_id]: { ...(prevStats[t.user_id] || { installs: 0, stars: 0, recent_installs: 0 }), stars: Math.max(0, (prevStats[t.user_id]?.stars || 0) + bump) } }));
+    apiCall(faved ? "template_unfavorite" : "template_favorite", { targetUserId: t.user_id }).then((res) => {
+      if (res.error) {
+        setFavorites((prevFav) => { const s = new Set(prevFav); if (faved) s.add(t.user_id); else s.delete(t.user_id); return s; });
+        setStats((prevStats) => ({ ...prevStats, [t.user_id]: { ...(prevStats[t.user_id] || { installs: 0, stars: 0, recent_installs: 0 }), stars: Math.max(0, (prevStats[t.user_id]?.stars || 0) - bump) } }));
+      }
+    });
   };
 
   const allTags = Array.from(new Set(templates.flatMap((t) => t.tags || []))).sort();
@@ -4688,7 +4689,7 @@ function Widgets({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (u:
                 )}
               </div>
               <div className="flex items-center justify-center rounded-2xl border border-white/[0.06] bg-black/20 p-6">
-                <AboutPage config={widgets.about} discordId={user?.discord_id} discordEnabled={user?.discord_rpc_enabled} />
+                <AboutPage config={widgets.about} discordId={user?.discord_id} discordEnabled={user?.discord_rpc_enabled} instant />
               </div>
             </div>
           </div>
@@ -4714,7 +4715,7 @@ function Widgets({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (u:
                 </p>
               </div>
               <div className="flex items-center justify-center rounded-2xl border border-white/[0.06] bg-black/20 p-6">
-                <SongPage url={widgets.song.url} />
+                <SongPage url={widgets.song.url} instant />
               </div>
             </div>
           </div>
@@ -4780,7 +4781,7 @@ function Widgets({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (u:
                 ))}
               </div>
               <div className="flex items-center justify-center overflow-hidden rounded-2xl border border-white/[0.06] bg-black/20 p-6">
-                <ProjectsPage config={widgets.projects} />
+                <ProjectsPage config={widgets.projects} instant />
               </div>
             </div>
           </div>

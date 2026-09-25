@@ -19,21 +19,24 @@ export default function AboutPage({
   config,
   discordId,
   discordEnabled,
+  instant = false,
 }: {
   config: AboutPageConfig;
   discordId?: string | null;
   discordEnabled?: boolean;
+  instant?: boolean;
 }) {
   const showDiscord = !!discordEnabled && !!discordId;
   const tags = (config.tags || []).slice(0, 6);
   const hasRow = showDiscord || !!config.clock;
   const showTags = tags.length > 0;
+  const scrollAnim = instant ? {} : { whileInView: "show" as const, viewport: dropInView };
   return (
     <motion.div
       variants={dropContainer}
-      initial="hidden"
-      whileInView="show"
-      viewport={dropInView}
+      initial={instant ? "show" : "hidden"}
+      animate={instant ? "show" : undefined}
+      {...scrollAnim}
       className="flex flex-col items-start gap-7 text-left w-full max-w-4xl"
     >
       <motion.div variants={dropItem}>
@@ -51,7 +54,7 @@ export default function AboutPage({
         </motion.div>
       ) : null}
       {hasRow && (
-        <motion.div variants={dropContainer} className="w-full">
+        <motion.div variants={dropContainer} initial={instant ? "show" : "hidden"} animate={instant ? "show" : undefined} className="w-full">
           <div className="grid w-full grid-cols-1 sm:grid-cols-2 items-stretch gap-5">
             <div className="flex w-full flex-col gap-5">
               {showDiscord && (

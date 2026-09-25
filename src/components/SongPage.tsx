@@ -414,14 +414,14 @@ function SpotifyPlayerLyrics({ id, autoPlay = false }: { id: string; autoPlay?: 
   );
 }
 
-export default function SongPage({ url, autoPlay = false }: { url: string; autoPlay?: boolean }) {
+export default function SongPage({ url, autoPlay = false, instant = false }: { url: string; autoPlay?: boolean; instant?: boolean }) {
   const parsed = parseSongUrl(url);
   return (
     <motion.div
       variants={dropContainer}
-      initial="hidden"
-      whileInView="show"
-      viewport={dropInView}
+      initial={instant ? "show" : "hidden"}
+      animate={instant ? "show" : undefined}
+      {...(instant ? {} : { whileInView: "show" as const, viewport: dropInView })}
       className="flex flex-col items-start gap-7 w-full max-w-3xl"
     >
       <motion.div variants={dropItem}>

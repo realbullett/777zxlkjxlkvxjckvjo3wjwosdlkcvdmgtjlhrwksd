@@ -12,14 +12,15 @@ const dropItem: Variants = {
 
 const dropInView = { once: false, amount: 0.1 } as const;
 
-export default function ProjectsPage({ config }: { config: ProjectsPageConfig }) {
+export default function ProjectsPage({ config, instant = false }: { config: ProjectsPageConfig; instant?: boolean }) {
   const projects = (config.projects || []).filter((p) => p.banner || p.name || p.description);
+  const scrollAnim = instant ? {} : { whileInView: "show" as const, viewport: dropInView };
   return (
     <motion.div
       variants={dropContainer}
-      initial="hidden"
-      whileInView="show"
-      viewport={dropInView}
+      initial={instant ? "show" : "hidden"}
+      animate={instant ? "show" : undefined}
+      {...scrollAnim}
       className="flex flex-col items-start gap-7 w-full max-w-3xl"
     >
       <motion.div variants={dropItem}>
@@ -34,9 +35,9 @@ export default function ProjectsPage({ config }: { config: ProjectsPageConfig })
       ) : (
         <motion.div
           variants={dropContainer}
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: false, amount: 0.05 }}
+          initial={instant ? "show" : "hidden"}
+          animate={instant ? "show" : undefined}
+          {...(instant ? {} : { whileInView: "show" as const, viewport: { once: false, amount: 0.05 } as const })}
           className="allow-scroll hide-scrollbar flex w-full max-h-[calc(100vh-10rem)] flex-col gap-6 overflow-y-auto pr-1"
         >
           {projects.map((pr, i) => (
