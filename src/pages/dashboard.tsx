@@ -1163,6 +1163,15 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
           </div>
         </div>
 
+        <div className="relative rounded-2xl p-6 bg-gradient-to-r from-yellow-500/20 via-yellow-600/25 to-yellow-500/20 border border-yellow-500/40 backdrop-blur-xl overflow-hidden mb-8">
+          <div className="relative flex items-center gap-4">
+            <div>
+              <h3 className="text-lg font-bold text-white">Heads up</h3>
+              <p className="text-sm text-yellow-100/80 mt-1">Saving can take a few seconds — wait a moment after clicking save before checking your page</p>
+            </div>
+          </div>
+        </div>
+
         <div className="glass-card rounded-2xl p-8 bg-blue-500/[0.04] border-blue-500/10 space-y-8">
           <div>
           <p className="text-sm font-semibold text-white/80 mb-4">Display Name</p>
