@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import { GetTurso } from "../lib/turso.js";
+import { NotifyAdminLog } from "../lib/notify.js";
 
 const SECRET = process.env.SESSION_SECRET || "sire-dev-secret-do-not-use-in-prod";
 
@@ -299,6 +300,9 @@ async function LogAdmin(adminId, action, targetUid, detail) {
       sql: "INSERT INTO admin_log (admin_id, action, target_uid, detail) VALUES (?, ?, ?, ?)",
       args: [adminId, action, targetUid || null, detail ? String(detail).slice(0, 500) : null]
     });
+  } catch {}
+  try {
+    await NotifyAdminLog({ AdminId: adminId, Action: action, TargetUid: targetUid || null, Detail: detail });
   } catch {}
 }
 
