@@ -21,6 +21,11 @@ export default async function handler(req, res) {
     const Match = Rows.find((R) => String(R.username || "").toLowerCase() === Name) || Rows[0];
     if (!Match) { res.status(404).json({ error: "Not found" }); return; }
     const Uid = Match.id;
+    const FlagRs = await Db.execute({ sql: "SELECT suspended, hidden FROM users WHERE id = ?", args: [Uid] });
+    if (Number(FlagRs.rows?.[0]?.suspended || 0) === 1 || Number(FlagRs.rows?.[0]?.hidden || 0) === 1) {
+      res.status(404).json({ error: "Not found" });
+      return;
+    }
     Match.widgets = ParseJson(Match.widgets, Match.widgets ?? []);
     Match.desc_lines = ParseJson(Match.desc_lines, Match.desc_lines ?? null);
     for (const K of ["show_username", "video_audio", "monochrome_icons", "monochrome_badges", "banner_enabled", "panel_mouse_follow", "audio_autoplay", "audio_loop", "audio_shuffle", "panel_hidden", "discord_rpc_enabled", "views_blacklisted"]) {

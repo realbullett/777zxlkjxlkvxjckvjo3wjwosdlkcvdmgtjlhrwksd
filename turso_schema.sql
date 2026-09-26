@@ -69,6 +69,9 @@ CREATE TABLE IF NOT EXISTS users (
   onboarding_done INTEGER NOT NULL DEFAULT 0,
   use_case TEXT,
   is_admin INTEGER NOT NULL DEFAULT 0,
+  suspended INTEGER NOT NULL DEFAULT 0,
+  hidden INTEGER NOT NULL DEFAULT 0,
+  signup_ip TEXT,
   created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
   UNIQUE (provider, provider_id)
 );
@@ -212,6 +215,16 @@ CREATE TABLE IF NOT EXISTS ip_registrations (
   created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
   PRIMARY KEY (ip, created_at)
 );
+
+CREATE TABLE IF NOT EXISTS admin_log (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  admin_id INTEGER NOT NULL,
+  action TEXT NOT NULL,
+  target_uid INTEGER,
+  detail TEXT,
+  created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+CREATE INDEX IF NOT EXISTS idx_admin_log_time ON admin_log (created_at DESC);
 
 CREATE TABLE IF NOT EXISTS discord_presence (
   discord_id TEXT PRIMARY KEY,

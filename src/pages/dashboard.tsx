@@ -159,7 +159,7 @@ const fetchMe = async () => {
   } catch {}
   const r = await fetch(`/api/me?sessionToken=${encodeURIComponent(sessionToken || "")}`);
   const d = await r.json();
-  return d.user || null;
+  return d;
 };
 
 export default function Dashboard() {
@@ -168,6 +168,7 @@ export default function Dashboard() {
   const [user, setUser] = useState<User | null>(null);
   const [activeTab, setActiveTab] = useState<TabId>("overview");
   const [unauth, setUnauth] = useState(false);
+  const [suspendedMsg, setSuspendedMsg] = useState(false);
 
   useEffect(() => {
     const uid = searchParams.get("uid");
@@ -181,8 +182,10 @@ export default function Dashboard() {
     const qs = token ? `token=${encodeURIComponent(token)}` : (storedToken ? `s=${encodeURIComponent(storedToken)}` : "");
     const loadMe = () => {
       fetchMe().then((data) => {
-        if (data && !data.onboarding_done) { navigate(`/welcome?uid=${data.id}`, { replace: true }); return; }
-        if (data) setUser(data);
+        const u = data?.user || null;
+        if (data?.suspended) setSuspendedMsg(true);
+        if (u && !u.onboarding_done) { navigate(`/welcome?uid=${u.id}`, { replace: true }); return; }
+        if (u) setUser(u);
         else { localStorage.clear(); setUnauth(true); }
       });
     };
@@ -238,7 +241,7 @@ export default function Dashboard() {
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(37,99,235,0.08),transparent_70%)]" />
       <div className="text-center relative">
         <p className="text-6xl font-black text-white/10 mb-4">404</p>
-        <p className="text-white/20 text-sm mb-6">Session expired, please sign in again</p>
+        <p className="text-white/20 text-sm mb-6">{suspendedMsg ? "This account has been suspended" : "Session expired, please sign in again"}</p>
         <Link to="/auth" className="text-sm text-blue-400 hover:text-blue-300 transition-colors">
           back to login
         </Link>
@@ -357,7 +360,7 @@ return (
                 {activeTab === "templates" && <Templates user={user} onTab={setActiveTab} onUpdateUser={setUser} />}
                 {activeTab === "data" && <DataSettings user={user} />}
                 {activeTab === "badges" && <UserBadges user={user} />}
-                {activeTab === "admin" && <> <AdminBadges /> <AdminBanUser /> </>}
+                {activeTab === "admin" && <> <AdminStats /> <AdminStorage /> <AdminBadges /> <AdminBanUser /> <AdminLog /> </>}
               </motion.div>
             </AnimatePresence>
           </main>
@@ -2986,7 +2989,7 @@ function UserBadges({ user }: { user: User | null }) {
 
 function AdminBadges() {
   const [search, setSearch] = useState("");
-  const [targetUser, setTargetUser] = useState<{ id: number; username: string; alias: string | null; is_admin: number | null } | null>(null);
+  const [targetUser, setTargetUser] = useState<{ id: number; username: string; alias: string | null; is_admin: number | null; suspended: number | null; hidden: number | null } | null>(null);
   const [userBadges, setUserBadges] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState("");
@@ -3002,6 +3005,9 @@ function AdminBadges() {
     if (J?.user) {
       setTargetUser(J.user);
       setUserBadges(Array.isArray(J.badges) ? J.badges : []);
+      setAlts([]);
+      setAltsIp(null);
+      setRenameInput("");
     } else {
       setTargetUser(null);
       setUserBadges([]);
@@ -3029,6 +3035,44 @@ function AdminBadges() {
     const r = await apiCall("admin_set_admin", { targetUid: targetUser.id, admin: make });
     if (r.error) { alert(r.error || "Failed to update admin"); return; }
     setTargetUser({ ...targetUser, is_admin: make ? 1 : 0 });
+  };
+
+  const toggleFlag = async (flag: "suspended" | "hidden") => {
+    if (!targetUser) return;
+    const make = Number(targetUser[flag] || 0) !== 1;
+    const verb = flag === "suspended" ? (make ? "Suspend" : "Unsuspend") : (make ? "Hide" : "Unhide");
+    if (!confirm(`${verb} @${targetUser.username}?${flag === "suspended" && make ? " They will be logged out and blocked from logging in." : ""}${flag === "hidden" && make ? " Their page and leaderboard entry go 404." : ""}`)) return;
+    const r = await apiCall(flag === "suspended" ? "admin_suspend" : "admin_hide", { targetUid: targetUser.id, value: make });
+    if (r.error) { alert(r.error || "Failed"); return; }
+    setTargetUser({ ...targetUser, [flag]: make ? 1 : 0 });
+  };
+
+  const [renameInput, setRenameInput] = useState("");
+  const doRename = async () => {
+    if (!targetUser || !renameInput.trim()) return;
+    if (!confirm(`Rename @${targetUser.username} to @${renameInput.trim().toLowerCase()}? Their old URL stops working.`)) return;
+    const r = await apiCall("admin_rename", { targetUid: targetUser.id, username: renameInput.trim().toLowerCase() });
+    if (r.error) { alert(r.error || "Rename failed"); return; }
+    setTargetUser({ ...targetUser, username: r.username });
+    setRenameInput("");
+  };
+
+  const deleteTemplate = async () => {
+    if (!targetUser) return;
+    if (!confirm(`Remove @${targetUser.username}'s shared template from the gallery?`)) return;
+    const r = await apiCall("admin_template_delete", { targetUid: targetUser.id });
+    if (r.error) { alert(r.error || "Failed"); return; }
+    alert("Template removed from gallery.");
+  };
+
+  const [alts, setAlts] = useState<{ id: number; username: string; alias: string | null; email: string | null; created_at: string }[]>([]);
+  const [altsIp, setAltsIp] = useState<string | null>(null);
+  const loadAlts = async () => {
+    if (!targetUser) return;
+    const r = await apiCall("admin_alts", { targetUid: targetUser.id });
+    if (r.error) { alert(r.error || "Failed"); return; }
+    setAltsIp(r.ip || null);
+    setAlts(Array.isArray(r.alts) ? r.alts : []);
   };
 
   const handleDeleteUser = async () => {
@@ -3091,8 +3135,7 @@ function AdminBadges() {
               )}
             </div>
 
-            <p className="text-sm font-semibold text-white/80">Available badges</p>
-            <div className="grid grid-cols-2 gap-2">
+            <p className="text-sm font-semibold text-white/80">Available badges</p>            <div className="grid grid-cols-2 gap-2">
               {BADGE_LIST.map((b) => {
                 const active = userBadges.includes(b.id);
                 return (
@@ -3112,6 +3155,72 @@ function AdminBadges() {
                 );
               })}
             </div>
+            <p className="text-sm font-semibold text-white/80 pt-2">Moderation</p>
+            <div className="grid grid-cols-2 gap-2">
+              {targetUser.id !== 1 && (
+                <>
+                  <button
+                    onClick={() => toggleFlag("suspended")}
+                    className={`p-3 rounded-xl border text-sm font-medium text-left transition-all cursor-pointer ${
+                      Number(targetUser.suspended || 0) === 1
+                        ? "bg-red-600/20 border-red-500/40 text-red-300"
+                        : "bg-white/[0.02] border-white/[0.06] text-white/60 hover:border-white/20"
+                    }`}
+                  >
+                    {Number(targetUser.suspended || 0) === 1 ? "suspended — click to unsuspend" : "suspend account"}
+                  </button>
+                  <button
+                    onClick={() => toggleFlag("hidden")}
+                    className={`p-3 rounded-xl border text-sm font-medium text-left transition-all cursor-pointer ${
+                      Number(targetUser.hidden || 0) === 1
+                        ? "bg-amber-600/20 border-amber-500/40 text-amber-300"
+                        : "bg-white/[0.02] border-white/[0.06] text-white/60 hover:border-white/20"
+                    }`}
+                  >
+                    {Number(targetUser.hidden || 0) === 1 ? "hidden — click to unhide" : "hide page + leaderboard"}
+                  </button>
+                </>
+              )}
+              <button
+                onClick={deleteTemplate}
+                className="p-3 rounded-xl border text-sm font-medium text-left transition-all cursor-pointer bg-white/[0.02] border-white/[0.06] text-white/60 hover:border-white/20"
+              >
+                remove shared template
+              </button>
+              <button
+                onClick={loadAlts}
+                className="p-3 rounded-xl border text-sm font-medium text-left transition-all cursor-pointer bg-white/[0.02] border-white/[0.06] text-white/60 hover:border-white/20"
+              >
+                find alt accounts
+              </button>
+            </div>
+            {altsIp !== null && (
+              <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.06]">
+                <p className="text-xs text-white/40 mb-2">signup ip: <span className="text-white/70 font-mono">{altsIp || "unknown"}</span></p>
+                {alts.length === 0 ? (
+                  <p className="text-xs text-white/30">no other accounts on this ip</p>
+                ) : (
+                  alts.map((a) => (
+                    <p key={a.id} className="text-xs text-white/60 py-0.5">@{a.username} — uid #{a.id} <span className="text-white/25">{a.created_at?.slice(0, 10)}</span></p>
+                  ))
+                )}
+              </div>
+            )}
+            {targetUser.id !== 1 && (
+              <div className="flex items-center gap-3">
+                <input
+                  type="text"
+                  placeholder="force new username..."
+                  value={renameInput}
+                  onChange={(e) => setRenameInput(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && doRename()}
+                  className="flex-1 bg-white/[0.03] border border-white/[0.06] rounded-xl px-4 py-2.5 text-sm text-white outline-none placeholder:text-white/10 focus:border-blue-500/30 transition-colors"
+                />
+                <button onClick={doRename} className="rounded-xl bg-white/[0.04] border border-white/[0.08] px-5 py-2.5 text-sm font-semibold text-white/70 hover:text-white transition-colors">
+                  rename
+                </button>
+              </div>
+            )}
             <div className="pt-4 border-t border-white/[0.06]">
               <button
                 onClick={handleDeleteUser}
@@ -3224,6 +3333,137 @@ function AdminBanUser() {
             </button>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+function AdminStats() {
+  const [stats, setStats] = useState<{ users: number; views: number; views7d: number; files: number; bytes: number; signups30d: { day: string; count: number }[] } | null>(null);
+  useEffect(() => {
+    apiCall("admin_stats", {}).then((r) => { if (!r.error) setStats(r); }).catch(() => {});
+  }, []);
+  const fmtBytes = (b: number) => b > 1048576 ? `${(b / 1048576).toFixed(2)} MB` : `${(b / 1024).toFixed(1)} KB`;
+  const maxDay = Math.max(1, ...(stats?.signups30d || []).map((s) => s.count));
+  return (
+    <div className="mb-10">
+      <h1 className="text-lg font-semibold text-white/40 mb-8 lowercase">admin — site stats</h1>
+      <div className="glass-card rounded-2xl p-6 space-y-6">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+          {[
+            { label: "users", value: String(stats?.users ?? "…") },
+            { label: "total views", value: String(stats?.views ?? "…") },
+            { label: "views 7d", value: String(stats?.views7d ?? "…") },
+            { label: "files", value: String(stats?.files ?? "…") },
+            { label: "storage", value: stats ? fmtBytes(stats.bytes) : "…" },
+          ].map((s) => (
+            <div key={s.label} className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] text-center">
+              <p className="text-xl font-black text-white">{s.value}</p>
+              <p className="text-[10px] uppercase tracking-widest text-white/30 mt-1">{s.label}</p>
+            </div>
+          ))}
+        </div>
+        <div>
+          <p className="text-xs uppercase tracking-widest text-white/30 mb-3">signups last 30 days</p>
+          <div className="flex items-end gap-1 h-20">
+            {(stats?.signups30d || []).map((s) => (
+              <div key={s.day} title={`${s.day}: ${s.count}`} className="flex-1 rounded-sm bg-blue-500/50 min-h-[3px]" style={{ height: `${Math.max(4, (s.count / maxDay) * 100)}%` }} />
+            ))}
+            {(stats?.signups30d || []).length === 0 && <p className="text-xs text-white/20">no signups in the last 30 days</p>}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AdminStorage() {
+  const [rows, setRows] = useState<{ user_id: number; username: string | null; files: number; bytes: number }[]>([]);
+  const [openUid, setOpenUid] = useState<number | null>(null);
+  const [files, setFiles] = useState<{ id: string; kind: string; filename: string; content_type: string; size: number; bytes: number; created_at: string }[]>([]);
+  const fmtBytes = (b: number) => b > 1048576 ? `${(b / 1048576).toFixed(2)} MB` : `${(b / 1024).toFixed(1)} KB`;
+  const load = () => {
+    apiCall("admin_storage", {}).then((r) => { if (!r.error) setRows(r.rows || []); }).catch(() => {});
+  };
+  useEffect(load, []);
+  const openFiles = async (uid: number) => {
+    if (openUid === uid) { setOpenUid(null); return; }
+    const r = await apiCall("admin_storage_files", { targetUid: uid });
+    if (r.error) { alert(r.error || "Failed"); return; }
+    setFiles(r.files || []);
+    setOpenUid(uid);
+  };
+  const delFile = async (fileId: string, name: string) => {
+    if (!confirm(`Delete file "${name}"? The user loses it permanently.`)) return;
+    const r = await apiCall("admin_storage_file_delete", { fileId });
+    if (r.error) { alert(r.error || "Failed"); return; }
+    setFiles(files.filter((f) => f.id !== fileId));
+    load();
+  };
+  const wipe = async (uid: number, name: string | null) => {
+    if (!confirm(`Delete ALL hosted files of @${name || uid}? Their profile images/backgrounds are kept, everything in media + file host is wiped.`)) return;
+    const r = await apiCall("admin_storage_wipe", { targetUid: uid });
+    if (r.error) { alert(r.error || "Failed"); return; }
+    alert(`Wiped ${r.deleted} files.`);
+    setOpenUid(null);
+    load();
+  };
+  return (
+    <div className="mb-10">
+      <h1 className="text-lg font-semibold text-white/40 mb-8 lowercase">admin — storage</h1>
+      <div className="glass-card rounded-2xl p-6 space-y-3">
+        {rows.length === 0 && <p className="text-xs text-white/20">no stored files</p>}
+        {rows.map((r) => (
+          <div key={r.user_id} className="rounded-xl bg-white/[0.02] border border-white/[0.06] overflow-hidden">
+            <div className="flex items-center gap-3 p-3">
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-white truncate">@{r.username || "?"} <span className="text-white/30 font-normal">— uid #{r.user_id}</span></p>
+                <p className="text-xs text-white/40">{r.files} files · {fmtBytes(Number(r.bytes))}</p>
+              </div>
+              <button onClick={() => openFiles(r.user_id)} className="px-4 py-1.5 rounded-lg text-[10px] font-bold tracking-widest uppercase bg-white/[0.04] text-white/50 border border-white/[0.08] hover:text-white transition-colors cursor-pointer">
+                {openUid === r.user_id ? "close" : "files"}
+              </button>
+              <button onClick={() => wipe(r.user_id, r.username)} className="px-4 py-1.5 rounded-lg text-[10px] font-bold tracking-widest uppercase bg-red-500/10 text-red-300/80 border border-red-500/30 hover:bg-red-500/20 transition-colors cursor-pointer">
+                wipe
+              </button>
+            </div>
+            {openUid === r.user_id && (
+              <div className="border-t border-white/[0.06] px-3 py-2 space-y-1">
+                {files.map((f) => (
+                  <div key={f.id} className="flex items-center gap-2 py-1">
+                    <p className="text-xs text-white/60 truncate flex-1 font-mono">{f.filename} <span className="text-white/25">({f.kind} · {fmtBytes(Number(f.bytes))})</span></p>
+                    <button onClick={() => delFile(f.id, f.filename)} className="text-[11px] text-red-400/60 hover:text-red-400 transition-colors cursor-pointer">delete</button>
+                  </div>
+                ))}
+                {files.length === 0 && <p className="text-xs text-white/20 py-1">no files</p>}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function AdminLog() {
+  const [log, setLog] = useState<{ id: number; admin_id: number; admin_name: string | null; action: string; target_uid: number | null; target_name: string | null; detail: string | null; created_at: string }[]>([]);
+  useEffect(() => {
+    apiCall("admin_log_list", {}).then((r) => { if (!r.error) setLog(r.log || []); }).catch(() => {});
+  }, []);
+  return (
+    <div className="mb-10">
+      <h1 className="text-lg font-semibold text-white/40 mb-8 lowercase">admin — action log</h1>
+      <div className="glass-card rounded-2xl p-6 space-y-1 max-h-96 overflow-y-auto">
+        {log.length === 0 && <p className="text-xs text-white/20">no admin actions yet</p>}
+        {log.map((e) => (
+          <p key={e.id} className="text-xs text-white/50 py-1 border-b border-white/[0.03]">
+            <span className="text-white/80 font-semibold">@{e.admin_name || `#${e.admin_id}`}</span>
+            <span className="mx-1.5 px-1.5 py-0.5 rounded bg-white/[0.05] font-mono text-white/70">{e.action}</span>
+            {e.target_uid !== null && <span>@{e.target_name || `#${e.target_uid}`}</span>}
+            {e.detail && <span className="text-white/30"> — {e.detail}</span>}
+            <span className="text-white/20 ml-2">{e.created_at?.replace("T", " ").slice(0, 19)}</span>
+          </p>
+        ))}
       </div>
     </div>
   );
@@ -3638,7 +3878,7 @@ function Templates({ user, onTab, onUpdateUser }: { user: User | null; onTab: (t
     apiCall("update", { data }).then((res) => {
       if (res.error) { onUpdateUser?.(prev); return; }
       apiCall("template_install", { targetUserId: t.user_id });
-      fetchMe().then((fresh) => { if (fresh) onUpdateUser?.(fresh); });
+      fetchMe().then((d) => { if (d?.user) onUpdateUser?.(d.user); });
     });
   };
 

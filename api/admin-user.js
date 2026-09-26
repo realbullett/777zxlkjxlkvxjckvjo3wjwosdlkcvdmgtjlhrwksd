@@ -28,7 +28,7 @@ export default async function handler(req, res) {
     }
     const Name = String(req.query.u || req.query.username || "").trim().toLowerCase();
     if (!Name) { res.status(400).json({ error: "Missing username" }); return; }
-    const UserRs = await Db.execute({ sql: "SELECT id, username, alias, is_admin FROM users WHERE username = ? OR alias = ? LIMIT 1", args: [Name, Name] });
+    const UserRs = await Db.execute({ sql: "SELECT id, username, alias, is_admin, suspended, hidden FROM users WHERE username = ? OR alias = ? LIMIT 1", args: [Name, Name] });
     const Found = UserRs.rows?.[0] || null;
     if (!Found) { res.status(200).json({ user: null, badges: [] }); return; }
     const BadgeRs = await Db.execute({ sql: "SELECT badge FROM badges WHERE user_id = ?", args: [Found.id] });

@@ -191,6 +191,11 @@ async function EnsureSchema() {
     D.execute("ALTER TABLE users ADD COLUMN onboarding_done INTEGER NOT NULL DEFAULT 0"),
     D.execute("ALTER TABLE users ADD COLUMN use_case TEXT"),
     D.execute("ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0"),
+    D.execute("ALTER TABLE users ADD COLUMN suspended INTEGER NOT NULL DEFAULT 0"),
+    D.execute("ALTER TABLE users ADD COLUMN hidden INTEGER NOT NULL DEFAULT 0"),
+    D.execute("ALTER TABLE users ADD COLUMN signup_ip TEXT"),
+    D.execute("CREATE TABLE IF NOT EXISTS admin_log (id INTEGER PRIMARY KEY AUTOINCREMENT, admin_id INTEGER NOT NULL, action TEXT NOT NULL, target_uid INTEGER, detail TEXT, created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')))"),
+    D.execute("CREATE INDEX IF NOT EXISTS idx_admin_log_time ON admin_log (created_at DESC)"),
   ]);
   SchemaReady = true;
 }
@@ -281,6 +286,15 @@ async function IsAdmin(uid) {
     const R = await Db().execute({ sql: "SELECT is_admin FROM users WHERE id = ?", args: [uid] });
     return Number(R.rows?.[0]?.is_admin || 0) === 1;
   } catch { return false; }
+}
+
+async function LogAdmin(adminId, action, targetUid, detail) {
+  try {
+    await Db().execute({
+      sql: "INSERT INTO admin_log (admin_id, action, target_uid, detail) VALUES (?, ?, ?, ?)",
+      args: [adminId, action, targetUid || null, detail ? String(detail).slice(0, 500) : null]
+    });
+  } catch {}
 }
 
 async function assetChunk(req, res) {
@@ -612,6 +626,11 @@ export default async function handler(req, res) {
     if (!uid) { res.status(401).json({ error: "Unauthorized" }); return; }
     const Row = await One("SELECT * FROM users WHERE id = ?", [uid]);
     if (!Row) { res.status(404).json({ error: "User not found" }); return; }
+    if (Number(Row.suspended || 0) === 1) {
+      res.setHeader("Set-Cookie", "sl_session=; HttpOnly; SameSite=Lax; Max-Age=0; Path=/");
+      res.status(403).json({ error: "This account has been suspended", suspended: true });
+      return;
+    }
     res.status(200).json({ user: NormalizeUser(Row) });
     return;
   }
@@ -950,6 +969,7 @@ export default async function handler(req, res) {
         res.status(500).json({ error: "Failed to delete user" });
         return;
       }
+      await LogAdmin(uid, "delete_user", targetUid, null);
       res.status(200).json({ ok: true });
       return;
     }
@@ -968,6 +988,7 @@ export default async function handler(req, res) {
       } else {
         await Db().execute({ sql: "DELETE FROM badges WHERE user_id = ? AND badge = ?", args: [targetUid, badge] });
       }
+      await LogAdmin(uid, action === "admin_badge_set" ? "badge_set" : "badge_remove", targetUid, badge);
       res.status(200).json({ ok: true });
       return;
     }
@@ -986,6 +1007,153 @@ export default async function handler(req, res) {
         return;
       }
       res.status(200).json({ ok: true, admin });
+      return;
+    }
+
+    case "admin_suspend":
+    case "admin_hide": {
+      if (!(await IsAdmin(uid))) { res.status(403).json({ error: "Forbidden" }); return; }
+      const targetUid = Number(req.body.targetUid);
+      const col = action === "admin_suspend" ? "suspended" : "hidden";
+      const val = req.body.value === true || req.body.value === 1 || req.body.value === "1" ? 1 : 0;
+      if (!targetUid) { res.status(400).json({ error: "Missing targetUid" }); return; }
+      if (targetUid === 1) { res.status(403).json({ error: "That account cannot be touched" }); return; }
+      await Db().execute({ sql: `UPDATE users SET ${col} = ? WHERE id = ?`, args: [val, targetUid] });
+      await LogAdmin(uid, val ? col : `un${col}`, targetUid, null);
+      res.status(200).json({ ok: true, [col]: !!val });
+      return;
+    }
+
+    case "admin_rename": {
+      if (!(await IsAdmin(uid))) { res.status(403).json({ error: "Forbidden" }); return; }
+      const targetUid = Number(req.body.targetUid);
+      const username = String(req.body.username || "").trim().toLowerCase();
+      if (!targetUid) { res.status(400).json({ error: "Missing targetUid" }); return; }
+      if (targetUid === 1) { res.status(403).json({ error: "That account cannot be renamed" }); return; }
+      if (!/^[a-z0-9_]{1,20}$/.test(username)) { res.status(400).json({ error: "Invalid username (a-z, 0-9, _, max 20)" }); return; }
+      const clashU = await One("SELECT id FROM users WHERE username = ? AND id != ? LIMIT 1", [username, targetUid]);
+      const clashA = await One("SELECT id FROM users WHERE alias = ? AND id != ? LIMIT 1", [username, targetUid]);
+      if (clashU || clashA) { res.status(409).json({ error: "Username is taken" }); return; }
+      const before = await One("SELECT username FROM users WHERE id = ?", [targetUid]);
+      await Db().execute({ sql: "UPDATE users SET username = ? WHERE id = ?", args: [username, targetUid] });
+      await LogAdmin(uid, "rename", targetUid, `${before?.username} -> ${username}`);
+      res.status(200).json({ ok: true, username });
+      return;
+    }
+
+    case "admin_template_delete": {
+      if (!(await IsAdmin(uid))) { res.status(403).json({ error: "Forbidden" }); return; }
+      const targetUid = Number(req.body.targetUid);
+      if (!targetUid) { res.status(400).json({ error: "Missing targetUid" }); return; }
+      await Db().execute({ sql: "DELETE FROM templates WHERE user_id = ?", args: [targetUid] });
+      await LogAdmin(uid, "template_delete", targetUid, null);
+      res.status(200).json({ ok: true });
+      return;
+    }
+
+    case "admin_stats": {
+      if (!(await IsAdmin(uid))) { res.status(403).json({ error: "Forbidden" }); return; }
+      const D = Db();
+      const [uTotal, views, views7, signups, storage] = await Promise.all([
+        D.execute("SELECT COUNT(*) AS c FROM users"),
+        D.execute("SELECT COUNT(*) AS c FROM page_views"),
+        D.execute("SELECT COUNT(*) AS c FROM page_views WHERE viewed_at >= strftime('%Y-%m-%dT%H:%M:%fZ','now','-7 days')"),
+        D.execute("SELECT substr(created_at, 1, 10) AS d, COUNT(*) AS c FROM users WHERE created_at >= strftime('%Y-%m-%dT%H:%M:%fZ','now','-30 days') GROUP BY d ORDER BY d"),
+        D.execute("SELECT COUNT(*) AS files, COALESCE(SUM(LENGTH(content)), 0) AS bytes FROM hosted_files"),
+      ]);
+      res.status(200).json({
+        ok: true,
+        users: Number(uTotal.rows?.[0]?.c || 0),
+        views: Number(views.rows?.[0]?.c || 0),
+        views7d: Number(views7.rows?.[0]?.c || 0),
+        signups30d: (signups.rows || []).map((R) => ({ day: R.d, count: Number(R.c) })),
+        files: Number(storage.rows?.[0]?.files || 0),
+        bytes: Number(storage.rows?.[0]?.bytes || 0),
+      });
+      return;
+    }
+
+    case "admin_storage": {
+      if (!(await IsAdmin(uid))) { res.status(403).json({ error: "Forbidden" }); return; }
+      const Rs = await Db().execute({
+        sql: `SELECT h.user_id, u.username, COUNT(*) AS files, COALESCE(SUM(LENGTH(h.content)), 0) AS bytes
+          FROM hosted_files h LEFT JOIN users u ON u.id = h.user_id
+          GROUP BY h.user_id ORDER BY bytes DESC LIMIT 50`,
+        args: []
+      });
+      res.status(200).json({ ok: true, rows: Rs.rows || [] });
+      return;
+    }
+
+    case "admin_storage_files": {
+      if (!(await IsAdmin(uid))) { res.status(403).json({ error: "Forbidden" }); return; }
+      const targetUid = Number(req.body.targetUid);
+      if (!targetUid) { res.status(400).json({ error: "Missing targetUid" }); return; }
+      const Rs = await Db().execute({
+        sql: "SELECT id, kind, filename, content_type, size, LENGTH(content) AS bytes, created_at FROM hosted_files WHERE user_id = ? ORDER BY created_at DESC",
+        args: [targetUid]
+      });
+      res.status(200).json({ ok: true, files: Rs.rows || [] });
+      return;
+    }
+
+    case "admin_storage_file_delete": {
+      if (!(await IsAdmin(uid))) { res.status(403).json({ error: "Forbidden" }); return; }
+      const fileId = String(req.body.fileId || "");
+      if (!fileId) { res.status(400).json({ error: "Missing fileId" }); return; }
+      const row = await One("SELECT user_id, filename FROM hosted_files WHERE id = ?", [fileId]);
+      if (!row) { res.status(404).json({ error: "File not found" }); return; }
+      await Db().execute({ sql: "DELETE FROM hosted_files WHERE id = ?", args: [fileId] });
+      if (String(fileId).startsWith("u")) {
+        const atype = String(fileId).split("-").slice(1).join("-");
+        if (atype) await Db().execute({ sql: "DELETE FROM assets WHERE user_id = ? AND type = ?", args: [row.user_id, atype] });
+      }
+      await LogAdmin(uid, "file_delete", Number(row.user_id), `${fileId} (${row.filename})`);
+      res.status(200).json({ ok: true });
+      return;
+    }
+
+    case "admin_storage_wipe": {
+      if (!(await IsAdmin(uid))) { res.status(403).json({ error: "Forbidden" }); return; }
+      const targetUid = Number(req.body.targetUid);
+      if (!targetUid) { res.status(400).json({ error: "Missing targetUid" }); return; }
+      if (targetUid === 1) { res.status(403).json({ error: "That account cannot be wiped" }); return; }
+      const gone = await Db().execute({
+        sql: "DELETE FROM hosted_files WHERE user_id = ? AND id NOT LIKE 'u%'",
+        args: [targetUid]
+      });
+      await LogAdmin(uid, "storage_wipe", targetUid, `${Number(gone.rowsAffected || 0)} files (profile assets kept)`);
+      res.status(200).json({ ok: true, deleted: Number(gone.rowsAffected || 0) });
+      return;
+    }
+
+    case "admin_alts": {
+      if (!(await IsAdmin(uid))) { res.status(403).json({ error: "Forbidden" }); return; }
+      const targetUid = Number(req.body.targetUid);
+      if (!targetUid) { res.status(400).json({ error: "Missing targetUid" }); return; }
+      const me = await One("SELECT id, signup_ip, email FROM users WHERE id = ?", [targetUid]);
+      if (!me) { res.status(404).json({ error: "User not found" }); return; }
+      let alts = [];
+      if (me.signup_ip && me.signup_ip !== "unknown") {
+        const Rs = await Db().execute({
+          sql: "SELECT id, username, alias, email, created_at FROM users WHERE signup_ip = ? AND id != ? ORDER BY created_at LIMIT 50",
+          args: [me.signup_ip, targetUid]
+        });
+        alts = Rs.rows || [];
+      }
+      res.status(200).json({ ok: true, ip: me.signup_ip || null, alts });
+      return;
+    }
+
+    case "admin_log_list": {
+      if (!(await IsAdmin(uid))) { res.status(403).json({ error: "Forbidden" }); return; }
+      const Rs = await Db().execute({
+        sql: `SELECT l.id, l.admin_id, u.username AS admin_name, l.action, l.target_uid, t.username AS target_name, l.detail, l.created_at
+          FROM admin_log l LEFT JOIN users u ON u.id = l.admin_id LEFT JOIN users t ON t.id = l.target_uid
+          ORDER BY l.id DESC LIMIT 100`,
+        args: []
+      });
+      res.status(200).json({ ok: true, log: Rs.rows || [] });
       return;
     }
 

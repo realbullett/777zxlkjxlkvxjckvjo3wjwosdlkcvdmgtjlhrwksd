@@ -85,6 +85,7 @@ export default function AuthPage() {
   useEffect(() => {
     const uid = params.get("uid");
     const token = params.get("token");
+    if (params.get("suspended") === "1") { setError("This account has been suspended."); }
     if (params.get("discord_success") === "true" || params.get("google_success") === "true") {
       if (uid && token) { navigate(`/dashboard?uid=${uid}&token=${encodeURIComponent(token)}`, { replace: true }); return; }
     }

@@ -8,7 +8,7 @@ export default async function handler(req, res) {
     const Rs = await Db.execute({
       sql: `SELECT pv.user_id, u.username, u.avatar_url, COUNT(*) AS views
         FROM page_views pv JOIN users u ON u.id = pv.user_id
-        WHERE u.views_blacklisted = 0 ${MonthFilter}
+        WHERE u.views_blacklisted = 0 AND u.suspended = 0 AND u.hidden = 0 ${MonthFilter}
         GROUP BY pv.user_id ORDER BY views DESC LIMIT 100`,
       args: []
     });
