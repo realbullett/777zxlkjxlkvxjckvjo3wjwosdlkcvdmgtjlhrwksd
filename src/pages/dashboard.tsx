@@ -78,6 +78,7 @@ type User = {
   discord_rpc_offset_y: number;
   panel_opacity: number | null;
   panel_hidden: boolean | null;
+  is_admin: number | null;
   widgets: unknown;
 };
 
@@ -281,7 +282,7 @@ return (
               />
             </div>
             <div className="flex flex-col gap-0.5 px-3">
-              {tabs.filter((t) => t.id !== "admin" || user?.id === 1).map((t) => {
+              {tabs.filter((t) => t.id !== "admin" || user?.id === 1 || user?.is_admin === 1).map((t) => {
                 const Icon = t.icon;
                 const isPremiumTab = t.id === "widgets" || t.id === "premium" || t.id === "imagehost" || t.id === "filehost";
                 return (
@@ -2985,7 +2986,7 @@ function UserBadges({ user }: { user: User | null }) {
 
 function AdminBadges() {
   const [search, setSearch] = useState("");
-  const [targetUser, setTargetUser] = useState<{ id: number; username: string; alias: string | null } | null>(null);
+  const [targetUser, setTargetUser] = useState<{ id: number; username: string; alias: string | null; is_admin: number | null } | null>(null);
   const [userBadges, setUserBadges] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState("");
@@ -3019,6 +3020,15 @@ function AdminBadges() {
       await apiCall("admin_badge_set", { badge, targetUid: targetUser.id });
       setUserBadges([...userBadges, badge]);
     }
+  };
+
+  const toggleAdmin = async () => {
+    if (!targetUser) return;
+    const make = Number(targetUser.is_admin || 0) !== 1;
+    if (!confirm(`${make ? "Grant" : "Remove"} admin panel access ${make ? "to" : "from"} @${targetUser.username}?`)) return;
+    const r = await apiCall("admin_set_admin", { targetUid: targetUser.id, admin: make });
+    if (r.error) { alert(r.error || "Failed to update admin"); return; }
+    setTargetUser({ ...targetUser, is_admin: make ? 1 : 0 });
   };
 
   const handleDeleteUser = async () => {
@@ -3065,8 +3075,20 @@ function AdminBadges() {
               </div>
               <div>
                 <p className="text-sm font-semibold text-white">{targetUser.alias || targetUser.username}</p>
-                <p className="text-xs text-white/40">@{targetUser.username} — uid #{targetUser.id}</p>
+                <p className="text-xs text-white/40">@{targetUser.username} — uid #{targetUser.id}{Number(targetUser.is_admin || 0) === 1 && <span className="ml-2 text-[10px] font-bold uppercase tracking-widest text-amber-300/80">admin</span>}</p>
               </div>
+              {targetUser.id !== 1 && (
+                <button
+                  onClick={toggleAdmin}
+                  className={`ml-auto px-4 py-1.5 rounded-lg text-[10px] font-bold tracking-widest uppercase border transition-colors cursor-pointer ${
+                    Number(targetUser.is_admin || 0) === 1
+                      ? "bg-red-500/10 text-red-300/80 border-red-500/30 hover:bg-red-500/20"
+                      : "bg-amber-500/10 text-amber-300/80 border-amber-500/30 hover:bg-amber-500/20"
+                  }`}
+                >
+                  {Number(targetUser.is_admin || 0) === 1 ? "remove admin" : "make admin"}
+                </button>
+              )}
             </div>
 
             <p className="text-sm font-semibold text-white/80">Available badges</p>

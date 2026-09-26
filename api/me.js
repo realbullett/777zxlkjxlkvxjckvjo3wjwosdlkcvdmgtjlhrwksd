@@ -190,6 +190,7 @@ async function EnsureSchema() {
     D.execute("CREATE TABLE IF NOT EXISTS upload_chunks (upload_id TEXT NOT NULL, user_id INTEGER NOT NULL, idx INTEGER NOT NULL, data BLOB, created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')), PRIMARY KEY (upload_id, idx))"),
     D.execute("ALTER TABLE users ADD COLUMN onboarding_done INTEGER NOT NULL DEFAULT 0"),
     D.execute("ALTER TABLE users ADD COLUMN use_case TEXT"),
+    D.execute("ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0"),
   ]);
   SchemaReady = true;
 }
@@ -272,6 +273,14 @@ async function hostPrepare(req, res) {
   const appUrl = process.env.APP_URL || "https://sire.lol";
   const slug = kind === "media" ? "i" : "f";
   res.status(200).json({ id, url: `${appUrl}/${slug}/${id}`, size: Buf.length, contentType });
+}
+
+async function IsAdmin(uid) {
+  if (uid === 1) return true;
+  try {
+    const R = await Db().execute({ sql: "SELECT is_admin FROM users WHERE id = ?", args: [uid] });
+    return Number(R.rows?.[0]?.is_admin || 0) === 1;
+  } catch { return false; }
 }
 
 async function assetChunk(req, res) {
@@ -925,9 +934,10 @@ export default async function handler(req, res) {
     }
 
     case "admin_delete_user": {
-      if (uid !== 1) { res.status(403).json({ error: "Forbidden" }); return; }
+      if (!(await IsAdmin(uid))) { res.status(403).json({ error: "Forbidden" }); return; }
       const targetUid = Number(req.body.targetUid);
       if (!targetUid) { res.status(400).json({ error: "Missing targetUid" }); return; }
+      if (targetUid === 1) { res.status(403).json({ error: "That account cannot be deleted" }); return; }
       for (const table of [...ADMIN_DELETE_TABLES, "assets", "hosted_files", "template_favorites"]) {
         try {
           await Db().execute({ sql: `DELETE FROM ${table} WHERE user_id = ?`, args: [targetUid] });
@@ -946,7 +956,7 @@ export default async function handler(req, res) {
 
     case "admin_badge_set":
     case "admin_badge_remove": {
-      if (uid !== 1) { res.status(403).json({ error: "Forbidden" }); return; }
+      if (!(await IsAdmin(uid))) { res.status(403).json({ error: "Forbidden" }); return; }
       const targetUid = Number(req.body.targetUid);
       const badge = String(req.body.badge || "");
       if (!targetUid || !BADGES.has(badge)) {
@@ -959,6 +969,23 @@ export default async function handler(req, res) {
         await Db().execute({ sql: "DELETE FROM badges WHERE user_id = ? AND badge = ?", args: [targetUid, badge] });
       }
       res.status(200).json({ ok: true });
+      return;
+    }
+
+    case "admin_set_admin": {
+      if (!(await IsAdmin(uid))) { res.status(403).json({ error: "Forbidden" }); return; }
+      const targetUid = Number(req.body.targetUid);
+      const admin = req.body.admin === true || req.body.admin === 1 || req.body.admin === "1";
+      if (!targetUid) { res.status(400).json({ error: "Missing targetUid" }); return; }
+      if (targetUid === 1) { res.status(403).json({ error: "That account is always admin" }); return; }
+      try {
+        await Db().execute({ sql: "UPDATE users SET is_admin = ? WHERE id = ?", args: [admin ? 1 : 0, targetUid] });
+      } catch (e) {
+        console.error("me admin_set_admin error:", e);
+        res.status(500).json({ error: "Failed to update admin" });
+        return;
+      }
+      res.status(200).json({ ok: true, admin });
       return;
     }
 
