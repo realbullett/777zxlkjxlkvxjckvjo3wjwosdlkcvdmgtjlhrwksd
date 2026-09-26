@@ -62,15 +62,15 @@ const ASSET_TYPES = new Set(["background", "audio", "audio_1", "audio_2", "profi
 const BADGES = new Set(["og", "premium", "verified", "booster", "staff", "bug", "corrupt"]);
 const ADMIN_DELETE_TABLES = ["badges", "links", "page_views", "templates", "songs", "template_installs"];
 
-const HOST_MAX_BYTES = 30 * 1024 * 1024;
+const HOST_MAX_BYTES = 10 * 1024 * 1024;
 const UPLOAD_CHUNK_CHARS = 2000000;
-const AssetCap = (t) => (t === "video_background" ? 5 * 1024 * 1024 : 10 * 1024 * 1024);
-const CapLabel = (t) => `${Math.round(AssetCap(t) / (1024 * 1024))}MB`;
-const CapHint = (t) => (t === "video_background"
-  ? `Video too large (max 5MB). Please compress your video to reduce the file size and try again.`
+const AssetCap = (t, premium) => ((t === "video_background" || String(t || "").startsWith("audio")) ? (premium ? 10 * 1024 * 1024 : 5 * 1024 * 1024) : 10 * 1024 * 1024);
+const CapLabel = (t, premium) => `${Math.round(AssetCap(t, premium) / (1024 * 1024))}MB`;
+const CapHint = (t, premium) => (t === "video_background"
+  ? `Video too large (max ${CapLabel(t, premium)}). Please compress your video to reduce the file size and try again.`
   : (String(t || "").startsWith("audio")
-    ? `Audio too large (max 10MB). Please compress your music file to reduce the file size and try again.`
-    : `File too large (max ${CapLabel(t)}). Please compress your file to reduce the file size and try again.`));
+    ? `Audio too large (max ${CapLabel(t, premium)}). Please compress your music file to reduce the file size and try again.`
+    : `File too large (max ${CapLabel(t, premium)}). Please compress your file to reduce the file size and try again.`));
 const HOST_MAX_ITEMS = 10;
 const HOST_MEDIA_TYPES = {
   png: "image/png",
@@ -241,7 +241,7 @@ async function hostPrepare(req, res) {
     return;
   }
   if (Raw.length > Math.ceil((HOST_MAX_BYTES * 4) / 3) + 1024) {
-    res.status(413).json({ error: "File too large (max 30MB)." });
+    res.status(413).json({ error: "File too large (max 10MB). Please compress your file to reduce the file size and try again." });
     return;
   }
   let Buf = null;
@@ -252,7 +252,7 @@ async function hostPrepare(req, res) {
     return;
   }
   if (!Buf || !Buf.length) { res.status(400).json({ error: "Invalid file content" }); return; }
-  if (Buf.length > HOST_MAX_BYTES) { res.status(413).json({ error: "File too large (max 30MB)." }); return; }
+  if (Buf.length > HOST_MAX_BYTES) { res.status(413).json({ error: "File too large (max 10MB). Please compress your file to reduce the file size and try again." }); return; }
 
   const C = await One("SELECT COUNT(*) AS c FROM hosted_files WHERE user_id = ? AND kind = ?", [uid, kind]);
   if (Number(C?.c || 0) >= HOST_MAX_ITEMS) {
@@ -315,8 +315,9 @@ async function assetChunk(req, res) {
     return;
   }
   if (chunkType && ASSET_TYPES.has(chunkType)) {
-    const maxChunks = Math.ceil((AssetCap(chunkType) * 4) / 3 / UPLOAD_CHUNK_CHARS) + 1;
-    if (total > maxChunks) { res.status(413).json({ error: CapHint(chunkType) }); return; }
+    const premium = await isPremiumUser(uid);
+    const maxChunks = Math.ceil((AssetCap(chunkType, premium) * 4) / 3 / UPLOAD_CHUNK_CHARS) + 1;
+    if (total > maxChunks) { res.status(413).json({ error: CapHint(chunkType, premium) }); return; }
   }
   if (!chunk.length || chunk.length > UPLOAD_CHUNK_CHARS + 1024) { res.status(400).json({ error: "Invalid chunk size" }); return; }
   try {
@@ -346,7 +347,8 @@ async function assetUpload(req, res) {
   const ext = name.includes(".") ? name.split(".").pop() : "";
   const contentType = ext ? HOST_MEDIA_TYPES[ext] : null;
   if (!contentType) { res.status(400).json({ error: "Unsupported file type. Images, videos and audio only." }); return; }
-  const Cap = AssetCap(assetType);
+  const premium = await isPremiumUser(uid);
+  const Cap = AssetCap(assetType, premium);
 
   let Buf = null;
   const uploadId = String(req.body.uploadId || "");
@@ -374,7 +376,7 @@ async function assetUpload(req, res) {
       await Db().execute({ sql: "DELETE FROM upload_chunks WHERE upload_id = ? AND user_id = ?", args: [uploadId, uid] });
     } catch {}
     if (!Buf || !Buf.length) { res.status(400).json({ error: "Invalid file content" }); return; }
-    if (Buf.length > Cap) { res.status(413).json({ error: CapHint(assetType) }); return; }
+    if (Buf.length > Cap) { res.status(413).json({ error: CapHint(assetType, premium) }); return; }
   } else {
     let Raw = req.body.contentBase64 || req.body.content || null;
     if (typeof Raw === "string" && Raw.startsWith("data:")) {
@@ -386,7 +388,7 @@ async function assetUpload(req, res) {
       return;
     }
     if (Raw.length > Math.ceil((Cap * 4) / 3) + 1024) {
-      res.status(413).json({ error: CapHint(assetType) });
+      res.status(413).json({ error: CapHint(assetType, premium) });
       return;
     }
     try {
@@ -396,7 +398,7 @@ async function assetUpload(req, res) {
       return;
     }
     if (!Buf || !Buf.length) { res.status(400).json({ error: "Invalid file content" }); return; }
-    if (Buf.length > Cap) { res.status(413).json({ error: CapHint(assetType) }); return; }
+    if (Buf.length > Cap) { res.status(413).json({ error: CapHint(assetType, premium) }); return; }
   }
 
   const id = `u${uid}-${assetType}`;

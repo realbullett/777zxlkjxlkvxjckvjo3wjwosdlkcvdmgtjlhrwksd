@@ -1104,12 +1104,13 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
 
   const uploadAsset = async (type: string, file: File) => {
     if (!user) return;
-    const capMb = type === "video_background" ? 5 : 10;
+    const premium = myBadges.includes("premium");
+    const capMb = (type === "video_background" || type.startsWith("audio")) ? (premium ? 10 : 5) : 10;
     if (file.size > capMb * 1024 * 1024) {
       alert(type === "video_background"
-        ? `Video too large (max 5MB). Please compress your video to reduce the file size and try again.`
+        ? `Video too large (max ${capMb}MB). Please compress your video to reduce the file size and try again.`
         : type.startsWith("audio")
-          ? `Audio too large (max 10MB). Please compress your music file to reduce the file size and try again.`
+          ? `Audio too large (max ${capMb}MB). Please compress your music file to reduce the file size and try again.`
           : `File too large (max ${capMb}MB). Please compress your file to reduce the file size and try again.`);
       setSaving(null);
       return;
@@ -2383,11 +2384,12 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
                 <div className="flex items-center justify-between p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
                 <span className="text-xs text-white/60">Video</span>
                 <div className="flex items-center gap-3">
-                  <span className="text-[10px] text-white/20">max 5MB</span>
+                  <span className="text-[10px] text-white/20">{myBadges.includes("premium") ? "max 10MB" : "max 5MB"}</span>
                   <input ref={videoBgRef} type="file" accept="video/mp4,video/webm,video/ogg" className="hidden" onChange={async () => {
                     const file = videoBgRef.current?.files?.[0];
                     if (!file) return;
-                    if (file.size > 5 * 1024 * 1024) { showSaved("video too large (max 5MB) — compress your video and try again", false); return; }
+                    const vcap = myBadges.includes("premium") ? 10 : 5;
+                    if (file.size > vcap * 1024 * 1024) { showSaved(`video too large (max ${vcap}MB) — compress your video and try again`, false); return; }
                     await uploadAsset("video_background", file);
                     setIsBgModalOpen(false);
                   }} />
@@ -4362,7 +4364,7 @@ function Premium({ user }: { user: User | null }) {
                   </span>
                 )}
               </div>
-              <p className="text-[11px] text-white/40 mt-1">upload images, videos and audio up to 30mb, get a sire.lol link for each one.</p>
+              <p className="text-[11px] text-white/40 mt-1">upload images, videos and audio up to 10mb, get a sire.lol link for each one.</p>
             </div>
             <div className="group relative rounded-2xl overflow-hidden border border-blue-500/20 bg-white/[0.03] p-4 transition-all hover:border-blue-400/50 hover:shadow-[0_0_30px_rgba(37,99,235,0.25)]">
               <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-blue-400/60 to-transparent" />
@@ -4379,7 +4381,7 @@ function Premium({ user }: { user: User | null }) {
                   </span>
                 )}
               </div>
-              <p className="text-[11px] text-white/40 mt-1">share any file up to 30mb from sire.lol/f links.</p>
+              <p className="text-[11px] text-white/40 mt-1">share any file up to 10mb from sire.lol/f links.</p>
             </div>
             <div className="group relative rounded-2xl overflow-hidden border border-blue-500/20 bg-white/[0.03] p-4 transition-all hover:border-blue-400/50 hover:shadow-[0_0_30px_rgba(37,99,235,0.25)]">
               <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-blue-400/60 to-transparent" />
@@ -4500,6 +4502,7 @@ function HostManager({
 
   const upload = async (file: File) => {
     setError("");
+    if (file.size > 10 * 1024 * 1024) { setError("File too large (max 10MB). Please compress your file to reduce the file size and try again."); return; }
     setUploading(true);
     try {
       await uploadFile(file, kind);
@@ -4658,7 +4661,7 @@ function MediaHost({ user }: { user: User | null }) {
       kind="media"
       title="media host"
       accept="image/png,image/jpeg,image/gif,image/webp,image/avif,image/bmp,video/mp4,video/webm,video/quicktime,video/x-matroska,audio/mpeg,audio/wav,audio/ogg,audio/mp4,audio/flac"
-      hint="png, jpg, gif, webp, avif, bmp, mp4, webm, mov, mkv, mp3, wav, ogg, m4a, flac — max 30mb"
+      hint="png, jpg, gif, webp, avif, bmp, mp4, webm, mov, mkv, mp3, wav, ogg, m4a, flac — max 10mb"
       emptyText="no media hosted yet"
       lockedDesc="media host lets you upload images and videos and get a sire.lol link for each one. only premium users can use it."
     />
@@ -4672,7 +4675,7 @@ function FileHost({ user }: { user: User | null }) {
       kind="file"
       title="file host"
       accept="*/*"
-      hint="any type of file — max 30mb"
+      hint="any type of file — max 10mb"
       emptyText="no files hosted yet"
       lockedDesc="file host lets you upload any file up to 30mb and share it with a sire.lol link. only premium users can use it."
     />
