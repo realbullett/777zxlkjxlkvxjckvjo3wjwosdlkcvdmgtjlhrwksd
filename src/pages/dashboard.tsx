@@ -1104,10 +1104,10 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
     const token = getSessionToken();
     const contentBase64 = await FileToBase64(file).catch(() => null);
     if (!contentBase64) { setSaving(null); return; }
-    const hr = await fetch(`/api/me?action=hostPrepare`, {
+    const hr = await fetch(`/api/me?action=assetUpload`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sessionToken: token, filename: file.name, contentBase64, contentType: file.type || null, kind: "media" }),
+      body: JSON.stringify({ sessionToken: token, filename: file.name, contentBase64, contentType: file.type || null, assetType: type }),
     });
     const hd = await hr.json().catch(() => null);
     if (!hr.ok || !hd || hd.error || !hd.url) { setSaving(null); alert(hd?.error || "upload failed"); return; }

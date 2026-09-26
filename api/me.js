@@ -270,12 +270,66 @@ async function hostPrepare(req, res) {
   res.status(200).json({ id, url: `${appUrl}/${slug}/${id}`, size: Buf.length, contentType });
 }
 
+async function assetUpload(req, res) {
+  const uid = getSessionUid(req) || unsignToken(req.body?.sessionToken);
+  if (!uid) { res.status(401).json({ error: "Unauthorized" }); return; }
+  const Me = await One("SELECT id FROM users WHERE id = ?", [uid]);
+  if (!Me) { res.status(401).json({ error: "Unauthorized" }); return; }
+
+  const assetType = String(req.body.assetType || req.body.type || "");
+  if (!ASSET_TYPES.has(assetType)) { res.status(400).json({ error: "Invalid asset slot" }); return; }
+
+  const name = String(req.body.filename || "").trim().toLowerCase();
+  const ext = name.includes(".") ? name.split(".").pop() : "";
+  const contentType = ext ? HOST_MEDIA_TYPES[ext] : null;
+  if (!contentType) { res.status(400).json({ error: "Unsupported file type. Images, videos and audio only." }); return; }
+
+  let Raw = req.body.contentBase64 || req.body.content || null;
+  if (typeof Raw === "string" && Raw.startsWith("data:")) {
+    const Marker = Raw.indexOf("base64,");
+    if (Marker !== -1) Raw = Raw.slice(Marker + 7);
+  }
+  if (!Raw || typeof Raw !== "string" || !Raw.length) {
+    res.status(400).json({ error: "Missing file content." });
+    return;
+  }
+  if (Raw.length > Math.ceil((HOST_MAX_BYTES * 4) / 3) + 1024) {
+    res.status(413).json({ error: "File too large (max 30MB)." });
+    return;
+  }
+  let Buf = null;
+  try {
+    Buf = Buffer.from(Raw, "base64");
+  } catch {
+    res.status(400).json({ error: "Invalid base64 content" });
+    return;
+  }
+  if (!Buf || !Buf.length) { res.status(400).json({ error: "Invalid file content" }); return; }
+  if (Buf.length > HOST_MAX_BYTES) { res.status(413).json({ error: "File too large (max 30MB)." }); return; }
+
+  const id = `u${uid}-${assetType}`;
+  const path = `asset/${uid}/${assetType}.${ext}`;
+  try {
+    await Db().execute({
+      sql: "INSERT INTO hosted_files (id, user_id, kind, filename, content_type, size, path, content) VALUES (?, ?, 'asset', ?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET filename = excluded.filename, content_type = excluded.content_type, size = excluded.size, path = excluded.path, content = excluded.content",
+      args: [id, uid, name, contentType, Buf.length, path, Buf],
+    });
+  } catch (e) {
+    console.error("asset upload insert error:", e);
+    res.status(500).json({ error: "Could not store upload" });
+    return;
+  }
+
+  const appUrl = process.env.APP_URL || "https://sire.lol";
+  res.status(200).json({ id, url: `${appUrl}/i/${id}`, size: Buf.length, contentType });
+}
+
 async function hostList(req, res) {
   const uid = getSessionUid(req);
   if (!uid) { res.status(401).json({ error: "Unauthorized" }); return; }
   try {
     const Rows = await All(
-      "SELECT id, kind, filename, content_type, size, views, created_at FROM hosted_files WHERE user_id = ? ORDER BY created_at DESC",
+      "SELECT id, kind, filename, content_type, size, views, created_at FROM hosted_files WHERE user_id = ? AND kind IN ('media', 'file') ORDER BY created_at DESC",
       [uid]
     );
     const appUrl = process.env.APP_URL || "https://sire.lol";
@@ -507,6 +561,10 @@ export default async function handler(req, res) {
     return hostPrepare(req, res);
   }
 
+  if (req.query.action === "assetUpload") {
+    return assetUpload(req, res);
+  }
+
   const { action, sessionToken } = req.body;
   const uid = unsignToken(sessionToken);
   if (!uid) { res.status(401).json({ error: "Unauthorized" }); return; }
@@ -660,6 +718,7 @@ export default async function handler(req, res) {
         return;
       }
       await Db().execute({ sql: "DELETE FROM assets WHERE user_id = ? AND type = ?", args: [uid, type] });
+      await Db().execute({ sql: "DELETE FROM hosted_files WHERE id = ?", args: [`u${uid}-${type}`] });
       res.status(200).json({ ok: true });
       return;
     }
