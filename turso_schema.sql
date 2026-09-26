@@ -239,3 +239,12 @@ CREATE TABLE IF NOT EXISTS discord_presence (
   activity_name TEXT,
   updated_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
 );
+
+CREATE TABLE IF NOT EXISTS profile_votes (
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  voter_key TEXT NOT NULL,
+  vote INTEGER NOT NULL CHECK (vote IN (1, -1)),
+  created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+  UNIQUE (user_id, voter_key)
+);
+CREATE INDEX IF NOT EXISTS idx_profile_votes_user ON profile_votes (user_id);

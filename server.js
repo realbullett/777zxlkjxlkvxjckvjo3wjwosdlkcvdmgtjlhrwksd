@@ -31,6 +31,7 @@ app.post("/api/me", meHandler);
 app.delete("/api/me", meHandler);
 app.post("/api/track-view", trackViewHandler);
 app.get("/api/profile", profileHandler);
+app.post("/api/profile", profileHandler);
 app.get("/api/leaderboard", leaderboardHandler);
 app.get("/api/presence", presenceHandler);
 app.get("/api/stats", statsHandler);

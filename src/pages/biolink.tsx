@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence, LayoutGroup, type Variants } from "motion/react";
-import { Eye, Link as LinkIcon } from "lucide-react";
+import { Eye, Link as LinkIcon, ThumbsUp, ThumbsDown } from "lucide-react";
 import { PLATFORMS } from "../lib/platforms";
 import { FONTS } from "../lib/fonts";
 import { SparkleText } from "../components/SparkleText";
@@ -118,6 +118,9 @@ export default function Biolink() {
   const [notFound, setNotFound] = useState(false);
   const [entered, setEntered] = useState(new URLSearchParams(window.location.search).get("entry") === "skip");
   const [viewCount, setViewCount] = useState<number | null>(null);
+  const [likes, setLikes] = useState(0);
+  const [dislikes, setDislikes] = useState(0);
+  const [myVote, setMyVote] = useState(0);
   const [badges, setBadges] = useState<string[]>([]);
   const [links, setLinks] = useState<Record<string, string>>({});
   const [hoveredBadge, setHoveredBadge] = useState<string | null>(null);
@@ -143,12 +146,20 @@ export default function Biolink() {
     setActivePage(0);
     if (!username) return;
     // son turso via /api kills cached egress :sob:
-    fetch(`/api/profile?username=${encodeURIComponent(username)}`).then(async (R) => {
+    let vid = localStorage.getItem("sl_visitor");
+    if (!vid) {
+      vid = crypto.randomUUID?.() || Math.random().toString(36).slice(2) + Date.now().toString(36);
+      localStorage.setItem("sl_visitor", vid);
+    }
+    fetch(`/api/profile?username=${encodeURIComponent(username)}&voter=${encodeURIComponent(vid)}`).then(async (R) => {
       if (!R.ok) { setNotFound(true); return; }
       const J = await R.json().catch(() => null);
       if (!J?.user) { setNotFound(true); return; }
       setUser(J.user);
       if (typeof J.views === "number") setViewCount(J.views);
+      if (typeof J.likes === "number") setLikes(J.likes);
+      if (typeof J.dislikes === "number") setDislikes(J.dislikes);
+      if (typeof J.mine === "number") setMyVote(J.mine);
       if (Array.isArray(J.badges)) setBadges(J.badges);
       if (J.links) setLinks(J.links);
       if (Array.isArray(J.assets)) setAssets(J.assets);
@@ -418,6 +429,28 @@ export default function Biolink() {
       if (enterTimerRef.current) clearTimeout(enterTimerRef.current);
     };
   }, []);
+
+  const castVote = async (vote: 1 | -1) => {
+    if (!user) return;
+    const prevVote = myVote, prevLikes = likes, prevDislikes = dislikes;
+    const next = prevVote === vote ? 0 : vote;
+    setMyVote(next);
+    setLikes(prevLikes + (next === 1 ? 1 : 0) - (prevVote === 1 ? 1 : 0));
+    setDislikes(prevDislikes + (next === -1 ? 1 : 0) - (prevVote === -1 ? 1 : 0));
+    try {
+      const r = await fetch("/api/profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: user.username, voter: getVisitorId(), vote }),
+      });
+      const J = await r.json().catch(() => null);
+      if (typeof J?.likes === "number") setLikes(J.likes);
+      if (typeof J?.dislikes === "number") setDislikes(J.dislikes);
+      if (typeof J?.mine === "number") setMyVote(J.mine);
+    } catch {
+      setMyVote(prevVote); setLikes(prevLikes); setDislikes(prevDislikes);
+    }
+  };
 
   const handleEnter = async () => {
     window.scrollTo({ top: 0, behavior: "instant" });
@@ -747,6 +780,18 @@ export default function Biolink() {
                   <span className="text-sm font-bold text-white">
                     {user.views_blacklisted ? "NULL" : viewCount}
                   </span>
+                </div>
+              )}
+              {!user.views_blacklisted && (
+                <div className="absolute bottom-4 right-4 flex items-center gap-1 rounded-xl bg-white/10 px-2 py-1.5 backdrop-blur-sm">
+                  <button onClick={() => castVote(1)} aria-label="like profile" className="flex items-center gap-1 rounded-lg px-1.5 py-0.5 transition-all hover:scale-110">
+                    <ThumbsUp size={16} className={myVote === 1 ? "text-green-400" : "text-white"} fill={myVote === 1 ? "currentColor" : "none"} />
+                    <span className="text-sm font-bold text-white">{likes}</span>
+                  </button>
+                  <button onClick={() => castVote(-1)} aria-label="dislike profile" className="flex items-center gap-1 rounded-lg px-1.5 py-0.5 transition-all hover:scale-110">
+                    <ThumbsDown size={16} className={myVote === -1 ? "text-red-400" : "text-white"} fill={myVote === -1 ? "currentColor" : "none"} />
+                    <span className="text-sm font-bold text-white">{dislikes}</span>
+                  </button>
                 </div>
               )}
             </motion.div>
