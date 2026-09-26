@@ -292,7 +292,7 @@ return (
                   <button
                     key={t.id}
                     onClick={() => setActiveTab(t.id)}
-                    className={`relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                    className={`relative flex items-center gap-2.5 px-2.5 py-2.5 rounded-xl text-[13px] font-medium transition-all ${
                       isPremiumTab
                         ? "shimmer text-blue-300 border border-blue-500/30 bg-blue-600/15 shadow-[0_0_25px_rgba(37,99,235,0.35)]"
                         : activeTab === t.id
@@ -301,7 +301,7 @@ return (
                     }`}
                   >
                     <Icon size={16} className={isPremiumTab ? "text-blue-400" : undefined} />
-                    <span className={isPremiumTab ? "text-gradient-blue font-bold" : undefined}>{t.label}</span>
+                    <span className={`whitespace-nowrap ${isPremiumTab ? "text-gradient-blue font-bold" : undefined}`}>{t.label}</span>
                     {isPremiumTab && (
                       <Crown size={12} className="text-blue-300 absolute right-3 top-1/2 -translate-y-1/2 animate-pulse" />
                     )}
