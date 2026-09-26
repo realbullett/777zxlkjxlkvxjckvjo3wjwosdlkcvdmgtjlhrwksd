@@ -1,21 +1,8 @@
-import { useState, useEffect } from "react";
 import { motion } from "motion/react";
 import { Link } from "react-router-dom";
 import { Trophy } from "lucide-react";
 
 export const Navbar = () => {
-  const [loggedIn, setLoggedIn] = useState(false);
-
-  useEffect(() => {
-    let token = "";
-    try { token = JSON.parse(localStorage.getItem("sl_auth") || "")?.sessionToken || ""; } catch {}
-    if (!token) return;
-    fetch(`/api/me?sessionToken=${encodeURIComponent(token)}`).then(async (R) => {
-      const J = await R.json().catch(() => null);
-      if (J && (J as any).id) setLoggedIn(true);
-      else { try { localStorage.removeItem("sl_auth"); } catch {} }
-    }).catch(() => {});
-  }, []);
   return (
     <div className="fixed top-0 left-0 z-50 w-full px-4 py-4">
       <motion.nav
@@ -58,20 +45,12 @@ export const Navbar = () => {
         </div>
 
         <div className="flex items-center gap-4">
-          {loggedIn ? (
-            <Link to="/dashboard" className="shimmer rounded-xl bg-blue-600 px-5 py-2 text-sm font-semibold text-white transition-all hover:bg-white hover:text-black hover:scale-105 active:scale-95 shadow-[0_0_20px_rgba(37,99,235,0.3)]">
-              dashboard
-            </Link>
-          ) : (
-            <>
-              <Link to="/auth" className="text-sm font-semibold text-white/50 hover:text-white transition-colors">
-                sign in
-              </Link>
-              <Link to="/auth" className="shimmer rounded-xl bg-blue-600 px-5 py-2 text-sm font-semibold text-white transition-all hover:bg-white hover:text-black hover:scale-105 active:scale-95 shadow-[0_0_20px_rgba(37,99,235,0.3)]">
-                register
-              </Link>
-            </>
-          )}
+          <Link to="/auth" className="text-sm font-semibold text-white/50 hover:text-white transition-colors">
+            sign in
+          </Link>
+          <Link to="/auth" className="shimmer rounded-xl bg-blue-600 px-5 py-2 text-sm font-semibold text-white transition-all hover:bg-white hover:text-black hover:scale-105 active:scale-95 shadow-[0_0_20px_rgba(37,99,235,0.3)]">
+            register
+          </Link>
         </div>
       </motion.nav>
     </div>
