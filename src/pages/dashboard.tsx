@@ -384,6 +384,12 @@ function AccountOverview({ user, onTab, onUpdateUser }: { user: User | null; onT
   const [recentViews, setRecentViews] = useState<number>(0);
   const [dailyViews, setDailyViews] = useState<{ date: string; count: number }[]>([]);
   const [uniqueVisitors, setUniqueVisitors] = useState<number>(0);
+  const [likes, setLikes] = useState<number>(0);
+  const [dislikes, setDislikes] = useState<number>(0);
+  const [newDisplayName, setNewDisplayName] = useState(user?.display_name || "");
+  const [isEditingDisplayName, setIsEditingDisplayName] = useState(false);
+  const [isSavingDisplayName, setIsSavingDisplayName] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -403,7 +409,20 @@ function AccountOverview({ user, onTab, onUpdateUser }: { user: User | null; onT
   useEffect(() => {
     if (user?.username) setNewUsername(user.username);
     setNewAlias(user?.alias || "");
+    setNewDisplayName(user?.display_name || "");
   }, [user]);
+
+  useEffect(() => {
+    if (!user?.username) return;
+    fetch(`/api/profile?username=${encodeURIComponent(user.username)}`).then(async (R) => {
+      const J = await R.json().catch(() => null);
+      if (!J) return;
+      if (typeof J.likes === "number") setLikes(J.likes);
+      if (typeof J.dislikes === "number") setDislikes(J.dislikes);
+    }).catch(() => {});
+  }, [user?.username]);
+
+  const likeRate = likes + dislikes > 0 ? Math.round((likes / (likes + dislikes)) * 100) : 100;
 
   const hasAvatar = (user?.avatar_url && user?.avatar_url !== "") || false;
   const hasDescription = (user?.description && user?.description.trim() !== "") || false;
@@ -434,6 +453,35 @@ function AccountOverview({ user, onTab, onUpdateUser }: { user: User | null; onT
     }
     setIsSavingAlias(false);
     setIsEditingAlias(false);
+  };
+
+  const handleSaveDisplayName = async () => {
+    if (!user) return;
+    const target = newDisplayName.trim();
+    if (target === (user.display_name || "")) {
+      setIsEditingDisplayName(false);
+      return;
+    }
+    setIsSavingDisplayName(true);
+    const { error } = await apiCall("update", { data: { display_name: target || null } });
+    if (error) {
+      setIsSavingDisplayName(false);
+      return;
+    }
+    if (onUpdateUser) {
+      onUpdateUser({ ...user, display_name: target || null });
+    }
+    setIsSavingDisplayName(false);
+    setIsEditingDisplayName(false);
+  };
+
+  const copyProfileLink = async () => {
+    if (!user?.username) return;
+    try {
+      await navigator.clipboard.writeText(`https://sire.lol/${user.username}`);
+    } catch {}
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1200);
   };
 
   const getRecentChanges = () => {
@@ -528,29 +576,80 @@ function AccountOverview({ user, onTab, onUpdateUser }: { user: User | null; onT
       </div>
     </div>
 
-      <h1 className="text-lg font-semibold text-white/40 mb-6 lowercase">account overview</h1>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Username Card */}
-        <div className="relative rounded-2xl p-6 bg-white/[0.02] border border-white/10 backdrop-blur-xl overflow-hidden group">
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.08] to-transparent animate-glow-sweep pointer-events-none" />
+      {/* profile header */}
+      <div className="grid grid-cols-1 justify-items-center md:grid-cols-[1fr_auto_1fr] md:justify-items-stretch items-center gap-6 mb-6">
+        <div className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-4 md:justify-self-end w-full max-w-[260px]">
+          <p className="text-sm font-semibold text-white">Your Likes</p>
+          <p className="text-xs text-white/35 mt-0.5">Your profile has been liked <span className="text-white/70 font-medium">{likes.toLocaleString("en-US")}</span> times!</p>
+          <p className="text-3xl font-semibold text-white tabular-nums tracking-tight mt-3">{likes.toLocaleString("en-US")}</p>
+          <div className="w-full h-1 rounded-full bg-white/[0.07] overflow-hidden my-3">
+            <div className="h-full rounded-full bg-emerald-400/80" style={{ width: `${likeRate}%` }} />
+          </div>
+          <div className="flex items-center justify-between text-[11px] text-white/40">
+            <span>{dislikes.toLocaleString("en-US")} dislikes</span>
+            <span>{likeRate}% positive</span>
+          </div>
+        </div>
+        <div className="relative shrink-0 flex flex-col items-center text-center">
           <div className="relative">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-3">
-                <AtSign className="w-4 h-4 text-white" />
-                <p className="text-[10px] font-semibold tracking-wider text-white">Username</p>
-              </div>
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-96 w-[900px] max-w-none rounded-[100%] bg-[radial-gradient(ellipse,rgba(37,99,235,0.5)_0%,rgba(37,99,235,0.22)_40%,rgba(37,99,235,0.08)_60%,rgba(0,0,0,0)_80%)] blur-3xl pointer-events-none" />
+            <div className="relative h-40 w-40 rounded-full p-[2px] bg-cyan-200/70">
+              {user?.avatar_url ? (
+                <img src={user.avatar_url} alt="profile picture" className="h-full w-full rounded-full object-cover bg-[#131316] border-4 border-black" />
+              ) : (
+                <div className="h-full w-full rounded-full bg-white/[0.06] border-4 border-black flex items-center justify-center text-5xl font-bold text-white/70">
+                  {(user?.display_name || user?.username || "S")[0].toUpperCase()}
+                </div>
+              )}
+            </div>
+          </div>
+          <p className="relative mt-3 text-4xl font-bold tracking-tight text-white flex items-center gap-2">
+            {user?.display_name || user?.username || "—"}
+            <svg className="w-6 h-6 shrink-0" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#3b82f6" /><path d="M8 12.5l2.7 2.7L16.5 9" stroke="#fff" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          </p>
+          <p className="relative text-xs text-white/35 font-mono mt-0.5">sire.lol/{user?.username}</p>
+          <div className="relative mt-3 flex items-center justify-center gap-2">
+            <Link to="/leaderboard" className="text-xs font-medium text-white/55 px-3 py-1.5 rounded-lg transition-all border border-white/10 hover:text-white hover:bg-white/[0.07] flex items-center gap-1.5">
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" /><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" /><path d="M4 22h16" /><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" /><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" /><path d="M18 2H6v7a6 6 0 0 0 12 0V2z" /></svg>
+              leaderboard
+            </Link>
+            <Link to="/terms" className="text-xs font-medium text-white/55 px-3 py-1.5 rounded-lg transition-all border border-white/10 hover:text-white hover:bg-white/[0.07] flex items-center gap-1.5">
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z" /><path d="M14 2v4a2 2 0 0 0 2 2h4" /><path d="M10 9H8M16 13H8M16 17H8" /></svg>
+              terms
+            </Link>
+          </div>
+        </div>
+        <div className="min-w-0 md:justify-self-start text-center md:text-left">
+          <div className="flex items-center justify-center md:justify-start gap-5 text-[13px]">
+            <span className="text-white/60"><strong className="text-white font-semibold">{totalViews}</strong> views</span>
+            <span className="text-white/60"><strong className="text-white font-semibold">#{user?.id}</strong> uid</span>
+            <span className="text-white/60"><strong className="text-white font-semibold">{likes.toLocaleString("en-US")}</strong> likes</span>
+          </div>
+          <div className="flex items-center justify-center md:justify-start gap-2 mt-4">
+            <button onClick={() => onTab("customize")} className="text-xs font-semibold text-white bg-white/[0.12] px-3 py-1.5 rounded-lg transition-colors hover:bg-white/[0.2] cursor-pointer">✎ customize</button>
+            <button onClick={copyProfileLink} className="text-xs font-medium text-white/55 px-3 py-1.5 rounded-lg transition-all border border-white/10 hover:text-white hover:bg-white/[0.07] cursor-pointer">{copied ? "copied!" : "⧉ copy link"}</button>
+          </div>
+        </div>
+      </div>
+
+      <p className="text-[11px] font-semibold tracking-[0.08em] uppercase text-white/35 mb-3">Essentials</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 mb-5">
+        {/* Username Card */}
+        <div className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-4 transition-colors hover:border-white/[0.14]">
+          <div className="relative">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-[11px] font-semibold tracking-[0.08em] uppercase text-white/35">Username</p>
               {!isEditing ? (
                 <button
                   onClick={() => { setIsEditing(true); setErrorMsg(""); }}
-                  className="text-[10px] font-semibold text-white/70 hover:text-white transition-colors cursor-pointer"
+                  className="text-xs font-medium text-white/50 hover:text-white transition-colors cursor-pointer"
                 >
                   change
                 </button>
               ) : (
                 <button
                   onClick={() => { setIsEditing(false); setErrorMsg(""); setNewUsername(user?.username || ""); }}
-                  className="text-[10px] font-semibold text-white/40 hover:text-white/70 transition-colors cursor-pointer"
+                  className="text-xs font-medium text-white/50 hover:text-white transition-colors cursor-pointer"
                 >
                   cancel
                 </button>
@@ -558,37 +657,26 @@ function AccountOverview({ user, onTab, onUpdateUser }: { user: User | null; onT
             </div>
             {!isEditing ? (
               <>
-                <p className="text-lg font-bold text-white">{user?.username || "—"}</p>
-                <div className="flex items-center gap-2 mt-1">
-                  <p className="text-xs text-white/70 font-mono">sire.lol/{user?.username || "?"}</p>
-                  <Link
-                    to={`/${user?.username}`}
-                    className="text-[9px] font-semibold uppercase tracking-wider text-blue-400 hover:text-blue-300 transition-colors"
-                  >
-                    visit →
-                  </Link>
-                </div>
-                <p className="text-[10px] text-white/50 mt-2">
-                  {2 - getRecentChanges().length} of 2 changes left this week
-                </p>
+                <p className="text-sm font-semibold text-white">{user?.username || "—"}</p>
+                <p className="text-xs text-white/35 mt-1">{2 - getRecentChanges().length} of 2 changes left this week</p>
               </>
             ) : (
-              <div className="mt-1 space-y-2">
-                <div className="flex items-center bg-white/[0.04] border border-white/[0.1] rounded-lg px-2.5 py-1.5 focus-within:border-white/40 transition-colors">
-                  <span className="text-xs text-white/40 select-none">sire.lol/</span>
+              <div className="space-y-2">
+                <div className="flex items-center bg-white/[0.04] border border-white/[0.09] rounded-lg overflow-hidden">
+                  <span className="text-xs text-white/30 select-none pl-2.5">sire.lol/</span>
                   <input
                     type="text"
                     value={newUsername}
                     onChange={(e) => setNewUsername(e.target.value)}
                     placeholder="new username"
-                    className="w-full bg-transparent border-0 text-xs text-white outline-none font-mono"
+                    className="flex-1 bg-transparent text-xs text-white outline-none font-mono px-1 py-[7px]"
                   />
                 </div>
-                {errorMsg && <p className="text-[10px] text-red-400">{errorMsg}</p>}
+                {errorMsg && <p className="text-[11px] text-red-400">{errorMsg}</p>}
                 <button
                   disabled={isSaving}
                   onClick={handleSaveUsername}
-                  className="w-full text-xs bg-white/20 hover:bg-white/30 border border-white/20 disabled:opacity-40 py-1.5 rounded-lg text-white font-medium transition-colors cursor-pointer"
+                  className="w-full text-xs font-semibold text-white bg-white/[0.12] py-2 rounded-lg hover:bg-white/[0.2] disabled:opacity-40 transition-colors cursor-pointer"
                 >
                   {isSaving ? "saving..." : "save username"}
                 </button>
@@ -598,25 +686,21 @@ function AccountOverview({ user, onTab, onUpdateUser }: { user: User | null; onT
         </div>
 
         {/* Alias Card */}
-        <div className="relative rounded-2xl p-6 bg-white/[0.02] border border-white/10 backdrop-blur-xl overflow-hidden group">
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.08] to-transparent animate-glow-sweep pointer-events-none" />
+        <div className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-4 transition-colors hover:border-white/[0.14]">
           <div className="relative">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-3">
-                <UserIcon className="w-4 h-4 text-white" />
-                <p className="text-[10px] font-semibold tracking-wider text-white">Alias</p>
-              </div>
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-[11px] font-semibold tracking-[0.08em] uppercase text-white/35">Alias</p>
               {!isEditingAlias ? (
                 <button
                   onClick={() => { setIsEditingAlias(true); setAliasError(""); }}
-                  className="text-[10px] font-semibold text-white/70 hover:text-white transition-colors cursor-pointer"
+                  className="text-xs font-medium text-white/50 hover:text-white transition-colors cursor-pointer"
                 >
                   change
                 </button>
               ) : (
                 <button
                   onClick={() => { setIsEditingAlias(false); setAliasError(""); setNewAlias(user?.alias || ""); }}
-                  className="text-[10px] font-semibold text-white/40 hover:text-white/70 transition-colors cursor-pointer"
+                  className="text-xs font-medium text-white/50 hover:text-white transition-colors cursor-pointer"
                 >
                   cancel
                 </button>
@@ -624,23 +708,23 @@ function AccountOverview({ user, onTab, onUpdateUser }: { user: User | null; onT
             </div>
             {!isEditingAlias ? (
               <>
-                <p className="text-lg font-bold text-white">{user?.alias || "—"}</p>
-                <p className="text-xs text-white/70 mt-1">custom link alias</p>
+                <p className="text-sm font-semibold text-white">{user?.alias || "—"}</p>
+                <p className="text-xs text-white/35 mt-1">custom link alias</p>
               </>
             ) : (
-              <div className="mt-1 space-y-2">
+              <div className="space-y-2">
                 <input
                   type="text"
                   value={newAlias}
                   onChange={(e) => setNewAlias(e.target.value)}
                   placeholder="alias"
-                  className="w-full bg-white/[0.04] border border-white/[0.1] rounded-lg px-2.5 py-1.5 text-xs text-white outline-none focus:border-white/40 transition-colors"
+                  className="w-full bg-white/[0.04] border border-white/[0.09] rounded-lg px-2.5 py-[7px] text-xs text-white outline-none font-mono placeholder:text-white/25"
                 />
-                {aliasError && <p className="text-[10px] text-red-400">{aliasError}</p>}
+                {aliasError && <p className="text-[11px] text-red-400">{aliasError}</p>}
                 <button
                   disabled={isSavingAlias}
                   onClick={handleSaveAlias}
-                  className="w-full text-xs bg-white/20 hover:bg-white/30 border border-white/20 disabled:opacity-40 py-1.5 rounded-lg text-white font-medium transition-colors cursor-pointer"
+                  className="w-full text-xs font-semibold text-white bg-white/[0.12] py-2 rounded-lg hover:bg-white/[0.2] disabled:opacity-40 transition-colors cursor-pointer"
                 >
                   {isSavingAlias ? "saving..." : "save alias"}
                 </button>
@@ -649,117 +733,124 @@ function AccountOverview({ user, onTab, onUpdateUser }: { user: User | null; onT
           </div>
         </div>
 
-        {/* UID Card */}
-        <div className="relative rounded-2xl p-6 bg-white/[0.02] border border-white/10 backdrop-blur-xl overflow-hidden group">
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.08] to-transparent animate-glow-sweep pointer-events-none" />
+        {/* Display Name Card */}
+        <div className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-4 transition-colors hover:border-white/[0.14]">
           <div className="relative">
-            <div className="flex items-center gap-2 mb-2">
-              <Hash className="w-4 h-4 text-white" />
-              <p className="text-[10px] font-semibold tracking-wider text-white">UID</p>
-            </div>
-            <p className="text-lg font-mono font-bold text-white">{user?.id ? `#${user.id}` : "—"}</p>
-            <p className="text-xs text-white/70 mt-1">
-              {user?.id ? (
-                (() => {
-                  const pct = Math.max(1, Math.ceil((user.id / Math.max(totalUsers, user.id, 1)) * 100));
-                  return `Among the first ${pct}%`;
-                })()
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-[11px] font-semibold tracking-[0.08em] uppercase text-white/35">Display name</p>
+              {!isEditingDisplayName ? (
+                <button
+                  onClick={() => setIsEditingDisplayName(true)}
+                  className="text-xs font-medium text-white/50 hover:text-white transition-colors cursor-pointer"
+                >
+                  change
+                </button>
               ) : (
-                "internal user id"
+                <button
+                  onClick={() => { setIsEditingDisplayName(false); setNewDisplayName(user?.display_name || ""); }}
+                  className="text-xs font-medium text-white/50 hover:text-white transition-colors cursor-pointer"
+                >
+                  cancel
+                </button>
               )}
-            </p>
+            </div>
+            {!isEditingDisplayName ? (
+              <>
+                <p className="text-sm font-semibold text-white">{user?.display_name || "—"}</p>
+                <p className="text-xs text-white/35 mt-1">shown on your profile</p>
+              </>
+            ) : (
+              <div className="space-y-2">
+                <input
+                  type="text"
+                  value={newDisplayName}
+                  onChange={(e) => setNewDisplayName(e.target.value)}
+                  placeholder="display name"
+                  className="w-full bg-white/[0.04] border border-white/[0.09] rounded-lg px-2.5 py-[7px] text-xs text-white outline-none placeholder:text-white/25"
+                />
+                <button
+                  disabled={isSavingDisplayName}
+                  onClick={handleSaveDisplayName}
+                  className="w-full text-xs font-semibold text-white bg-white/[0.12] py-2 rounded-lg hover:bg-white/[0.2] disabled:opacity-40 transition-colors cursor-pointer"
+                >
+                  {isSavingDisplayName ? "saving..." : "save name"}
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Profile Views Card */}
-        <div className="relative rounded-2xl p-6 bg-white/[0.02] border border-white/10 backdrop-blur-xl overflow-hidden group">
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.08] to-transparent animate-glow-sweep pointer-events-none" />
-          <div className="relative">
-            <div className="flex items-center gap-2 mb-2">
-              <Eye className="w-4 h-4 text-white" />
-              <p className="text-[10px] font-semibold tracking-wider text-white">Profile views</p>
-            </div>
-            <p className="text-lg font-bold text-white">{totalViews}</p>
-            <p className="text-xs text-emerald-400 mt-1">+{recentViews} in the last 7 days</p>
-          </div>
+        {/* Profile Link Card */}
+        <div className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-4 transition-colors hover:border-white/[0.14]">
+          <p className="text-[11px] font-semibold tracking-[0.08em] uppercase text-white/35 mb-3">Profile link</p>
+          <p className="text-sm font-mono font-semibold text-white truncate">sire.lol/{user?.username}</p>
+          <button onClick={copyProfileLink} className="text-xs font-medium text-white/55 px-3 py-1.5 rounded-lg transition-all border border-white/10 hover:text-white hover:bg-white/[0.07] w-full mt-2 cursor-pointer">{copied ? "copied!" : "⧉ copy link"}</button>
         </div>
       </div>
 
-      <h2 className="text-lg font-semibold text-white/40 mb-6 mt-12 lowercase">account statistics</h2>
+      <p className="text-[11px] font-semibold tracking-[0.08em] uppercase text-white/35 mb-3">Setup</p>
 
-      <div className="glass-card rounded-2xl p-8 bg-blue-500/[0.04] border-blue-500/10">
-        <div className="flex items-center justify-between mb-4">
-          <p className="text-sm font-semibold text-white/80">Profile completion</p>
+      <div className="glass-card rounded-2xl p-5 bg-blue-500/[0.04] border-blue-500/10 mb-5">
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-sm font-medium text-white">Profile completion</p>
           <span className="text-sm font-semibold text-blue-400">{completion}%</span>
         </div>
 
-        <div className="w-full h-2 rounded-full bg-white/[0.06] overflow-hidden mb-4">
-          <div className="h-full rounded-full bg-gradient-to-r from-blue-500 to-blue-400" style={{ width: `${completion}%` }} />
+        <div className="w-full h-1.5 rounded-full bg-white/[0.07] overflow-hidden mb-2">
+          <div className="h-full rounded-full bg-blue-500 transition-all duration-300" style={{ width: `${completion}%` }} />
         </div>
 
-        <p className="text-sm font-medium text-white/90 mb-1">{completion === 100 ? "Your profile is complete!" : "Your profile isn't complete yet!"}</p>
-        <p className="text-xs text-white/40 mb-6">
-          Complete your profile to make it more discoverable and appealing.
-        </p>
+        <p className="text-[13px] text-white/70 mb-4">{completion === 100 ? "Your profile is complete!" : "Your profile isn't complete yet!"}</p>
 
-        <div className="space-y-3">
-          <button onClick={() => onTab("customize")} className="flex items-center gap-3 cursor-pointer group w-full text-left">
-            <div className="h-4 w-4 rounded border border-white/20 group-hover:border-blue-400/50 transition-colors flex items-center justify-center">
-              {hasAvatar ? (
-                <svg className="w-3 h-3 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+        <div className="space-y-1">
+          <button onClick={() => onTab("customize")} className="flex items-center gap-3 cursor-pointer group w-full text-left px-2 py-1.5 -mx-2 rounded-lg hover:bg-white/[0.04] transition-colors">
+            <div className="h-[18px] w-[18px] rounded-[6px] border border-white/15 flex items-center justify-center transition-colors">
+              {hasAvatar && (
+                <svg className="w-3 h-3 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
-              ) : (
-                <div className="h-2 w-2 rounded-sm bg-blue-500 opacity-0 group-hover:opacity-30 transition-opacity" />
               )}
             </div>
-            <span className="text-sm text-white/60 group-hover:text-white/80 transition-colors">Upload an avatar</span>
+            <span className="text-[13px] text-white/60 group-hover:text-white/85 transition-colors">Upload an avatar</span>
           </button>
-          <button onClick={() => onTab("customize")} className="flex items-center gap-3 cursor-pointer group w-full text-left">
-            <div className="h-4 w-4 rounded border border-white/20 group-hover:border-blue-400/50 transition-colors flex items-center justify-center">
-              {hasDescription ? (
-                <svg className="w-3 h-3 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+          <button onClick={() => onTab("customize")} className="flex items-center gap-3 cursor-pointer group w-full text-left px-2 py-1.5 -mx-2 rounded-lg hover:bg-white/[0.04] transition-colors">
+            <div className="h-[18px] w-[18px] rounded-[6px] border border-white/15 flex items-center justify-center transition-colors">
+              {hasDescription && (
+                <svg className="w-3 h-3 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
-              ) : (
-                <div className="h-2 w-2 rounded-sm bg-blue-500 opacity-0 group-hover:opacity-30 transition-opacity" />
               )}
             </div>
-            <span className="text-sm text-white/60 group-hover:text-white/80 transition-colors">Add a description</span>
+            <span className="text-[13px] text-white/60 group-hover:text-white/85 transition-colors">Add a description</span>
           </button>
-          <a href="/api/auth/discord" className="flex items-center gap-3 cursor-pointer group w-full text-left">
-            <div className="h-4 w-4 rounded border border-white/20 group-hover:border-blue-400/50 transition-colors flex items-center justify-center">
-              {hasDiscord ? (
-                <svg className="w-4 h-4 text-green-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <a href="/api/auth/discord" className="flex items-center gap-3 cursor-pointer group w-full text-left px-2 py-1.5 -mx-2 rounded-lg hover:bg-white/[0.04] transition-colors">
+            <div className="h-[18px] w-[18px] rounded-[6px] border border-white/15 flex items-center justify-center transition-colors">
+              {hasDiscord && (
+                <svg className="w-3 h-3 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
-              ) : (
-                <div className="h-2 w-2 rounded-sm bg-blue-500 opacity-0 group-hover:opacity-30 transition-opacity" />
               )}
             </div>
-            <span className="text-sm text-white/80">Link Discord account</span>
+            <span className="text-[13px] text-white/60 group-hover:text-white/85 transition-colors">Link Discord account</span>
           </a>
         </div>
       </div>
 
-      <h2 className="text-lg font-semibold text-white/40 mb-6 mt-12 lowercase">analytics</h2>
+      <p className="text-[11px] font-semibold tracking-[0.08em] uppercase text-white/35 mb-3">Analytics</p>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-3">
         <div className="glass-card rounded-xl p-4">
           <p className="text-[10px] font-semibold tracking-wider text-white/40 mb-1">total views</p>
-          <p className="text-xl font-bold text-white">{totalViews}</p>
+          <p className="text-xl font-bold text-white tabular-nums">{totalViews}</p>
+          <p className="text-xs font-medium text-emerald-400 mt-1">+{recentViews} in the last 7 days</p>
         </div>
         <div className="glass-card rounded-xl p-4">
           <p className="text-[10px] font-semibold tracking-wider text-white/40 mb-1">unique visitors</p>
-          <p className="text-xl font-bold text-white">{uniqueVisitors}</p>
-        </div>
-        <div className="glass-card rounded-xl p-4">
-          <p className="text-[10px] font-semibold tracking-wider text-white/40 mb-1">last 7 days</p>
-          <p className="text-xl font-bold text-emerald-400">+{recentViews}</p>
+          <p className="text-xl font-bold text-white tabular-nums">{uniqueVisitors}</p>
         </div>
         <div className="glass-card rounded-xl p-4">
           <p className="text-[10px] font-semibold tracking-wider text-white/40 mb-1">registered users</p>
-          <p className="text-xl font-bold text-white">{totalUsers}</p>
+          <p className="text-xl font-bold text-white tabular-nums">{totalUsers}</p>
         </div>
       </div>
 
@@ -801,6 +892,22 @@ function AccountOverview({ user, onTab, onUpdateUser }: { user: User | null; onT
         ) : (
           <p className="text-sm text-white/20 italic py-8 text-center">no data yet</p>
         )}
+      </div>
+
+      <p className="text-[11px] font-semibold tracking-[0.08em] uppercase text-white/35 mb-3 mt-5">Your Likes</p>
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-3">
+        <div className="glass-card rounded-xl p-4">
+          <p className="text-[10px] font-semibold tracking-wider text-white/40 mb-1">total likes</p>
+          <p className="text-xl font-bold text-white tabular-nums">{likes.toLocaleString("en-US")}</p>
+        </div>
+        <div className="glass-card rounded-xl p-4">
+          <p className="text-[10px] font-semibold tracking-wider text-white/40 mb-1">dislikes</p>
+          <p className="text-xl font-bold text-white tabular-nums">{dislikes.toLocaleString("en-US")}</p>
+        </div>
+        <div className="glass-card rounded-xl p-4">
+          <p className="text-[10px] font-semibold tracking-wider text-white/40 mb-1">like rate</p>
+          <p className="text-xl font-bold text-white tabular-nums">{likeRate}%</p>
+        </div>
       </div>
     </div>
   );
