@@ -63,6 +63,9 @@ const BADGES = new Set(["og", "premium", "verified", "booster", "staff", "bug", 
 const ADMIN_DELETE_TABLES = ["badges", "links", "page_views", "templates", "songs", "template_installs"];
 
 const HOST_MAX_BYTES = 30 * 1024 * 1024;
+const UPLOAD_CHUNK_CHARS = 2000000;
+const AssetCap = (t) => (t === "video_background" ? 50 * 1024 * 1024 : (String(t || "").startsWith("audio") ? 30 * 1024 * 1024 : 10 * 1024 * 1024));
+const CapLabel = (t) => `${Math.round(AssetCap(t) / (1024 * 1024))}MB`;
 const HOST_MAX_ITEMS = 10;
 const HOST_MEDIA_TYPES = {
   png: "image/png",
@@ -184,6 +187,7 @@ async function EnsureSchema() {
   await Promise.allSettled([
     D.execute("CREATE TABLE IF NOT EXISTS template_installs (user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, template_user_id INTEGER NOT NULL, created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')), UNIQUE (user_id, template_user_id))"),
     D.execute("CREATE TABLE IF NOT EXISTS template_favorites (user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, template_user_id INTEGER NOT NULL, created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')), UNIQUE (user_id, template_user_id))"),
+    D.execute("CREATE TABLE IF NOT EXISTS upload_chunks (upload_id TEXT NOT NULL, user_id INTEGER NOT NULL, idx INTEGER NOT NULL, data BLOB, created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')), PRIMARY KEY (upload_id, idx))"),
     D.execute("ALTER TABLE users ADD COLUMN onboarding_done INTEGER NOT NULL DEFAULT 0"),
     D.execute("ALTER TABLE users ADD COLUMN use_case TEXT"),
   ]);
@@ -270,6 +274,32 @@ async function hostPrepare(req, res) {
   res.status(200).json({ id, url: `${appUrl}/${slug}/${id}`, size: Buf.length, contentType });
 }
 
+async function assetChunk(req, res) {
+  const uid = getSessionUid(req) || unsignToken(req.body?.sessionToken);
+  if (!uid) { res.status(401).json({ error: "Unauthorized" }); return; }
+  const uploadId = String(req.body.uploadId || "");
+  const index = Number(req.body.index);
+  const total = Number(req.body.total);
+  const chunk = String(req.body.chunk || "");
+  if (!/^[A-Za-z0-9-]{8,64}$/.test(uploadId) || !Number.isInteger(index) || index < 0 || !Number.isInteger(total) || total < 1 || total > 40 || index >= total) {
+    res.status(400).json({ error: "Invalid chunk" });
+    return;
+  }
+  if (!chunk.length || chunk.length > UPLOAD_CHUNK_CHARS + 1024) { res.status(400).json({ error: "Invalid chunk size" }); return; }
+  try {
+    await Db().execute({
+      sql: "INSERT INTO upload_chunks (upload_id, user_id, idx, data) VALUES (?, ?, ?, ?) ON CONFLICT(upload_id, idx) DO UPDATE SET data = excluded.data",
+      args: [uploadId, uid, index, Buffer.from(chunk, "utf8")],
+    });
+    Db().execute({ sql: "DELETE FROM upload_chunks WHERE user_id = ? AND created_at < strftime('%Y-%m-%dT%H:%M:%fZ','now','-2 hours')", args: [uid] }).catch(() => {});
+  } catch (e) {
+    console.error("asset chunk error:", e);
+    res.status(500).json({ error: "Could not store chunk" });
+    return;
+  }
+  res.status(200).json({ ok: true, index });
+}
+
 async function assetUpload(req, res) {
   const uid = getSessionUid(req) || unsignToken(req.body?.sessionToken);
   if (!uid) { res.status(401).json({ error: "Unauthorized" }); return; }
@@ -283,29 +313,58 @@ async function assetUpload(req, res) {
   const ext = name.includes(".") ? name.split(".").pop() : "";
   const contentType = ext ? HOST_MEDIA_TYPES[ext] : null;
   if (!contentType) { res.status(400).json({ error: "Unsupported file type. Images, videos and audio only." }); return; }
+  const Cap = AssetCap(assetType);
 
-  let Raw = req.body.contentBase64 || req.body.content || null;
-  if (typeof Raw === "string" && Raw.startsWith("data:")) {
-    const Marker = Raw.indexOf("base64,");
-    if (Marker !== -1) Raw = Raw.slice(Marker + 7);
-  }
-  if (!Raw || typeof Raw !== "string" || !Raw.length) {
-    res.status(400).json({ error: "Missing file content." });
-    return;
-  }
-  if (Raw.length > Math.ceil((HOST_MAX_BYTES * 4) / 3) + 1024) {
-    res.status(413).json({ error: "File too large (max 30MB)." });
-    return;
-  }
   let Buf = null;
-  try {
-    Buf = Buffer.from(Raw, "base64");
-  } catch {
-    res.status(400).json({ error: "Invalid base64 content" });
-    return;
+  const uploadId = String(req.body.uploadId || "");
+  if (uploadId) {
+    if (!/^[A-Za-z0-9-]{8,64}$/.test(uploadId)) { res.status(400).json({ error: "Invalid upload" }); return; }
+    let rows = [];
+    try {
+      const Rs = await Db().execute({ sql: "SELECT data FROM upload_chunks WHERE upload_id = ? AND user_id = ? ORDER BY idx ASC", args: [uploadId, uid] });
+      rows = Rs.rows || [];
+    } catch (e) {
+      console.error("asset finalize read error:", e);
+      res.status(500).json({ error: "Could not read upload" });
+      return;
+    }
+    if (!rows.length) { res.status(400).json({ error: "Upload expired. Please try again." }); return; }
+    try {
+      const parts = rows.map((r) => BlobToBuffer(r.data)).filter(Boolean);
+      const b64 = parts.map((p) => p.toString("utf8")).join("");
+      Buf = Buffer.from(b64, "base64");
+    } catch {
+      res.status(400).json({ error: "Invalid upload content" });
+      return;
+    }
+    try {
+      await Db().execute({ sql: "DELETE FROM upload_chunks WHERE upload_id = ? AND user_id = ?", args: [uploadId, uid] });
+    } catch {}
+    if (!Buf || !Buf.length) { res.status(400).json({ error: "Invalid file content" }); return; }
+    if (Buf.length > Cap) { res.status(413).json({ error: `File too large (max ${CapLabel(assetType)}).` }); return; }
+  } else {
+    let Raw = req.body.contentBase64 || req.body.content || null;
+    if (typeof Raw === "string" && Raw.startsWith("data:")) {
+      const Marker = Raw.indexOf("base64,");
+      if (Marker !== -1) Raw = Raw.slice(Marker + 7);
+    }
+    if (!Raw || typeof Raw !== "string" || !Raw.length) {
+      res.status(400).json({ error: "Missing file content." });
+      return;
+    }
+    if (Raw.length > Math.ceil((Cap * 4) / 3) + 1024) {
+      res.status(413).json({ error: `File too large (max ${CapLabel(assetType)}).` });
+      return;
+    }
+    try {
+      Buf = Buffer.from(Raw, "base64");
+    } catch {
+      res.status(400).json({ error: "Invalid base64 content" });
+      return;
+    }
+    if (!Buf || !Buf.length) { res.status(400).json({ error: "Invalid file content" }); return; }
+    if (Buf.length > Cap) { res.status(413).json({ error: `File too large (max ${CapLabel(assetType)}).` }); return; }
   }
-  if (!Buf || !Buf.length) { res.status(400).json({ error: "Invalid file content" }); return; }
-  if (Buf.length > HOST_MAX_BYTES) { res.status(413).json({ error: "File too large (max 30MB)." }); return; }
 
   const id = `u${uid}-${assetType}`;
   const path = `asset/${uid}/${assetType}.${ext}`;
@@ -563,6 +622,10 @@ export default async function handler(req, res) {
 
   if (req.query.action === "assetUpload") {
     return assetUpload(req, res);
+  }
+
+  if (req.query.action === "assetChunk") {
+    return assetChunk(req, res);
   }
 
   const { action, sessionToken } = req.body;

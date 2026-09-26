@@ -1104,13 +1104,41 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
     const token = getSessionToken();
     const contentBase64 = await FileToBase64(file).catch(() => null);
     if (!contentBase64) { setSaving(null); return; }
-    const hr = await fetch(`/api/me?action=assetUpload`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sessionToken: token, filename: file.name, contentBase64, contentType: file.type || null, assetType: type }),
-    });
-    const hd = await hr.json().catch(() => null);
-    if (!hr.ok || !hd || hd.error || !hd.url) { setSaving(null); alert(hd?.error || "upload failed"); return; }
+    const CHUNK = 2000000;
+    let hd: { url: string; error?: string } | null = null;
+    if (contentBase64.length > CHUNK) {
+      const uploadId = (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `u${Date.now()}-${Math.random().toString(36).slice(2)}`);
+      const total = Math.ceil(contentBase64.length / CHUNK);
+      let failed: string | null = null;
+      for (let i = 0; i < total; i++) {
+        const cr = await fetch(`/api/me?action=assetChunk`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sessionToken: token, uploadId, index: i, total, chunk: contentBase64.slice(i * CHUNK, (i + 1) * CHUNK) }),
+        });
+        const cd = await cr.json().catch(() => null);
+        if (!cr.ok || !cd || cd.error) { failed = cd?.error || "upload failed"; break; }
+      }
+      if (!failed) {
+        const hr = await fetch(`/api/me?action=assetUpload`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sessionToken: token, uploadId, filename: file.name, contentType: file.type || null, assetType: type }),
+        });
+        hd = await hr.json().catch(() => null);
+        if (!hr.ok || !hd || (hd as { error?: string }).error || !(hd as { url?: string }).url) failed = (hd as { error?: string } | null)?.error || "upload failed";
+        else hd = hd as { url: string };
+      }
+      if (failed) { setSaving(null); alert(failed); return; }
+    } else {
+      const hr = await fetch(`/api/me?action=assetUpload`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionToken: token, filename: file.name, contentBase64, contentType: file.type || null, assetType: type }),
+      });
+      hd = await hr.json().catch(() => null);
+      if (!hr.ok || !hd || (hd as { error?: string }).error || !(hd as { url?: string }).url) { setSaving(null); alert((hd as { error?: string } | null)?.error || "upload failed"); return; }
+    }
     const busted = `${hd.url}?t=${Date.now()}`;
     const { error: upsertError } = await apiCall("asset_upsert", { type, url: busted });
     if (upsertError) console.error("upsert error:", upsertError);

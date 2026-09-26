@@ -131,7 +131,7 @@ export default function Biolink() {
   const lastNavRef = useRef(0);
   const wheelAccumRef = useRef(0);
   const scrollAnimRef = useRef(0);
-  const touchRef = useRef<{ y: number; allow: boolean } | null>(null);
+  const touchRef = useRef<{ y: number; allow: boolean; scroller: HTMLElement | null } | null>(null);
   const enterTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const getPageTops = () =>
@@ -205,7 +205,13 @@ export default function Biolink() {
     if (pages <= 1) return;
     const onWheel = (e: WheelEvent) => {
       const target = e.target as HTMLElement | null;
-      if (target?.closest?.(".allow-scroll")) return;
+      const scroller = target?.closest?.(".allow-scroll") as HTMLElement | null;
+      if (scroller) {
+        const down = e.deltaY > 0;
+        const canDown = scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight > 2;
+        const canUp = scroller.scrollTop > 2;
+        if ((down && canDown) || (!down && canUp)) return;
+      }
       e.preventDefault();
       const now = Date.now();
       if (now - lastWheelRef.current > 400) wheelAccumRef.current = 0;
@@ -230,7 +236,7 @@ export default function Biolink() {
     };
     const onTouchStart = (e: TouchEvent) => {
       const target = e.target as HTMLElement | null;
-      touchRef.current = { y: e.touches[0].clientY, allow: !!target?.closest?.(".allow-scroll") };
+      touchRef.current = { y: e.touches[0].clientY, allow: !!target?.closest?.(".allow-scroll"), scroller: (target?.closest?.(".allow-scroll") as HTMLElement | null) || null };
     };
     const onTouchMove = (e: TouchEvent) => {
       if (!touchRef.current || touchRef.current.allow) return;
@@ -239,9 +245,16 @@ export default function Biolink() {
     const onTouchEnd = (e: TouchEvent) => {
       const t = touchRef.current;
       touchRef.current = null;
-      if (!t || t.allow) return;
+      if (!t) return;
       const dy = e.changedTouches[0].clientY - t.y;
-      if (Math.abs(dy) > 40) goToPage(activePageRef.current + (dy < 0 ? 1 : -1));
+      if (Math.abs(dy) <= 40) return;
+      if (t.allow && t.scroller) {
+        const next = dy < 0;
+        const canDown = t.scroller.scrollHeight - t.scroller.scrollTop - t.scroller.clientHeight > 2;
+        const canUp = t.scroller.scrollTop > 2;
+        if ((next && canDown) || (!next && canUp)) return;
+      } else if (t.allow) return;
+      goToPage(activePageRef.current + (dy < 0 ? 1 : -1));
     };
     window.addEventListener("wheel", onWheel, { passive: false });
     window.addEventListener("keydown", onKey);

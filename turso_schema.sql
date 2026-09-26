@@ -169,6 +169,15 @@ CREATE TABLE IF NOT EXISTS hosted_files (
 );
 CREATE INDEX IF NOT EXISTS idx_hosted_files_user ON hosted_files (user_id);
 
+CREATE TABLE IF NOT EXISTS upload_chunks (
+  upload_id TEXT NOT NULL,
+  user_id INTEGER NOT NULL,
+  idx INTEGER NOT NULL,
+  data BLOB,
+  created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+  PRIMARY KEY (upload_id, idx)
+);
+
 CREATE TABLE IF NOT EXISTS template_installs (
   user_id INTEGER,
   template_user_id INTEGER,
