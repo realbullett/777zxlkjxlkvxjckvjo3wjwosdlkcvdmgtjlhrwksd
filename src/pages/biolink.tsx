@@ -775,7 +775,8 @@ export default function Biolink() {
             </motion.div>
             <motion.div variants={dropItem}>
               {(user.views_blacklisted || viewCount !== null) && (
-                <div className="absolute bottom-4 left-4 flex items-center gap-2 rounded-xl bg-white/10 px-3 py-1.5 backdrop-blur-sm">
+                <div className="group absolute bottom-4 left-4 flex items-center gap-2 rounded-xl bg-white/10 px-3 py-1.5 backdrop-blur-sm cursor-default">
+                  <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-black/80 px-2 py-1 text-[11px] font-medium text-white/80 opacity-0 transition-opacity group-hover:opacity-100">views</span>
                   <Eye size={16} className="text-white" />
                   <span className="text-sm font-bold text-white">
                     {user.views_blacklisted ? "NULL" : viewCount}
