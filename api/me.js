@@ -1001,6 +1001,7 @@ export default async function handler(req, res) {
       if (targetUid === 1) { res.status(403).json({ error: "That account is always admin" }); return; }
       try {
         await Db().execute({ sql: "UPDATE users SET is_admin = ? WHERE id = ?", args: [admin ? 1 : 0, targetUid] });
+        await LogAdmin(uid, admin ? "grant_admin" : "revoke_admin", targetUid, null);
       } catch (e) {
         console.error("me admin_set_admin error:", e);
         res.status(500).json({ error: "Failed to update admin" });
