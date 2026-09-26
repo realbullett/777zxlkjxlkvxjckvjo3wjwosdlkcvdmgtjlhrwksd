@@ -1104,6 +1104,16 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
 
   const uploadAsset = async (type: string, file: File) => {
     if (!user) return;
+    const capMb = type === "video_background" ? 5 : 10;
+    if (file.size > capMb * 1024 * 1024) {
+      alert(type === "video_background"
+        ? `Video too large (max 5MB). Please compress your video to reduce the file size and try again.`
+        : type.startsWith("audio")
+          ? `Audio too large (max 10MB). Please compress your music file to reduce the file size and try again.`
+          : `File too large (max ${capMb}MB). Please compress your file to reduce the file size and try again.`);
+      setSaving(null);
+      return;
+    }
     setSaving(type);
     const token = getSessionToken();
     const contentBase64 = await FileToBase64(file).catch(() => null);
@@ -1118,7 +1128,7 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
         const cr = await fetch(`/api/me?action=assetChunk`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sessionToken: token, uploadId, index: i, total, chunk: contentBase64.slice(i * CHUNK, (i + 1) * CHUNK) }),
+          body: JSON.stringify({ sessionToken: token, uploadId, index: i, total, assetType: type, chunk: contentBase64.slice(i * CHUNK, (i + 1) * CHUNK) }),
         });
         const cd = await cr.json().catch(() => null);
         if (!cr.ok || !cd || cd.error) { failed = cd?.error || "upload failed"; break; }
@@ -2373,11 +2383,11 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
                 <div className="flex items-center justify-between p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
                 <span className="text-xs text-white/60">Video</span>
                 <div className="flex items-center gap-3">
-                  <span className="text-[10px] text-white/20">max 50MB</span>
+                  <span className="text-[10px] text-white/20">max 5MB</span>
                   <input ref={videoBgRef} type="file" accept="video/mp4,video/webm,video/ogg" className="hidden" onChange={async () => {
                     const file = videoBgRef.current?.files?.[0];
                     if (!file) return;
-                    if (file.size > 50 * 1024 * 1024) { showSaved("file too large (max 50MB)", false); return; }
+                    if (file.size > 5 * 1024 * 1024) { showSaved("video too large (max 5MB) — compress your video and try again", false); return; }
                     await uploadAsset("video_background", file);
                     setIsBgModalOpen(false);
                   }} />
