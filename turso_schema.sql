@@ -244,7 +244,9 @@ CREATE TABLE IF NOT EXISTS profile_votes (
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   voter_key TEXT NOT NULL,
   vote INTEGER NOT NULL CHECK (vote IN (1, -1)),
+  ip_hash TEXT,
   created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
   UNIQUE (user_id, voter_key)
 );
 CREATE INDEX IF NOT EXISTS idx_profile_votes_user ON profile_votes (user_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_profile_votes_user_ip ON profile_votes (user_id, ip_hash);

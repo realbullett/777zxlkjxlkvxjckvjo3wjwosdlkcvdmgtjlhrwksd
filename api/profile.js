@@ -1,4 +1,23 @@
+import crypto from "crypto";
 import { GetTurso, HasTurso, PublicProfileCols } from "../lib/turso.js";
+const IP_PEPPER = process.env.VIEW_IP_PEPPER || process.env.SESSION_SECRET || "sire-view-ip-secret";
+
+function getClientIp(req) {
+  const xvf = req.headers["x-vercel-forwarded-for"];
+  if (xvf) return String(xvf).split(",")[0].trim();
+  const xri = req.headers["x-real-ip"];
+  if (xri) return String(xri).split(",")[0].trim();
+  const xff = req.headers["x-forwarded-for"];
+  if (xff) {
+    const parts = String(xff).split(",").map((s) => s.trim()).filter(Boolean);
+    if (parts.length) return parts[parts.length - 1];
+  }
+  return req.socket?.remoteAddress || "unknown";
+}
+
+function hashIp(ip) {
+  return crypto.createHmac("sha256", IP_PEPPER).update(String(ip)).digest("hex");
+}
 
 function ParseJson(V, Fallback) {
   if (V === null || V === undefined) return Fallback;
@@ -17,10 +36,13 @@ async function EnsureVotes(Db) {
       user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       voter_key TEXT NOT NULL,
       vote INTEGER NOT NULL CHECK (vote IN (1, -1)),
+      ip_hash TEXT,
       created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
       UNIQUE (user_id, voter_key)
     )`);
     await Db.execute(`CREATE INDEX IF NOT EXISTS idx_profile_votes_user ON profile_votes (user_id)`);
+    try { await Db.execute(`ALTER TABLE profile_votes ADD COLUMN ip_hash TEXT`); } catch {}
+    try { await Db.execute(`CREATE UNIQUE INDEX IF NOT EXISTS idx_profile_votes_user_ip ON profile_votes (user_id, ip_hash)`); } catch {}
   } catch {}
 }
 
@@ -59,11 +81,12 @@ export default async function handler(req, res) {
       const Voter = CleanVoter(Body.voter);
       const Vote = Number(Body.vote);
       if (!Name || !Voter || ![1, -1].includes(Vote)) { res.status(400).json({ error: "Bad vote" }); return; }
-      const Ip = (req.headers["x-forwarded-for"] || "").split(",")[0].trim() || req.socket?.remoteAddress || "?";
+      const Ip = getClientIp(req);
       if (!VoteRateOk(Ip)) { res.status(429).json({ error: "Slow down" }); return; }
+      const IpHash = hashIp(Ip);
       const UidRs = await Db.batch([
         { sql: "SELECT id, username, suspended, hidden FROM users WHERE username = ? OR alias = ? LIMIT 2", args: [Name, Name] },
-        { sql: "SELECT user_id, voter_key, vote FROM profile_votes WHERE voter_key = ? LIMIT 50", args: [Voter] }
+        { sql: "SELECT user_id, voter_key, vote FROM profile_votes WHERE ip_hash = ? LIMIT 100", args: [IpHash] }
       ]);
       const Rows = UidRs[0].rows || [];
       const Match = Rows.find((R) => String(R.username || "").toLowerCase() === Name) || Rows[0];
@@ -73,9 +96,9 @@ export default async function handler(req, res) {
       const Had = (UidRs[1].rows || []).find((R) => Number(R.user_id) === Number(Uid))?.vote;
       let Mine = 0;
       if (Number(Had) === Vote) {
-        await Db.execute({ sql: "DELETE FROM profile_votes WHERE user_id = ? AND voter_key = ?", args: [Uid, Voter] });
+        await Db.execute({ sql: "DELETE FROM profile_votes WHERE user_id = ? AND ip_hash = ?", args: [Uid, IpHash] });
       } else {
-        await Db.execute({ sql: "INSERT INTO profile_votes (user_id, voter_key, vote) VALUES (?, ?, ?) ON CONFLICT (user_id, voter_key) DO UPDATE SET vote = excluded.vote", args: [Uid, Voter, Vote] });
+        await Db.execute({ sql: "INSERT INTO profile_votes (user_id, voter_key, vote, ip_hash) VALUES (?, ?, ?, ?) ON CONFLICT (user_id, ip_hash) DO UPDATE SET vote = excluded.vote, voter_key = excluded.voter_key", args: [Uid, Voter, Vote, IpHash] });
         Mine = Vote;
       }
       const C = await VoteCounts(Db, Uid);
@@ -116,7 +139,8 @@ export default async function handler(req, res) {
     const Voter = CleanVoter(req.query.voter);
     let Mine = 0;
     if (Voter) {
-      const MineRs = await Db.execute({ sql: "SELECT vote FROM profile_votes WHERE user_id = ? AND voter_key = ?", args: [Uid, Voter] });
+      const IpHash = hashIp(getClientIp(req));
+      const MineRs = await Db.execute({ sql: "SELECT vote FROM profile_votes WHERE user_id = ? AND (ip_hash = ? OR voter_key = ?) LIMIT 1", args: [Uid, IpHash, Voter] });
       Mine = Number(MineRs.rows?.[0]?.vote || 0);
       res.setHeader("Cache-Control", "private, no-store");
     } else {
