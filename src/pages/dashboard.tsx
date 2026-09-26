@@ -180,6 +180,7 @@ export default function Dashboard() {
     const qs = token ? `token=${encodeURIComponent(token)}` : (storedToken ? `s=${encodeURIComponent(storedToken)}` : "");
     const loadMe = () => {
       fetchMe().then((data) => {
+        if (data && !data.onboarding_done) { navigate(`/welcome?uid=${data.id}`, { replace: true }); return; }
         if (data) setUser(data);
         else { localStorage.clear(); setUnauth(true); }
       });
@@ -209,6 +210,11 @@ export default function Dashboard() {
       }
       localStorage.clear(); setUnauth(true);
     }).catch(() => { localStorage.clear(); setUnauth(true); });
+  }, [searchParams]);
+
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    if (tab && tabs.some((t) => t.id === tab)) setActiveTab(tab as TabId);
   }, [searchParams]);
 
   useEffect(() => {

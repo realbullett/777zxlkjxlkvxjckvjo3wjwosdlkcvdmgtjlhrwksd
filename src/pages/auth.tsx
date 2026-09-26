@@ -190,7 +190,7 @@ export default function AuthPage() {
                   const d = await r.json();
                   if (!r.ok) { setError(d.error || "Verification failed"); setLoading(false); return; }
                   localStorage.setItem("sl_auth", JSON.stringify({ uid: d.uid, sessionToken: d.sessionToken }));
-                  navigate(`/dashboard?uid=${d.uid}&token=${encodeURIComponent(d.sessionToken)}`, { replace: true });
+                  navigate(`/welcome?uid=${d.uid}&token=${encodeURIComponent(d.sessionToken)}`, { replace: true });
                 } catch { setError("Something went wrong"); setLoading(false); }
                 return;
               }

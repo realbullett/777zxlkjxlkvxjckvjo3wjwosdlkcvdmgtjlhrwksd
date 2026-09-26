@@ -31,7 +31,7 @@ const USER_FIELDS = new Set([
   "desc_offset_x", "desc_offset_y", "song_offset_x", "song_offset_y",
   "discord_rpc_offset_x", "discord_rpc_offset_y",
   "panel_opacity", "panel_hidden", "discord_rpc_enabled",
-  "widgets",
+  "widgets", "onboarding_done", "use_case",
 ]);
 
 const PREMIUM_VALUES = {
@@ -140,6 +140,7 @@ const BOOL_COLS = new Set([
   "show_username", "video_audio", "monochrome_icons", "monochrome_badges",
   "banner_enabled", "panel_mouse_follow", "audio_autoplay", "audio_loop",
   "audio_shuffle", "panel_hidden", "discord_rpc_enabled", "views_blacklisted",
+  "onboarding_done",
 ]);
 
 function NormalizeUser(Row) {
@@ -183,6 +184,8 @@ async function EnsureSchema() {
   await Promise.allSettled([
     D.execute("CREATE TABLE IF NOT EXISTS template_installs (user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, template_user_id INTEGER NOT NULL, created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')), UNIQUE (user_id, template_user_id))"),
     D.execute("CREATE TABLE IF NOT EXISTS template_favorites (user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, template_user_id INTEGER NOT NULL, created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')), UNIQUE (user_id, template_user_id))"),
+    D.execute("ALTER TABLE users ADD COLUMN onboarding_done INTEGER NOT NULL DEFAULT 0"),
+    D.execute("ALTER TABLE users ADD COLUMN use_case TEXT"),
   ]);
   SchemaReady = true;
 }

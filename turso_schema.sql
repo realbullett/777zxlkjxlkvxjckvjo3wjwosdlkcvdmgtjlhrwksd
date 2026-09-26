@@ -66,6 +66,8 @@ CREATE TABLE IF NOT EXISTS users (
   panel_hidden INTEGER DEFAULT 0,
   widgets TEXT DEFAULT '[]',
   views_blacklisted INTEGER NOT NULL DEFAULT 0,
+  onboarding_done INTEGER NOT NULL DEFAULT 0,
+  use_case TEXT,
   created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
   UNIQUE (provider, provider_id)
 );

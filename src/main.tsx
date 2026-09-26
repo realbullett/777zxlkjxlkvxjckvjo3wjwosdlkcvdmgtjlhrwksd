@@ -4,6 +4,7 @@ import {BrowserRouter, Routes, Route} from 'react-router-dom';
 import App from './App.tsx';
 import AuthPage from './pages/auth.tsx';
 import Dashboard from './pages/dashboard.tsx';
+import Welcome from './pages/welcome.tsx';
 import Biolink from './pages/biolink.tsx';
 import LeaderboardPage from './pages/leaderboard.tsx';
 import PrivacyPage from './pages/privacy.tsx';
@@ -17,6 +18,7 @@ createRoot(document.getElementById('root')!).render(
         <Route path="/" element={<App />} />
         <Route path="/auth" element={<AuthPage />} />
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/welcome" element={<Welcome />} />
         <Route path="/leaderboard" element={<LeaderboardPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/terms" element={<TermsPage />} />
