@@ -273,7 +273,7 @@ return (
         </header>
 
         <div className="relative flex flex-1 min-h-0">
-          <nav className="w-56 shrink-0 border-r border-white/[0.04] flex flex-col pt-2 sticky top-0 h-screen self-start">
+          <nav className="w-48 shrink-0 border-r border-white/[0.04] flex flex-col pt-2 sticky top-0 h-screen self-start">
             <button onClick={() => navigate("/")} className="font-display text-xl font-black tracking-tighter text-white hover:text-blue-500 transition-colors px-6 mb-4 text-left">
               sire<span className="text-blue-500">.</span>lol
             </button>
