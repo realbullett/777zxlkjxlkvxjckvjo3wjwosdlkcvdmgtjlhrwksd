@@ -390,6 +390,7 @@ function AccountOverview({ user, onTab, onUpdateUser }: { user: User | null; onT
   const [isEditingDisplayName, setIsEditingDisplayName] = useState(false);
   const [isSavingDisplayName, setIsSavingDisplayName] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [profileAvatar, setProfileAvatar] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -419,12 +420,16 @@ function AccountOverview({ user, onTab, onUpdateUser }: { user: User | null; onT
       if (!J) return;
       if (typeof J.likes === "number") setLikes(J.likes);
       if (typeof J.dislikes === "number") setDislikes(J.dislikes);
+      if (Array.isArray((J as any).assets)) {
+        const pa = (J as any).assets.find((a: any) => a.type === "profile_avatar");
+        if (pa?.url) setProfileAvatar(pa.url);
+      }
     }).catch(() => {});
   }, [user?.username]);
 
   const likeRate = likes + dislikes > 0 ? Math.round((likes / (likes + dislikes)) * 100) : 100;
 
-  const hasAvatar = (user?.avatar_url && user?.avatar_url !== "") || false;
+  const hasAvatar = !!profileAvatar || (user?.avatar_url && user?.avatar_url !== "") || false;
   const hasDescription = (user?.description && user?.description.trim() !== "") || false;
   const hasDiscord = user?.provider === "discord" || !!user?.discord_id || false;
   const completion = [hasAvatar, hasDescription, hasDiscord].filter(Boolean).length * 33 + (user ? 1 : 0);
@@ -594,8 +599,8 @@ function AccountOverview({ user, onTab, onUpdateUser }: { user: User | null; onT
           <div className="relative">
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-96 w-[900px] max-w-none rounded-[100%] bg-[radial-gradient(ellipse,rgba(37,99,235,0.5)_0%,rgba(37,99,235,0.22)_40%,rgba(37,99,235,0.08)_60%,rgba(0,0,0,0)_80%)] blur-3xl pointer-events-none" />
             <div className="relative h-40 w-40 rounded-full p-[2px] bg-cyan-200/70">
-              {user?.avatar_url ? (
-                <img src={user.avatar_url} alt="profile picture" className="h-full w-full rounded-full object-cover bg-[#131316] border-4 border-black" />
+              {(profileAvatar || user?.avatar_url) ? (
+                <img src={profileAvatar || user!.avatar_url} alt="profile picture" className="h-full w-full rounded-full object-cover bg-[#131316] border-4 border-black" />
               ) : (
                 <div className="h-full w-full rounded-full bg-white/[0.06] border-4 border-black flex items-center justify-center text-5xl font-bold text-white/70">
                   {(user?.display_name || user?.username || "S")[0].toUpperCase()}
