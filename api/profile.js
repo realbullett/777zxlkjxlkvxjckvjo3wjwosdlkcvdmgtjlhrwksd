@@ -61,17 +61,16 @@ export default async function handler(req, res) {
       if (!Name || !Voter || ![1, -1].includes(Vote)) { res.status(400).json({ error: "Bad vote" }); return; }
       const Ip = (req.headers["x-forwarded-for"] || "").split(",")[0].trim() || req.socket?.remoteAddress || "?";
       if (!VoteRateOk(Ip)) { res.status(429).json({ error: "Slow down" }); return; }
-      const Prof = await Db.execute({
-        sql: "SELECT id, suspended, hidden FROM users WHERE username = ? OR alias = ? LIMIT 2",
-        args: [Name, Name]
-      });
-      const Rows = Prof.rows || [];
+      const UidRs = await Db.batch([
+        { sql: "SELECT id, username, suspended, hidden FROM users WHERE username = ? OR alias = ? LIMIT 2", args: [Name, Name] },
+        { sql: "SELECT user_id, voter_key, vote FROM profile_votes WHERE voter_key = ? LIMIT 50", args: [Voter] }
+      ]);
+      const Rows = UidRs[0].rows || [];
       const Match = Rows.find((R) => String(R.username || "").toLowerCase() === Name) || Rows[0];
       if (!Match) { res.status(404).json({ error: "Not found" }); return; }
       if (Number(Match.suspended || 0) === 1 || Number(Match.hidden || 0) === 1) { res.status(404).json({ error: "Not found" }); return; }
       const Uid = Match.id;
-      const Cur = await Db.execute({ sql: "SELECT vote FROM profile_votes WHERE user_id = ? AND voter_key = ?", args: [Uid, Voter] });
-      const Had = Cur.rows?.[0]?.vote;
+      const Had = (UidRs[1].rows || []).find((R) => Number(R.user_id) === Number(Uid))?.vote;
       let Mine = 0;
       if (Number(Had) === Vote) {
         await Db.execute({ sql: "DELETE FROM profile_votes WHERE user_id = ? AND voter_key = ?", args: [Uid, Voter] });
@@ -119,8 +118,10 @@ export default async function handler(req, res) {
     if (Voter) {
       const MineRs = await Db.execute({ sql: "SELECT vote FROM profile_votes WHERE user_id = ? AND voter_key = ?", args: [Uid, Voter] });
       Mine = Number(MineRs.rows?.[0]?.vote || 0);
+      res.setHeader("Cache-Control", "private, no-store");
+    } else {
+      res.setHeader("Cache-Control", "public, max-age=30, s-maxage=60, stale-while-revalidate=300");
     }
-    res.setHeader("Cache-Control", "public, max-age=30, s-maxage=60, stale-while-revalidate=300");
     res.status(200).json({
       source: "turso",
       user: Match,
