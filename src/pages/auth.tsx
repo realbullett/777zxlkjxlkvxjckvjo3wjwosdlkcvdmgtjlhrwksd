@@ -24,10 +24,11 @@ export default function AuthPage() {
   const [otpTimer, setOtpTimer] = useState(0);
   const [resending, setResending] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState("");
+  const oauthLocked = !!TurnstileSiteKey && !turnstileToken;
   const turnstileWidgetId = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!isSignUp || step !== "form" || emailRegistrationsDisabled || !TurnstileSiteKey) return;
+    if (step !== "form" || !TurnstileSiteKey) return;
     let dead = false;
     const doRender = () => {
       if (dead) return;
@@ -55,7 +56,7 @@ export default function AuthPage() {
       document.body.appendChild(s);
     } else doRender();
     return () => { dead = true; };
-  }, [isSignUp, step]);
+  }, [step]);
 
   useEffect(() => {
     if (step !== "otp") { setOtpTimer(0); return; }
@@ -361,9 +362,6 @@ export default function AuthPage() {
                   </div>
                 )}
               </div>
-              {isSignUp && TurnstileSiteKey && (
-                <div id="TurnstileSlot" className="flex justify-center" />
-              )}
               <button
                 type="submit"
                 disabled={isSignUp ? (!isValidEmail(email) || !username.trim()) : (!password || (!email.trim() && !username.trim()))}                className="shimmer w-full rounded-xl bg-blue-600 py-3 text-sm font-semibold text-white hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
@@ -384,9 +382,15 @@ export default function AuthPage() {
               </div>
             </div>
 
+            {TurnstileSiteKey && (
+              <div id="TurnstileSlot" className="flex justify-center mb-4" />
+            )}
+
             <a
               href="/api/auth/discord"
-              className="flex items-center justify-center gap-2 w-full rounded-xl py-3 text-sm font-semibold text-white hover:scale-[1.02] active:scale-[0.98] transition-all"
+              onClick={(e) => { if (oauthLocked) e.preventDefault(); }}
+              aria-disabled={oauthLocked}
+              className={`flex items-center justify-center gap-2 w-full rounded-xl py-3 text-sm font-semibold text-white transition-all ${oauthLocked ? "opacity-40 cursor-not-allowed" : "hover:scale-[1.02] active:scale-[0.98]"}`}
               style={{ backgroundColor: "#5865F2" }}
             >
               <svg className="w-4 h-4" viewBox="0 0 127.14 96.36" fill="currentColor">
@@ -397,7 +401,9 @@ export default function AuthPage() {
 
             <a
               href="/api/auth/google"
-              className="flex items-center justify-center gap-2 w-full rounded-xl py-3 text-sm font-semibold text-white hover:scale-[1.02] active:scale-[0.98] transition-all border border-white/[0.06] bg-white/[0.02]"
+              onClick={(e) => { if (oauthLocked) e.preventDefault(); }}
+              aria-disabled={oauthLocked}
+              className={`mt-3 flex items-center justify-center gap-2 w-full rounded-xl py-3 text-sm font-semibold text-white transition-all border border-white/[0.06] bg-white/[0.02] ${oauthLocked ? "opacity-40 cursor-not-allowed" : "hover:scale-[1.02] active:scale-[0.98]"}`}
             >
               <svg className="w-4 h-4" viewBox="0 0 48 48">
                 <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
@@ -407,6 +413,9 @@ export default function AuthPage() {
               </svg>
               continue with google
             </a>
+            {oauthLocked && (
+              <p className="text-center text-[11px] text-white/30 mt-3">solve the captcha above to continue</p>
+            )}
 
             <p className="text-center text-xs text-white/20 mt-6">
               {isSignUp ? "already have an account? " : "don't have an account? "}
