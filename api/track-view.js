@@ -25,6 +25,7 @@ function IsoAgo(Ms) {
 
 async function TrackTurso(UserId, VisitorId, IpHash) {
   const Db = GetTurso();
+  const Since10 = IsoAgo(10 * 1000);
   const Since20 = IsoAgo(20 * 1000);
   const Since60 = IsoAgo(60 * 1000);
   const SevenAgo = IsoAgo(7 * 24 * 60 * 60 * 1000);
@@ -32,6 +33,11 @@ async function TrackTurso(UserId, VisitorId, IpHash) {
   const Row = Target.rows?.[0];
   if (!Row) return { status: 404 };
   if (Number(Row.views_blacklisted) === 1) return { status: 200, body: { counted: false, blacklisted: true } };
+  const Burst10 = await Db.execute({ sql: "SELECT COUNT(*) AS c FROM page_views WHERE user_id = ? AND viewed_at >= ?", args: [UserId, Since10] });
+  if (Number(Burst10.rows?.[0]?.c || 0) > 30) {
+    await Db.execute({ sql: "DELETE FROM page_views WHERE user_id = ? AND viewed_at >= ?", args: [UserId, Since10] });
+    return { status: 429, body: { counted: false, rolledBack: true } };
+  };
   const IpCount = await Db.execute({ sql: "SELECT COUNT(*) AS c FROM page_views WHERE user_id = ? AND ip_hash = ? AND viewed_at >= ?", args: [UserId, IpHash, Since20] });
   if (Number(IpCount.rows?.[0]?.c || 0) >= 8) {
     await Db.execute({ sql: "DELETE FROM page_views WHERE user_id = ? AND ip_hash = ? AND viewed_at >= ?", args: [UserId, IpHash, Since20] });
@@ -68,7 +74,7 @@ export default async function handler(req, res) {
     res.status(400).json({ error: "Missing fields" });
     return;
   }
-  if (!Number.isInteger(dwell_ms) || dwell_ms < 3000) {
+  if (!Number.isInteger(dwell_ms) || dwell_ms < 5000) {
     res.status(200).json({ counted: false });
     return;
   }

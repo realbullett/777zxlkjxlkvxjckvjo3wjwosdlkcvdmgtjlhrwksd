@@ -136,6 +136,7 @@ export default function Biolink() {
   const scrollAnimRef = useRef(0);
   const touchRef = useRef<{ y: number; allow: boolean; scroller: HTMLElement | null } | null>(null);
   const enterTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const enteredAtRef = useRef(0);
 
   const getPageTops = () =>
     Array.from(document.querySelectorAll<HTMLElement>(".snap-page")).map((el) => el.getBoundingClientRect().top + window.scrollY);
@@ -441,9 +442,13 @@ export default function Biolink() {
       const r = await fetch("/api/profile", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: user.username, voter: getVisitorId(), vote }),
+        body: JSON.stringify({ username: user.username, voter: getVisitorId(), vote, dwell_ms: Date.now() - enteredAtRef.current }),
       });
       const J = await r.json().catch(() => null);
+      if (!r.ok || J?.counted === false) {
+        setMyVote(prevVote); setLikes(prevLikes); setDislikes(prevDislikes);
+        return;
+      }
       if (typeof J?.likes === "number") setLikes(J.likes);
       if (typeof J?.dislikes === "number") setDislikes(J.dislikes);
       if (typeof J?.mine === "number") setMyVote(J.mine);
@@ -460,6 +465,7 @@ export default function Biolink() {
     const wcfg = user ? normalizeWidgets(user.widgets) : null;
     const hasSongPage = !!wcfg && wcfg.pages >= 3 && !!wcfg.song;
     const enteredAt = Date.now();
+    enteredAtRef.current = enteredAt;
     if (user && !user.views_blacklisted) {
       enterTimerRef.current = setTimeout(async () => {
         if (document.visibilityState !== "visible") return;
@@ -471,7 +477,7 @@ export default function Biolink() {
         });
         const res = await r.json().catch(() => ({}));
         if (res.counted) setViewCount((prev) => (prev !== null ? prev + 1 : prev));
-      }, 3000);
+      }, 5000);
     }
     if (audioRef.current && !hasSongPage && (user?.audio_autoplay ?? true)) {
       audioRef.current.volume = (user?.audio_volume ?? 30) / 100;

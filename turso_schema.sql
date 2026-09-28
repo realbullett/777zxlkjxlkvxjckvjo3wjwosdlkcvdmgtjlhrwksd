@@ -70,6 +70,8 @@ CREATE TABLE IF NOT EXISTS users (
   use_case TEXT,
   is_admin INTEGER NOT NULL DEFAULT 0,
   suspended INTEGER NOT NULL DEFAULT 0,
+  suspended_reason TEXT,
+  reset_notices TEXT,
   hidden INTEGER NOT NULL DEFAULT 0,
   signup_ip TEXT,
   created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),

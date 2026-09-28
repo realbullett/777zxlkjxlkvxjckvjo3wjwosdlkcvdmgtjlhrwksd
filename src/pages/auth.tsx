@@ -231,7 +231,7 @@ export default function AuthPage() {
                     body: JSON.stringify({ login: email.includes("@") ? email : username, password }),
                   });
                   const d = await r.json();
-                  if (!r.ok) { setError(d.error || "Login failed"); setLoading(false); return; }
+                  if (!r.ok) { setError(d.suspended && d.reason ? `This account has been suspended: ${d.reason}` : (d.error || "Login failed")); setLoading(false); return; }
                   if (d.needsOtp) {
                     setPendingEmail(d.email);
                     setStep("otp");

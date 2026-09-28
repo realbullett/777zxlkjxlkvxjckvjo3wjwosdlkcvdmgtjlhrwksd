@@ -157,6 +157,7 @@ function NormalizeUser(Row) {
   const Out = { ...Row };
   Out.widgets = ParseJson(Row.widgets, Row.widgets ?? []);
   Out.desc_lines = ParseJson(Row.desc_lines, Row.desc_lines ?? null);
+  Out.reset_notices = ParseJson(Row.reset_notices, []);
   for (const K of BOOL_COLS) {
     if (Out[K] !== undefined && Out[K] !== null && typeof Out[K] === "number") Out[K] = !!Out[K];
   }
@@ -198,6 +199,8 @@ async function EnsureSchema() {
     D.execute("ALTER TABLE users ADD COLUMN use_case TEXT"),
     D.execute("ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0"),
     D.execute("ALTER TABLE users ADD COLUMN suspended INTEGER NOT NULL DEFAULT 0"),
+    D.execute("ALTER TABLE users ADD COLUMN suspended_reason TEXT"),
+    D.execute("ALTER TABLE users ADD COLUMN reset_notices TEXT"),
     D.execute("ALTER TABLE users ADD COLUMN hidden INTEGER NOT NULL DEFAULT 0"),
     D.execute("ALTER TABLE users ADD COLUMN signup_ip TEXT"),
     D.execute("CREATE TABLE IF NOT EXISTS admin_log (id INTEGER PRIMARY KEY AUTOINCREMENT, admin_id INTEGER NOT NULL, action TEXT NOT NULL, target_uid INTEGER, detail TEXT, created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')))"),
@@ -644,7 +647,7 @@ export default async function handler(req, res) {
     if (!Row) { res.status(404).json({ error: "User not found" }); return; }
     if (Number(Row.suspended || 0) === 1) {
       res.setHeader("Set-Cookie", "sl_session=; HttpOnly; SameSite=Lax; Max-Age=0; Path=/");
-      res.status(403).json({ error: "This account has been suspended", suspended: true });
+      res.status(403).json({ error: "This account has been suspended", suspended: true, reason: Row.suspended_reason || null });
       return;
     }
     res.status(200).json({ user: NormalizeUser(Row) });
@@ -1035,9 +1038,55 @@ export default async function handler(req, res) {
       const val = req.body.value === true || req.body.value === 1 || req.body.value === "1" ? 1 : 0;
       if (!targetUid) { res.status(400).json({ error: "Missing targetUid" }); return; }
       if (targetUid === 1) { res.status(403).json({ error: "That account cannot be touched" }); return; }
-      await Db().execute({ sql: `UPDATE users SET ${col} = ? WHERE id = ?`, args: [val, targetUid] });
-      await LogAdmin(uid, val ? col : `un${col}`, targetUid, null);
-      res.status(200).json({ ok: true, [col]: !!val });
+      const reason = String(req.body.reason || "").trim().slice(0, 200) || null;
+      if (action === "admin_suspend") {
+        await Db().execute({ sql: "UPDATE users SET suspended = ?, suspended_reason = ? WHERE id = ?", args: [val, val ? reason : null, targetUid] });
+        await LogAdmin(uid, val ? "suspended" : "unsuspended", targetUid, val ? reason : null);
+        res.status(200).json({ ok: true, suspended: !!val, reason: val ? reason : null });
+      } else {
+        await Db().execute({ sql: `UPDATE users SET ${col} = ? WHERE id = ?`, args: [val, targetUid] });
+        await LogAdmin(uid, val ? col : `un${col}`, targetUid, null);
+        res.status(200).json({ ok: true, [col]: !!val });
+      }
+      return;
+    }
+
+    case "admin_reset_views":
+    case "admin_reset_likes":
+    case "admin_reset_dislikes": {
+      if (!(await IsAdmin(uid))) { res.status(403).json({ error: "Forbidden" }); return; }
+      const targetUid = Number(req.body.targetUid);
+      if (!targetUid) { res.status(400).json({ error: "Missing targetUid" }); return; }
+      if (targetUid === 1) { res.status(403).json({ error: "That account cannot be touched" }); return; }
+      const kind = action === "admin_reset_views" ? "views" : action === "admin_reset_likes" ? "likes" : "dislikes";
+      const reason = String(req.body.reason || "").trim().slice(0, 200);
+      if (!reason) { res.status(400).json({ error: "Add a reason — it will be shown to the user" }); return; }
+      const sql = kind === "views"
+        ? "DELETE FROM page_views WHERE user_id = ?"
+        : "DELETE FROM profile_votes WHERE user_id = ? AND vote = ?";
+      const args = kind === "views" ? [targetUid] : [targetUid, kind === "likes" ? 1 : -1];
+      const before = await One(
+        kind === "views" ? "SELECT COUNT(*) AS c FROM page_views WHERE user_id = ?" : "SELECT COUNT(*) AS c FROM profile_votes WHERE user_id = ? AND vote = ?",
+        args
+      );
+      const wiped = Number(before?.c || 0);
+      await Db().execute({ sql, args });
+      const cur = await One("SELECT reset_notices FROM users WHERE id = ?", [targetUid]);
+      let arr = ParseJson(cur?.reset_notices, []);
+      if (!Array.isArray(arr)) arr = [];
+      arr.push({ kind, reason, at: new Date().toISOString() });
+      arr = arr.slice(-5);
+      await Db().execute({ sql: "UPDATE users SET reset_notices = ? WHERE id = ?", args: [JSON.stringify(arr), targetUid] });
+      await LogAdmin(uid, `reset_${kind}`, targetUid, `${wiped} ${kind} wiped — reason: ${reason}`);
+      res.status(200).json({ ok: true, wiped });
+      return;
+    }
+
+    case "dismiss_notices": {
+      const did = getSessionUid(req) || unsignToken(req.body?.sessionToken);
+      if (!did) { res.status(401).json({ error: "Unauthorized" }); return; }
+      await Db().execute({ sql: "UPDATE users SET reset_notices = NULL WHERE id = ?", args: [did] });
+      res.status(200).json({ ok: true });
       return;
     }
 

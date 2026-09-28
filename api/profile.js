@@ -60,6 +60,10 @@ function CleanVoter(V) {
   return S;
 }
 
+function IsoAgo(Ms) {
+  return new Date(Date.now() - Ms).toISOString();
+}
+
 const VoteHits = new Map();
 function VoteRateOk(Ip) {
   const Now = Date.now();
@@ -80,10 +84,16 @@ export default async function handler(req, res) {
       const Name = String(Body.username || "").trim().toLowerCase();
       const Voter = CleanVoter(Body.voter);
       const Vote = Number(Body.vote);
+      const Dwell = Number(Body.dwell_ms);
       if (!Name || !Voter || ![1, -1].includes(Vote)) { res.status(400).json({ error: "Bad vote" }); return; }
       const Ip = getClientIp(req);
       if (!VoteRateOk(Ip)) { res.status(429).json({ error: "Slow down" }); return; }
       const IpHash = hashIp(Ip);
+      const Since10 = IsoAgo(10 * 1000);
+      const Since20 = IsoAgo(20 * 1000);
+      const Since60 = IsoAgo(60 * 1000);
+      const IpBurst = await Db.execute({ sql: "SELECT COUNT(*) AS c FROM profile_votes WHERE ip_hash = ? AND created_at >= ?", args: [IpHash, Since20] });
+      if (Number(IpBurst.rows?.[0]?.c || 0) >= 8) { res.status(429).json({ error: "Slow down" }); return; }
       const UidRs = await Db.batch([
         { sql: "SELECT id, username, suspended, hidden FROM users WHERE username = ? OR alias = ? LIMIT 2", args: [Name, Name] },
         { sql: "SELECT user_id, voter_key, vote FROM profile_votes WHERE ip_hash = ? LIMIT 100", args: [IpHash] }
@@ -93,7 +103,26 @@ export default async function handler(req, res) {
       if (!Match) { res.status(404).json({ error: "Not found" }); return; }
       if (Number(Match.suspended || 0) === 1 || Number(Match.hidden || 0) === 1) { res.status(404).json({ error: "Not found" }); return; }
       const Uid = Match.id;
+      const [T10, T20, T60] = await Db.batch([
+        { sql: "SELECT COUNT(*) AS c FROM profile_votes WHERE user_id = ? AND created_at >= ?", args: [Uid, Since10] },
+        { sql: "SELECT COUNT(*) AS c FROM profile_votes WHERE user_id = ? AND created_at >= ?", args: [Uid, Since20] },
+        { sql: "SELECT COUNT(*) AS c FROM profile_votes WHERE user_id = ? AND created_at >= ?", args: [Uid, Since60] }
+      ]);
+      if (Number(T10.rows?.[0]?.c || 0) > 30) {
+        await Db.execute({ sql: "DELETE FROM profile_votes WHERE user_id = ? AND created_at >= ?", args: [Uid, Since10] });
+        res.status(429).json({ error: "Slow down", rolledBack: true });
+        return;
+      }
+      if (Number(T20.rows?.[0]?.c || 0) >= 10 || Number(T60.rows?.[0]?.c || 0) >= 50) {
+        res.status(429).json({ error: "Slow down" });
+        return;
+      }
       const Had = (UidRs[1].rows || []).find((R) => Number(R.user_id) === Number(Uid))?.vote;
+      if (!Number.isInteger(Dwell) || Dwell < 5000) {
+        const C = await VoteCounts(Db, Uid);
+        res.status(200).json({ likes: C.likes, dislikes: C.dislikes, mine: Number(Had || 0), counted: false });
+        return;
+      }
       let Mine = 0;
       if (Number(Had) === Vote) {
         await Db.execute({ sql: "DELETE FROM profile_votes WHERE user_id = ? AND ip_hash = ?", args: [Uid, IpHash] });
@@ -102,7 +131,7 @@ export default async function handler(req, res) {
         Mine = Vote;
       }
       const C = await VoteCounts(Db, Uid);
-      res.status(200).json({ likes: C.likes, dislikes: C.dislikes, mine: Mine });
+      res.status(200).json({ likes: C.likes, dislikes: C.dislikes, mine: Mine, counted: true });
       return;
     }
   const Name = String(req.query.username || req.query.u || "").trim().toLowerCase();

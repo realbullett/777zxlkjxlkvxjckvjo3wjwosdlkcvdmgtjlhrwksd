@@ -79,6 +79,7 @@ type User = {
   panel_opacity: number | null;
   panel_hidden: boolean | null;
   is_admin: number | null;
+  reset_notices: { kind: string; reason: string; at: string }[] | null;
   widgets: unknown;
 };
 
@@ -168,7 +169,14 @@ export default function Dashboard() {
   const [user, setUser] = useState<User | null>(null);
   const [activeTab, setActiveTab] = useState<TabId>("overview");
   const [unauth, setUnauth] = useState(false);
-  const [suspendedMsg, setSuspendedMsg] = useState(false);
+  const [suspendedMsg, setSuspendedMsg] = useState<string | null>(null);
+  const [noticesAcked, setNoticesAcked] = useState(false);
+  const activeNotices = !noticesAcked && user && Array.isArray(user.reset_notices) ? user.reset_notices : [];
+  const dismissNotices = async () => {
+    setNoticesAcked(true);
+    setUser((u) => (u ? { ...u, reset_notices: [] } : u));
+    try { await apiCall("dismiss_notices", {}); } catch {}
+  };
 
   useEffect(() => {
     const uid = searchParams.get("uid");
@@ -183,7 +191,7 @@ export default function Dashboard() {
     const loadMe = () => {
       fetchMe().then((data) => {
         const u = data?.user || null;
-        if (data?.suspended) setSuspendedMsg(true);
+        if (data?.suspended) setSuspendedMsg(typeof data?.reason === "string" && data.reason ? data.reason : "");
         if (u && !u.onboarding_done) { navigate(`/welcome?uid=${u.id}`, { replace: true }); return; }
         if (u) setUser(u);
         else { localStorage.clear(); setUnauth(true); }
@@ -241,7 +249,7 @@ export default function Dashboard() {
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(37,99,235,0.08),transparent_70%)]" />
       <div className="text-center relative">
         <p className="text-6xl font-black text-white/10 mb-4">404</p>
-        <p className="text-white/20 text-sm mb-6">{suspendedMsg ? "This account has been suspended" : "Session expired, please sign in again"}</p>
+        <p className="text-white/20 text-sm mb-6">{suspendedMsg !== null ? `This account has been suspended${suspendedMsg ? `: ${suspendedMsg}` : ""}` : "Session expired, please sign in again"}</p>
         <Link to="/auth" className="text-sm text-blue-400 hover:text-blue-300 transition-colors">
           back to login
         </Link>
@@ -251,6 +259,27 @@ export default function Dashboard() {
 
 return (
     <div className="relative min-h-screen bg-black">
+      {activeNotices.length > 0 && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="glass-card rounded-2xl p-6 max-w-md w-full space-y-4 border-red-500/30">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-full bg-red-500/15 border border-red-500/30 flex items-center justify-center">
+                <Shield className="h-5 w-5 text-red-300" />
+              </div>
+              <h2 className="text-base font-bold text-white">Moderation notice</h2>
+            </div>
+            {activeNotices.map((n, i) => (
+              <div key={i} className="rounded-xl bg-white/[0.03] border border-white/[0.06] p-4 space-y-2">
+                <p className="text-sm text-white/80">Your {n.kind} have been reset for violating the terms of service.</p>
+                <p className="text-xs text-white/40">Moderator statement: <span className="text-white/70">“{n.reason}”</span></p>
+              </div>
+            ))}
+            <button onClick={dismissNotices} className="w-full rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-500 transition-colors">
+              I understand
+            </button>
+          </div>
+        </div>
+      )}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(37,99,235,0.08),transparent_70%)]" />
 
       <div className="relative flex flex-col min-h-[calc(100vh-1px)]">
@@ -3113,7 +3142,7 @@ function UserBadges({ user }: { user: User | null }) {
 
 function AdminBadges() {
   const [search, setSearch] = useState("");
-  const [targetUser, setTargetUser] = useState<{ id: number; username: string; alias: string | null; is_admin: number | null; suspended: number | null; hidden: number | null } | null>(null);
+  const [targetUser, setTargetUser] = useState<{ id: number; username: string; alias: string | null; is_admin: number | null; suspended: number | null; suspended_reason: string | null; hidden: number | null } | null>(null);
   const [userBadges, setUserBadges] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState("");
@@ -3132,6 +3161,7 @@ function AdminBadges() {
       setAlts([]);
       setAltsIp(null);
       setRenameInput("");
+      setSuspendReason("");
     } else {
       setTargetUser(null);
       setUserBadges([]);
@@ -3165,10 +3195,25 @@ function AdminBadges() {
     if (!targetUser) return;
     const make = Number(targetUser[flag] || 0) !== 1;
     const verb = flag === "suspended" ? (make ? "Suspend" : "Unsuspend") : (make ? "Hide" : "Unhide");
-    if (!confirm(`${verb} @${targetUser.username}?${flag === "suspended" && make ? " They will be logged out and blocked from logging in." : ""}${flag === "hidden" && make ? " Their page and leaderboard entry go 404." : ""}`)) return;
-    const r = await apiCall(flag === "suspended" ? "admin_suspend" : "admin_hide", { targetUid: targetUser.id, value: make });
+    const reason = flag === "suspended" && make ? suspendReason.trim().slice(0, 200) : "";
+    if (!confirm(`${verb} @${targetUser.username}?${reason ? ` Reason: ${reason}` : ""}${flag === "suspended" && make ? " They will be logged out and blocked from logging in." : ""}${flag === "hidden" && make ? " Their page and leaderboard entry go 404." : ""}`)) return;
+    const r = await apiCall(flag === "suspended" ? "admin_suspend" : "admin_hide", { targetUid: targetUser.id, value: make, ...(flag === "suspended" ? { reason } : {}) });
     if (r.error) { alert(r.error || "Failed"); return; }
-    setTargetUser({ ...targetUser, [flag]: make ? 1 : 0 });
+    setTargetUser({ ...targetUser, [flag]: make ? 1 : 0, ...(flag === "suspended" ? { suspended_reason: make ? (r.reason ?? reason) : null } : {}) });
+    if (flag === "suspended" && make) setSuspendReason("");
+  };
+
+  const [suspendReason, setSuspendReason] = useState("");
+
+  const doReset = async (kind: "views" | "likes" | "dislikes") => {
+    if (!targetUser) return;
+    const reason = prompt(`Reason for resetting ALL ${kind} on @${targetUser.username}? This will be shown to them.`);
+    if (reason === null) return;
+    if (!reason.trim()) { alert("Add a reason — it will be shown to the user."); return; }
+    if (!confirm(`Reset ALL ${kind} on @${targetUser.username}? This wipes the counter to zero and cannot be undone.`)) return;
+    const r = await apiCall(kind === "views" ? "admin_reset_views" : kind === "likes" ? "admin_reset_likes" : "admin_reset_dislikes", { targetUid: targetUser.id, reason: reason.trim().slice(0, 200) });
+    if (r.error) { alert(r.error || "Failed"); return; }
+    alert(`${r.wiped ?? 0} ${kind} wiped.`);
   };
 
   const [renameInput, setRenameInput] = useState("");
@@ -3280,6 +3325,18 @@ function AdminBadges() {
               })}
             </div>
             <p className="text-sm font-semibold text-white/80 pt-2">Moderation</p>
+            {targetUser.id !== 1 && Number(targetUser.suspended || 0) !== 1 && (
+              <input
+                type="text"
+                placeholder="suspension reason (shown to the user)..."
+                value={suspendReason}
+                onChange={(e) => setSuspendReason(e.target.value)}
+                className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl px-4 py-2.5 text-sm text-white outline-none placeholder:text-white/10 focus:border-red-500/30 transition-colors"
+              />
+            )}
+            {Number(targetUser.suspended || 0) === 1 && targetUser.suspended_reason && (
+              <p className="text-xs text-red-300/70 px-1">suspended for: {targetUser.suspended_reason}</p>
+            )}
             <div className="grid grid-cols-2 gap-2">
               {targetUser.id !== 1 && (
                 <>
@@ -3317,6 +3374,28 @@ function AdminBadges() {
               >
                 find alt accounts
               </button>
+              {targetUser.id !== 1 && (
+                <>
+                  <button
+                    onClick={() => doReset("views")}
+                    className="p-3 rounded-xl border text-sm font-medium text-left transition-all cursor-pointer bg-white/[0.02] border-white/[0.06] text-white/60 hover:border-white/20"
+                  >
+                    reset all views
+                  </button>
+                  <button
+                    onClick={() => doReset("likes")}
+                    className="p-3 rounded-xl border text-sm font-medium text-left transition-all cursor-pointer bg-white/[0.02] border-white/[0.06] text-white/60 hover:border-white/20"
+                  >
+                    reset all likes
+                  </button>
+                  <button
+                    onClick={() => doReset("dislikes")}
+                    className="p-3 rounded-xl border text-sm font-medium text-left transition-all cursor-pointer bg-white/[0.02] border-white/[0.06] text-white/60 hover:border-white/20"
+                  >
+                    reset all dislikes
+                  </button>
+                </>
+              )}
             </div>
             {altsIp !== null && (
               <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.06]">
