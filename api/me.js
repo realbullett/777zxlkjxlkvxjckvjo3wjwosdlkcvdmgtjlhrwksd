@@ -32,7 +32,7 @@ const USER_FIELDS = new Set([
   "desc_offset_x", "desc_offset_y", "song_offset_x", "song_offset_y",
   "discord_rpc_offset_x", "discord_rpc_offset_y",
   "panel_opacity", "panel_hidden", "discord_rpc_enabled",
-  "widgets", "onboarding_done", "use_case",
+  "widgets", "onboarding_done", "use_case", "show_joindate",
 ]);
 
 const PREMIUM_VALUES = {
@@ -149,7 +149,7 @@ const BOOL_COLS = new Set([
   "show_username", "video_audio", "monochrome_icons", "monochrome_badges",
   "banner_enabled", "panel_mouse_follow", "audio_autoplay", "audio_loop",
   "audio_shuffle", "panel_hidden", "discord_rpc_enabled", "views_blacklisted",
-  "onboarding_done",
+  "onboarding_done", "show_joindate",
 ]);
 
 function NormalizeUser(Row) {
@@ -203,6 +203,7 @@ async function EnsureSchema() {
     D.execute("ALTER TABLE users ADD COLUMN reset_notices TEXT"),
     D.execute("ALTER TABLE users ADD COLUMN hidden INTEGER NOT NULL DEFAULT 0"),
     D.execute("ALTER TABLE users ADD COLUMN signup_ip TEXT"),
+    D.execute("ALTER TABLE users ADD COLUMN show_joindate INTEGER NOT NULL DEFAULT 1"),
     D.execute("CREATE TABLE IF NOT EXISTS admin_log (id INTEGER PRIMARY KEY AUTOINCREMENT, admin_id INTEGER NOT NULL, action TEXT NOT NULL, target_uid INTEGER, detail TEXT, created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')))"),
     D.execute("CREATE INDEX IF NOT EXISTS idx_admin_log_time ON admin_log (created_at DESC)"),
   ]);

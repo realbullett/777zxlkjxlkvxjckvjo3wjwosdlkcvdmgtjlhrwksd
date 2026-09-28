@@ -51,6 +51,7 @@ type User = {
   monochrome_badges: boolean;
   banner_enabled: boolean;
   show_username: boolean;
+  show_joindate: boolean;
   video_audio: boolean;
   seo_title: string | null;
   seo_description: string | null;
@@ -1049,6 +1050,7 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
   const songTouched = useRef(false);
   const [discordRpcEnabled, setDiscordRpcEnabled] = useState(user?.discord_rpc_enabled || false);
   const [showUsername, setShowUsername] = useState(user?.show_username !== false);
+  const [showJoindate, setShowJoindate] = useState(user?.show_joindate !== false);
   const linkedDiscordId = user?.discord_id || (user?.provider === "discord" ? user?.provider_id : null) || null;
   const [savedMsg, setSavedMsg] = useState<string | null>(null);
   const showSaved = (msg: string, delayNote = true) => {
@@ -1146,6 +1148,7 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
     setPanelOpacity(user.panel_opacity ?? 100);
     setPanelHidden(!!user.panel_hidden);
     setShowUsername(user.show_username !== false);
+    setShowJoindate(user.show_joindate !== false);
     setDiscordRpcEnabled(!!user.discord_rpc_enabled);
     if (user.song_platform) setSongPlatform(user.song_platform);
     if (user.song_id) setSongId(user.song_id);
@@ -1432,6 +1435,21 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
                 const { error } = await apiCall("update", { data: { show_username: v } });
                 if (error) console.error("saveShowUsername error:", error);
                 else showSaved(v ? "showing @username!" : "@username hidden!");
+              }}
+            />
+          </div>
+          <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/[0.04]">
+            <div>
+              <p className="text-xs text-white/50 font-semibold uppercase tracking-wider">Show join date</p>
+              <p className="text-[10px] text-white/30">Hide the join date next to your profile views</p>
+            </div>
+            <Toggle
+              checked={showJoindate}
+              onChange={async (v) => {
+                setShowJoindate(v);
+                const { error } = await apiCall("update", { data: { show_joindate: v } });
+                if (error) console.error("saveShowJoindate error:", error);
+                else showSaved(v ? "showing join date!" : "join date hidden!");
               }}
             />
           </div>

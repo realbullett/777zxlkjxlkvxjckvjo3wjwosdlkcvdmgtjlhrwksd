@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence, LayoutGroup, type Variants } from "motion/react";
-import { Eye, Link as LinkIcon, ThumbsUp, ThumbsDown } from "lucide-react";
+import { Eye, Link as LinkIcon, ThumbsUp, ThumbsDown, Calendar } from "lucide-react";
 import { PLATFORMS } from "../lib/platforms";
 import { FONTS } from "../lib/fonts";
 import { SparkleText } from "../components/SparkleText";
@@ -51,6 +51,8 @@ type User = {
   discord_id: string | null;
   discord_rpc_enabled: boolean | null;
   views_blacklisted: boolean;
+  created_at: string | null;
+  show_joindate: boolean | null;
   description: string | null;
   accent_color: string | null;
   text_color: string | null;
@@ -425,6 +427,22 @@ export default function Biolink() {
     return vid;
   };
 
+  const relJoin = (iso: string | null | undefined): string => {
+    if (!iso) return "";
+    const ms = Date.now() - new Date(iso).getTime();
+    if (isNaN(ms) || ms < 0) return "";
+    const d = Math.floor(ms / 86400000);
+    if (d < 1) return "today";
+    if (d < 2) return "yesterday";
+    if (d < 7) return `${d} days ago`;
+    if (d < 14) return "last week";
+    if (d < 30) return `${Math.floor(d / 7)} weeks ago`;
+    if (d < 60) return "last month";
+    if (d < 365) return `${Math.floor(d / 30)} months ago`;
+    if (d < 730) return "last year";
+    return `${Math.floor(d / 365)} years ago`;
+  };
+
   useEffect(() => {
     return () => {
       if (enterTimerRef.current) clearTimeout(enterTimerRef.current);
@@ -787,6 +805,14 @@ export default function Biolink() {
                   <span className="text-sm font-bold text-white">
                     {user.views_blacklisted ? "NULL" : viewCount}
                   </span>
+                  {!user.views_blacklisted && user.created_at && user.show_joindate !== false ? (
+                    <>
+                      <span className="h-4 w-px bg-white/20" />
+                      <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-black/80 px-2 py-1 text-[11px] font-medium text-white/80 opacity-0 transition-opacity group-hover:opacity-100">joined {relJoin(user.created_at)}</span>
+                      <Calendar size={14} className="text-white/70" />
+                      <span className="text-sm text-white/70">{relJoin(user.created_at)}</span>
+                    </>
+                  ) : null}
                 </div>
               )}
               {!user.views_blacklisted && (
