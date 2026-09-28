@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
-import { Play, Pause, Music, SkipBack, SkipForward } from "lucide-react";
+import { Play, Pause, Music, SkipBack, SkipForward, Volume2, VolumeX } from "lucide-react";
 import { motion, type Variants } from "motion/react";
 import { parseSongUrl } from "../lib/song";
 import SongPlayer from "./SongPlayer";
@@ -50,7 +50,7 @@ function withAlpha(c: string, a: number): string {
   return c;
 }
 
-function SpotifyPlayerLyrics({ id, autoPlay = false }: { id: string; autoPlay?: boolean }) {
+function SpotifyPlayerLyrics({ id, autoPlay = false, bgImage }: { id: string; autoPlay?: boolean; bgImage?: string }) {
   const [info, setInfo] = useState<TrackInfo | null>(null);
   const [error, setError] = useState(false);
   const [ytReady, setYtReady] = useState(false);
@@ -61,6 +61,7 @@ function SpotifyPlayerLyrics({ id, autoPlay = false }: { id: string; autoPlay?: 
   const audioRef = useRef<HTMLAudioElement>(null);
   const boxRef = useRef<HTMLDivElement>(null);
   const [playing, setPlaying] = useState(false);
+  const [muted, setMuted] = useState(false);
   const [current, setCurrent] = useState(-1);
   const [time, setTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -318,93 +319,114 @@ function SpotifyPlayerLyrics({ id, autoPlay = false }: { id: string; autoPlay?: 
     }
   };
 
+  const toggleMute = () => {
+    const next = !muted;
+    setMuted(next);
+    if (ytActive) {
+      try { next ? ytPlayerRef.current?.mute() : ytPlayerRef.current?.unMute(); } catch {}
+    } else if (audioRef.current) {
+      audioRef.current.muted = next;
+    }
+  };
+
   const canPlay = !!(info?.ytId || info?.previewUrl);
 
   return (
     <div
       ref={rootRef}
-      className="w-full overflow-hidden rounded-3xl border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.45)]"
+      className="relative w-full overflow-hidden rounded-2xl border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.45)]"
       style={{
-        background: info?.color
-          ? `linear-gradient(155deg, ${withAlpha(info.color, 0.32)} 0%, rgba(11,11,13,0.94) 58%), #0b0b0d`
-          : "#0b0b0d",
+        background: bgImage
+          ? "#0a0808"
+          : info?.color
+            ? `linear-gradient(155deg, ${withAlpha(info.color, 0.32)} 0%, rgba(11,11,13,0.94) 58%), #0b0b0d`
+            : "#0b0b0d",
       }}
     >
-      <div className="flex items-center gap-4 p-5 pb-4">
-        <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-2xl border border-white/10 shadow-[0_4px_16px_rgba(0,0,0,0.4)]">
-          {info?.image ? (
-            <img src={info.image} alt={info.title || ""} className="h-full w-full object-cover" />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center bg-white/[0.06]">
-              <Music size={26} className="text-white/30" />
-            </div>
-          )}
-        </div>
-        <div className="flex min-w-0 flex-1 flex-col justify-center">
-          <p className="truncate text-xl font-bold text-white leading-tight">{info?.title || (error ? "lyrics unavailable" : "loading track...")}</p>
-          <p className="truncate text-sm text-white/50 mt-1">{info?.artist || "Spotify"}</p>
+      {bgImage ? (
+        <>
+          <img src={bgImage} alt="" aria-hidden className="pointer-events-none absolute inset-0 h-full w-full scale-125 object-cover blur-2xl opacity-50" />
+          <div className="pointer-events-none absolute inset-0 bg-black/60" />
+        </>
+      ) : null}
+      <div className="relative">
+        <div className="flex items-center gap-3 px-5 pt-5 pb-3">
+          <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-lg border border-white/10 shadow-[0_4px_16px_rgba(0,0,0,0.4)]">
+            {info?.image ? (
+              <img src={info.image} alt={info.title || ""} className="h-full w-full object-cover" />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center bg-white/[0.06]">
+                <Music size={20} className="text-white/30" />
+              </div>
+            )}
+          </div>
+          <div className="flex min-w-0 flex-col justify-center">
+            <p className="truncate text-[15px] font-bold text-white leading-tight">{info?.title || (error ? "lyrics unavailable" : "loading track...")}</p>
+            <p className="truncate text-[13px] text-white/50 mt-0.5">{info?.artist || "Spotify"}</p>
+          </div>
         </div>
         {canPlay && (
-          <div className="flex shrink-0 items-center gap-1.5">
+          <div className="flex items-center gap-3 px-5 pb-4">
             <button
               onClick={() => skipToLine(-1)}
-              className="h-9 w-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors cursor-pointer text-white/90"
+              className="shrink-0 text-white/70 hover:text-white transition-colors cursor-pointer"
               title="previous line"
             >
-              <SkipBack size={18} />
+              <SkipBack size={16} />
             </button>
             <button
               onClick={toggle}
-              className="h-9 w-9 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center transition-colors cursor-pointer text-white"
+              className="h-9 w-9 shrink-0 rounded-full bg-white hover:bg-white/85 flex items-center justify-center transition-colors cursor-pointer text-black"
               title={playing ? "pause" : "play"}
             >
-              {playing ? <Pause size={18} /> : <Play size={18} className="ml-0.5" />}
+              {playing ? <Pause size={15} /> : <Play size={15} className="ml-0.5" />}
             </button>
             <button
               onClick={() => skipToLine(1)}
-              className="h-9 w-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors cursor-pointer text-white/90"
+              className="shrink-0 text-white/70 hover:text-white transition-colors cursor-pointer"
               title="next line"
             >
-              <SkipForward size={18} />
+              <SkipForward size={16} />
+            </button>
+            <span className="shrink-0 text-[12px] tabular-nums text-white/60">{fmt(time)}</span>
+            <div className="relative h-1 flex-1 cursor-pointer rounded-full bg-white/20" onClick={onBarClick}>
+              <div className="absolute inset-y-0 left-0 rounded-full bg-white" style={{ width: `${pct}%` }} />
+              <div
+                className="absolute top-1/2 h-2.5 w-2.5 -translate-y-1/2 rounded-full bg-white"
+                style={{ left: `calc(${pct}% - 5px)` }}
+              />
+            </div>
+            <span className="shrink-0 text-[12px] tabular-nums text-white/60">{fmt(duration)}</span>
+            <button
+              onClick={toggleMute}
+              className="shrink-0 text-white/70 hover:text-white transition-colors cursor-pointer"
+              title={muted ? "unmute" : "mute"}
+            >
+              {muted ? <VolumeX size={16} /> : <Volume2 size={16} />}
             </button>
           </div>
         )}
-      </div>
-      {canPlay && (
-        <div className="flex items-center gap-2 px-5 pb-4">
-          <span className="w-9 shrink-0 text-right text-[11px] tabular-nums text-white/40">{fmt(time)}</span>
-          <div className="relative h-1.5 flex-1 cursor-pointer rounded-full bg-white/10" onClick={onBarClick}>
-            <div className="absolute inset-y-0 left-0 rounded-full" style={{ width: `${pct}%`, background: info?.color || "#9ca3af", opacity: 0.8 }} />
-            <div
-              className="absolute top-1/2 h-3 w-3 -translate-y-1/2 rounded-full bg-white shadow-[0_0_6px_rgba(255,255,255,0.5)]"
-              style={{ left: `calc(${pct}% - 6px)` }}
-            />
-          </div>
-          <span className="w-9 shrink-0 text-[11px] tabular-nums text-white/40">{fmt(duration)}</span>
-        </div>
-      )}
-      <div className="h-px bg-white/[0.08]" />
-      <div className="p-5">
-        <div ref={boxRef} className="hide-scrollbar allow-scroll max-h-52 min-h-[80px] overflow-y-auto rounded-xl bg-black/30 px-4 py-3 border border-white/[0.05]">
-          {error && <p className="text-xs text-white/40 italic">couldn't load lyrics for this track.</p>}
-          {!error && lines.length === 0 && (
-            <p className="text-xs text-white/40 italic">no synced lyrics found for this track.</p>
-          )}
-          <div className="flex flex-col gap-2.5">
-            {lines.map((line, i) => {
-              const text = line.replace(/\[.+?\]/g, "").trim();
-              const active = i === current;
-              return (
-                <p
-                  key={i}
-                  data-line={i}
-                  className={`text-base leading-snug transition-all duration-200 ${active ? "text-white font-semibold scale-[1.02]" : "text-white/30"}`}
-                  style={{ textShadow: active && info?.color ? `0 0 12px ${info.color}` : undefined }}
-                >
-                  {text || "\u00a0"}
-                </p>
-              );
-            })}
+        <div className="px-5 pb-5">
+          <div ref={boxRef} className="hide-scrollbar allow-scroll max-h-44 min-h-[76px] overflow-y-auto px-4 py-3">
+            {error && <p className="text-xs text-white/40 italic text-center">couldn't load lyrics for this track.</p>}
+            {!error && lines.length === 0 && (
+              <p className="text-xs text-white/40 italic text-center">no synced lyrics found for this track.</p>
+            )}
+            <div className="flex flex-col items-center gap-2 text-center">
+              {lines.map((line, i) => {
+                const text = line.replace(/\[.+?\]/g, "").trim();
+                const active = i === current;
+                return (
+                  <p
+                    key={i}
+                    data-line={i}
+                    className={`text-[15px] leading-snug transition-all duration-200 ${active ? "text-white font-bold" : "text-white/25"}`}
+                  >
+                    {text || "\u00a0"}
+                  </p>
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>
@@ -414,7 +436,7 @@ function SpotifyPlayerLyrics({ id, autoPlay = false }: { id: string; autoPlay?: 
   );
 }
 
-export default function SongPage({ url, autoPlay = false, instant = false }: { url: string; autoPlay?: boolean; instant?: boolean }) {
+export default function SongPage({ url, autoPlay = false, instant = false, bgImage }: { url: string; autoPlay?: boolean; instant?: boolean; bgImage?: string }) {
   const parsed = parseSongUrl(url);
   return (
     <motion.div
@@ -432,7 +454,7 @@ export default function SongPage({ url, autoPlay = false, instant = false }: { u
       <motion.div variants={dropItem} className="w-full">
         {parsed ? (
           parsed.platform === "spotify" ? (
-            <SpotifyPlayerLyrics id={parsed.id} autoPlay={autoPlay} />
+            <SpotifyPlayerLyrics id={parsed.id} autoPlay={autoPlay} bgImage={bgImage} />
           ) : (
             <SongPlayer platform={parsed.platform} id={parsed.id} fill />
           )

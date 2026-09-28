@@ -825,7 +825,7 @@ export default function Biolink() {
               transition={{ duration: 0.5, delay: 0.2 }}
               className="relative z-0 flex min-h-screen items-center justify-center overflow-y-auto px-8 py-20 snap-page allow-scroll"
             >
-              <SongPage url={widgetCfg.song.url} autoPlay={entered} />
+              <SongPage url={widgetCfg.song.url} autoPlay={entered} bgImage={bg} />
             </motion.div>
           ) : null}
           {isPremium && pageCount >= 4 && widgetCfg.projects ? (
