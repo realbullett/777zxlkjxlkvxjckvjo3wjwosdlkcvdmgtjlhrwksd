@@ -491,7 +491,7 @@ export default function Biolink() {
         const r = await fetch("/api/track-view", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ user_id: user.id, visitor_id: vid, dwell_ms: Date.now() - enteredAt }),
+          body: JSON.stringify({ user_id: user.id, visitor_id: vid, dwell_ms: Date.now() - enteredAt, referrer: document.referrer }),
         });
         const res = await r.json().catch(() => ({}));
         if (res.counted) setViewCount((prev) => (prev !== null ? prev + 1 : prev));
@@ -783,6 +783,13 @@ export default function Biolink() {
                         rel="noopener noreferrer"
                         title={p ? p.name : key}
                         className="transition-all hover:scale-110"
+                        onClick={() => {
+                          fetch("/api/track-view", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ type: "click", user_id: user.id, platform: key }),
+                          }).catch(() => {});
+                        }}
                       >
                         {p ? (
                           <img src={p.logoUrl} alt={p.name} className={`h-8 w-8 ${user.monochrome_icons ? "grayscale brightness-150" : ""}`} />

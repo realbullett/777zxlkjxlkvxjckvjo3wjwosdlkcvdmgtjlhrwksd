@@ -147,11 +147,23 @@ CREATE TABLE IF NOT EXISTS page_views (
   user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
   visitor_id TEXT NOT NULL DEFAULT '',
   ip_hash TEXT NOT NULL DEFAULT '',
+  country TEXT NOT NULL DEFAULT '',
+  referrer TEXT NOT NULL DEFAULT '',
+  device TEXT NOT NULL DEFAULT '',
   viewed_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
 );
 CREATE INDEX IF NOT EXISTS idx_page_views_user_visitor ON page_views (user_id, visitor_id);
 CREATE INDEX IF NOT EXISTS idx_page_views_user_time ON page_views (user_id, viewed_at);
 CREATE INDEX IF NOT EXISTS idx_page_views_user_ip ON page_views (user_id, ip_hash, viewed_at);
+
+CREATE TABLE IF NOT EXISTS link_clicks (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  platform TEXT NOT NULL DEFAULT '',
+  ip_hash TEXT NOT NULL DEFAULT '',
+  created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+CREATE INDEX IF NOT EXISTS idx_link_clicks_user_time ON link_clicks (user_id, created_at);
 
 CREATE TABLE IF NOT EXISTS assets (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

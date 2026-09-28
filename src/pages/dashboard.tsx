@@ -400,6 +400,65 @@ return (
   );
 }
 
+function smoothPath(pts: [number, number][]): string {
+  if (pts.length === 0) return "";
+  if (pts.length === 1) return `M${pts[0][0]},${pts[0][1]}`;
+  let d = `M${pts[0][0]},${pts[0][1]}`;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[Math.max(0, i - 1)], p1 = pts[i], p2 = pts[i + 1], p3 = pts[Math.min(pts.length - 1, i + 2)];
+    const c1x = p1[0] + (p2[0] - p0[0]) / 6, c1y = p1[1] + (p2[1] - p0[1]) / 6;
+    const c2x = p2[0] - (p3[0] - p1[0]) / 6, c2y = p2[1] - (p3[1] - p1[1]) / 6;
+    d += `C${c1x},${c1y} ${c2x},${c2y} ${p2[0]},${p2[1]}`;
+  }
+  return d;
+}
+
+type ChartPt = { date: string; full: string; iso: string; count: number };
+
+const CountryNames: Record<string, string> = {
+  US: "United States", GB: "United Kingdom", CA: "Canada", AU: "Australia", DE: "Germany", FR: "France",
+  NL: "Netherlands", SE: "Sweden", NO: "Norway", DK: "Denmark", FI: "Finland", IE: "Ireland", ES: "Spain",
+  IT: "Italy", PT: "Portugal", PL: "Poland", CH: "Switzerland", AT: "Austria", BE: "Belgium", GR: "Greece",
+  VN: "Vietnam", PH: "Philippines", ID: "Indonesia", TW: "Taiwan", TH: "Thailand", PK: "Pakistan",
+  BD: "Bangladesh", IN: "India", JP: "Japan", KR: "South Korea", CN: "China", HK: "Hong Kong",
+  SG: "Singapore", MY: "Malaysia", AE: "UAE", SA: "Saudi Arabia", QA: "Qatar", TR: "Turkey",
+  BR: "Brazil", MX: "Mexico", AR: "Argentina", CL: "Chile", CO: "Colombia", PE: "Peru",
+  ZA: "South Africa", NG: "Nigeria", EG: "Egypt", UA: "Ukraine", RU: "Russia", NZ: "New Zealand", IL: "Israel"
+};
+
+function CountryFlag(Code: string): string {
+  const C = Code.toUpperCase();
+  if (!/^[A-Z]{2}$/.test(C)) return "";
+  return String.fromCodePoint(...[...C].map((ch) => 0x1F1E6 + ch.charCodeAt(0) - 65));
+}
+
+function InsightPanel({ title, rows, flag }: { title: string; rows: { k: string; c: number }[]; flag?: boolean }) {
+  const Max = rows.length ? Math.max(...rows.map((r) => r.c)) : 0;
+  return (
+    <div className="glass-card rounded-xl p-4">
+      <p className="text-sm font-bold text-white mb-3">{title}</p>
+      {rows.length === 0 ? (
+        <p className="text-xs text-white/35 py-2">No data yet — share your page to start collecting.</p>
+      ) : (
+        <div className="flex flex-col gap-1.5">
+          {rows.map((r) => (
+            <div key={r.k} className="flex items-center gap-2">
+              <div
+                className="flex items-center gap-1.5 rounded-md bg-blue-600/20 px-2 py-1 overflow-hidden whitespace-nowrap"
+                style={{ width: `${Math.max(18, (r.c / Max) * 100)}%` }}
+              >
+                {flag && r.k.length === 2 ? <span className="text-xs leading-none">{CountryFlag(r.k)}</span> : null}
+                <span className="text-xs text-white/80 truncate">{flag ? (CountryNames[r.k.toUpperCase()] || r.k) : r.k}</span>
+              </div>
+              <span className="text-xs text-white/50 tabular-nums">{r.c}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function AccountOverview({ user, onTab, onUpdateUser }: { user: User | null; onTab: (tab: TabId) => void; onUpdateUser?: (u: User) => void }) {
   const [newUsername, setNewUsername] = useState(user?.username || "");
   const [isEditing, setIsEditing] = useState(false);
@@ -413,7 +472,22 @@ function AccountOverview({ user, onTab, onUpdateUser }: { user: User | null; onT
   const [totalViews, setTotalViews] = useState<number>(0);
   const [recentViews, setRecentViews] = useState<number>(0);
   const [dailyViews, setDailyViews] = useState<{ date: string; count: number }[]>([]);
+  const [viewsHourly, setViewsHourly] = useState<ChartPt[]>([]);
+  const [viewsDaily, setViewsDaily] = useState<ChartPt[]>([]);
+  const [likesHourly, setLikesHourly] = useState<ChartPt[]>([]);
+  const [likesDaily, setLikesDaily] = useState<ChartPt[]>([]);
+  const [chartMetric, setChartMetric] = useState<"Views" | "Likes">("Views");
+  const [chartRange, setChartRange] = useState<"24h" | "7d" | "14d" | "30d" | "custom">("7d");
+  const [customFrom, setCustomFrom] = useState("");
+  const [customTo, setCustomTo] = useState("");
+  const [hoverIdx, setHoverIdx] = useState<number | null>(null);
+  const [metricOpen, setMetricOpen] = useState(false);
+  const [calOpen, setCalOpen] = useState(false);
   const [uniqueVisitors, setUniqueVisitors] = useState<number>(0);
+  const [countries, setCountries] = useState<{ k: string; c: number }[]>([]);
+  const [referrers, setReferrers] = useState<{ k: string; c: number }[]>([]);
+  const [devices, setDevices] = useState<{ k: string; c: number }[]>([]);
+  const [topLinks, setTopLinks] = useState<{ k: string; c: number }[]>([]);
   const [likes, setLikes] = useState<number>(0);
   const [dislikes, setDislikes] = useState<number>(0);
   const [newDisplayName, setNewDisplayName] = useState(user?.display_name || "");
@@ -421,6 +495,11 @@ function AccountOverview({ user, onTab, onUpdateUser }: { user: User | null; onT
   const [isSavingDisplayName, setIsSavingDisplayName] = useState(false);
   const [copied, setCopied] = useState(false);
   const [profileAvatar, setProfileAvatar] = useState<string | null>(null);
+  const [ovMsg, setOvMsg] = useState<string | null>(null);
+  const showSaved = (msg: string, _note?: boolean) => {
+    setOvMsg(msg);
+    setTimeout(() => setOvMsg(null), 2500);
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -432,8 +511,16 @@ function AccountOverview({ user, onTab, onUpdateUser }: { user: User | null; onT
       if (typeof J.totalViews === "number") setTotalViews(J.totalViews);
       if (typeof J.recentViews === "number") setRecentViews(J.recentViews);
       if (Array.isArray(J.daily)) setDailyViews(J.daily);
+      if (Array.isArray(J.viewsHourly)) setViewsHourly(J.viewsHourly);
+      if (Array.isArray(J.viewsDaily)) setViewsDaily(J.viewsDaily);
+      if (Array.isArray(J.likesHourly)) setLikesHourly(J.likesHourly);
+      if (Array.isArray(J.likesDaily)) setLikesDaily(J.likesDaily);
       if (typeof J.uniqueVisitors === "number") setUniqueVisitors(J.uniqueVisitors);
       if (typeof J.totalUsers === "number") setTotalUsers(J.totalUsers);
+      if (Array.isArray(J.countries)) setCountries(J.countries);
+      if (Array.isArray(J.referrers)) setReferrers(J.referrers);
+      if (Array.isArray(J.devices)) setDevices(J.devices);
+      if (Array.isArray(J.topLinks)) setTopLinks(J.topLinks);
     }).catch(() => {});
   }, [user]);
 
@@ -890,43 +977,149 @@ function AccountOverview({ user, onTab, onUpdateUser }: { user: User | null; onT
       </div>
 
       <div className="glass-card rounded-2xl p-6">
-        <p className="text-sm font-semibold text-white/80 mb-4">Views per day (last 7 days)</p>
-        {dailyViews.length > 0 ? (
-          <div className="relative h-40">
-            <svg viewBox="0 0 700 200" className="w-full h-full overflow-visible" preserveAspectRatio="none">
-              <defs>
-                <linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.8" />
-                  <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.2" />
-                </linearGradient>
-              </defs>
-              {(() => {
-                const max = Math.max(...dailyViews.map((d) => d.count), 1);
-                const w = 700 / dailyViews.length;
-                return dailyViews.map((d, i) => {
-                  const h = (d.count / max) * 170;
-                  const x = i * w + w * 0.1;
-                  const bw = w * 0.8;
-                  return (
-                    <g key={d.date}>
-                      <rect x={x} y={200 - h} width={bw} height={h} rx="4" fill="url(#barGrad)" />
-                      <text x={x + bw / 2} y={190} textAnchor="middle" fill="rgba(255,255,255,0.3)" fontSize="10">{d.count}</text>
-                    </g>
-                  );
-                });
-              })()}
-            </svg>
-            <div className="flex justify-between mt-2">
-              {dailyViews.map((d) => (
-                <span key={d.date} className="text-[9px] text-white/20 text-center truncate" style={{ width: `${100 / dailyViews.length}%` }}>
-                  {d.date.split(",")[0]}
-                </span>
+        <div className="flex flex-wrap items-start justify-between gap-3 mb-1">
+          <div>
+            <p className="text-sm font-semibold text-white/80">{chartMetric}</p>
+            <p className="text-xs text-white/35 mt-1">Your profile {chartMetric === "Views" ? "activity" : "likes"} over the selected range.</p>
+            {chartRange === "custom" && customFrom && customTo ? (
+              <button onClick={() => setChartRange("7d")} className="mt-1.5 text-[11px] text-blue-300/80 hover:text-blue-300 cursor-pointer">
+                {customFrom} → {customTo} ×
+              </button>
+            ) : null}
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <button onClick={() => { setMetricOpen(!metricOpen); setCalOpen(false); }} className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs text-white/70 cursor-pointer">
+                {chartMetric}
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m6 9 6 6 6-6" /></svg>
+              </button>
+              {metricOpen ? (
+                <div className="absolute right-0 z-20 mt-1 w-32 overflow-hidden rounded-lg border border-white/10 bg-[#141416] shadow-xl">
+                  {(["Views", "Likes"] as const).map((m) => (
+                    <button key={m} onClick={() => { setChartMetric(m); setMetricOpen(false); }} className={`flex w-full items-center justify-between px-3 py-2 text-xs cursor-pointer hover:bg-white/5 ${chartMetric === m ? "text-white" : "text-white/60"}`}>
+                      {m}<span className={chartMetric === m ? "text-blue-400" : "hidden"}>✓</span>
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+            <div className="flex items-center gap-1 rounded-lg border border-white/10 bg-white/[0.03] p-1">
+              {(["24h", "7d", "14d", "30d"] as const).map((r) => (
+                <button key={r} onClick={() => setChartRange(r)} className={`rounded-md px-2.5 py-1 text-xs cursor-pointer ${chartRange === r ? "bg-blue-600/25 text-blue-300" : "text-white/40 hover:text-white/70"}`}>{r}</button>
               ))}
             </div>
+            <div className="relative">
+              <button onClick={() => { setCalOpen(!calOpen); setMetricOpen(false); }} className="rounded-lg border border-white/10 bg-white/[0.03] p-2 text-white/40 hover:text-white/70 cursor-pointer" title="pick date">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></svg>
+              </button>
+              {calOpen ? (
+                <div className="absolute right-0 z-20 mt-1 w-52 rounded-lg border border-white/10 bg-[#141416] p-3 shadow-xl">
+                  <p className="text-[11px] font-semibold text-white/60 mb-2">Custom range</p>
+                  <label className="block text-[10px] text-white/40 mb-1">From</label>
+                  <input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} className="mb-2 w-full rounded-md border border-white/10 bg-white/[0.04] px-2 py-1.5 text-xs text-white/80 outline-none" />
+                  <label className="block text-[10px] text-white/40 mb-1">To</label>
+                  <input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} className="mb-3 w-full rounded-md border border-white/10 bg-white/[0.04] px-2 py-1.5 text-xs text-white/80 outline-none" />
+                  <button onClick={() => {
+                    if (!customFrom || !customTo) { showSaved("pick both dates first!", false); return; }
+                    if (customFrom > customTo) { showSaved("invalid range!", false); return; }
+                    setChartRange("custom"); setCalOpen(false);
+                  }} className="w-full rounded-md bg-blue-600/25 py-1.5 text-xs text-blue-300 cursor-pointer hover:bg-blue-600/35">Apply</button>
+                </div>
+              ) : null}
+            </div>
           </div>
-        ) : (
-          <p className="text-sm text-white/20 italic py-8 text-center">no data yet</p>
-        )}
+        </div>
+        {(metricOpen || calOpen) ? (
+          <div className="fixed inset-0 z-10" onClick={() => { setMetricOpen(false); setCalOpen(false); }} />
+        ) : null}
+        <div className="relative">
+          {(() => {
+            const src = chartMetric === "Views"
+              ? (chartRange === "24h" ? viewsHourly : chartRange === "7d" ? viewsDaily.slice(-7) : chartRange === "14d" ? viewsDaily.slice(-14) : chartRange === "30d" ? viewsDaily : viewsDaily.filter((p) => (!customFrom || p.iso >= customFrom) && (!customTo || p.iso <= customTo)))
+              : (chartRange === "24h" ? likesHourly : chartRange === "7d" ? likesDaily.slice(-7) : chartRange === "14d" ? likesDaily.slice(-14) : chartRange === "30d" ? likesDaily : likesDaily.filter((p) => (!customFrom || p.iso >= customFrom) && (!customTo || p.iso <= customTo)));
+            if (src.length === 0) return <p className="text-sm text-white/20 italic py-8 text-center">no data yet</p>;
+            const W = 700, H = 260, PL = 36, PB = 30, PT = 10, base = H - PB;
+            const max = Math.max(...src.map((d) => d.count), 1);
+            const raw = max / 4;
+            const step = raw <= 1 ? 1 : raw <= 2 ? 2 : raw <= 5 ? 5 : raw <= 10 ? 10 : raw <= 25 ? 25 : Math.ceil(raw / 25) * 25;
+            const top = step * 4;
+            const X = (i: number) => src.length === 1 ? (PL + W) / 2 : PL + (i / (src.length - 1)) * (W - PL);
+            const Y = (v: number) => base - (v / top) * (base - PT);
+            const pts: [number, number][] = src.map((d, i) => [X(i), Y(d.count)]);
+            const line = smoothPath(pts);
+            const area = `${line}L${X(src.length - 1)},${base}L${X(0)},${base}Z`;
+            const labStep = Math.ceil(src.length / 7);
+            const hov = hoverIdx !== null && hoverIdx >= 0 && hoverIdx < src.length ? src[hoverIdx] : null;
+            return (
+              <>
+                <svg
+                  viewBox={`0 0 ${W} ${H}`}
+                  className="w-full h-auto overflow-visible select-none"
+                  onMouseMove={(e) => {
+                    const r = e.currentTarget.getBoundingClientRect();
+                    const mx = ((e.clientX - r.left) / r.width) * W;
+                    let best = 0, bd = 1e9;
+                    for (let i = 0; i < src.length; i++) {
+                      const dd = Math.abs(X(i) - mx);
+                      if (dd < bd) { bd = dd; best = i; }
+                    }
+                    setHoverIdx(best);
+                  }}
+                  onMouseLeave={() => setHoverIdx(null)}
+                >
+                  <defs>
+                    <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.45" />
+                      <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.02" />
+                    </linearGradient>
+                  </defs>
+                  {[0, 1, 2, 3, 4].map((g) => {
+                    const v = step * g, y = Y(v);
+                    return (
+                      <g key={g}>
+                        <line x1={PL} y1={y} x2={W} y2={y} stroke="rgba(255,255,255,0.07)" strokeWidth="1" />
+                        <text x={PL - 8} y={y + 4} textAnchor="end" fill="rgba(255,255,255,0.3)" fontSize="11">{v}</text>
+                      </g>
+                    );
+                  })}
+                  {src.map((d, i) => i % labStep === 0 ? (
+                    <text key={i} x={X(i)} y={H - 8} textAnchor="middle" fill="rgba(255,255,255,0.3)" fontSize="11">{d.date}</text>
+                  ) : null)}
+                  <path d={area} fill="url(#areaGrad)" />
+                  <path d={line} fill="none" stroke="#3b82f6" strokeWidth="2.5" strokeLinecap="round" />
+                  {hov ? (
+                    <>
+                      <line x1={X(hoverIdx!)} y1={PT} x2={X(hoverIdx!)} y2={base} stroke="rgba(255,255,255,0.25)" strokeWidth="1" />
+                      <circle cx={X(hoverIdx!)} cy={Y(hov.count)} r="5" fill="#3b82f6" stroke="#0a0a0a" strokeWidth="2" />
+                    </>
+                  ) : null}
+                </svg>
+                {hov ? (
+                  <div
+                    className="absolute z-10 pointer-events-none rounded-lg border border-white/10 bg-[#141416] px-3 py-2 shadow-xl"
+                    style={{
+                      left: `min(${(X(hoverIdx!) / W) * 100}% + 14px, calc(100% - 130px))`,
+                      top: `max(${(Y(hov.count) / H) * 100}% - ${(70 / H) * 100}%, 0%)`,
+                    }}
+                  >
+                    <p className="text-xs font-semibold text-white whitespace-nowrap">{hov.full}</p>
+                    <p className="mt-1 flex items-center gap-1.5 text-xs text-white/60">
+                      <span className="h-2 w-2 rounded-full bg-blue-500" />{chartMetric}
+                      <span className="ml-2 font-bold text-white tabular-nums">{hov.count}</span>
+                    </p>
+                  </div>
+                ) : null}
+              </>
+            );
+          })()}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3 mt-5">
+        <InsightPanel title="Countries" rows={countries} flag />
+        <InsightPanel title="Referrers" rows={referrers} />
+        <InsightPanel title="Devices" rows={devices} />
+        <InsightPanel title="Top links" rows={topLinks} />
       </div>
 
       <p className="text-[11px] font-semibold tracking-[0.08em] uppercase text-white/35 mb-3 mt-5">Your Likes</p>
@@ -944,6 +1137,11 @@ function AccountOverview({ user, onTab, onUpdateUser }: { user: User | null; onT
           <p className="text-xl font-bold text-white tabular-nums">{likeRate}%</p>
         </div>
       </div>
+      {ovMsg && (
+        <div className="fixed bottom-6 right-6 z-[100] bg-red-600/90 backdrop-blur-md text-white text-xs font-medium px-4 py-2.5 rounded-xl shadow-2xl border border-white/10 pointer-events-none">
+          {ovMsg}
+        </div>
+      )}
     </div>
   );
 }
