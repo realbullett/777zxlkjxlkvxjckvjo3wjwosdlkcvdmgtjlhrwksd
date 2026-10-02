@@ -260,6 +260,10 @@ CREATE TABLE IF NOT EXISTS discord_presence (
   custom_status TEXT,
   custom_status_emoji TEXT,
   activity_name TEXT,
+  clan_tag TEXT,
+  clan_badge TEXT,
+  clan_guild_id TEXT,
+  avatar_decoration TEXT,
   updated_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
 );
 
