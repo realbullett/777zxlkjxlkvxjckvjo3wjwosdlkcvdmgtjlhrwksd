@@ -30,11 +30,12 @@ export default function AboutPage({
 }) {
   const showDiscord = !!discordEnabled && !!discordId;
   const tags = (config.tags || []).slice(0, 6);
-  const hasRow = showDiscord || !!config.clock;
   const showTags = tags.length > 0;
   const showServer = !!config.discordServer?.inviteCode;
   const showLastfm = !!config.lastfm?.username;
-  const hasSecondRow = showServer || showLastfm;
+  const leftHas = showDiscord || showLastfm;
+  const rightHas = !!config.clock || showServer;
+  const hasWidgets = leftHas || rightHas;
   const scrollAnim = instant ? {} : { whileInView: "show" as const, viewport: dropInView };
   return (
     <motion.div
@@ -58,34 +59,36 @@ export default function AboutPage({
           </div>
         </motion.div>
       ) : null}
-      {hasRow && (
+      {hasWidgets && (
         <motion.div variants={dropContainer} className="w-full">
-          <div className="grid w-full grid-cols-1 sm:grid-cols-2 items-stretch gap-5">
-            {showDiscord && (
-              <motion.div variants={dropItem} className="w-full">
-                <DiscordRPC discordId={discordId!} wide />
-              </motion.div>
+          <div className={`grid w-full grid-cols-1 items-start gap-5 ${leftHas && rightHas ? "sm:grid-cols-2" : ""}`}>
+            {leftHas && (
+              <div className="flex w-full flex-col gap-5">
+                {showDiscord && (
+                  <motion.div variants={dropItem} className="w-full">
+                    <DiscordRPC discordId={discordId!} wide />
+                  </motion.div>
+                )}
+                {showLastfm && (
+                  <motion.div variants={dropItem} className="w-full">
+                    <LastfmCard config={config.lastfm!} instant={instant} />
+                  </motion.div>
+                )}
+              </div>
             )}
-            {config.clock && (
-              <motion.div variants={dropItem} className="w-full">
-                <ClockWidget widget={config.clock} />
-              </motion.div>
-            )}
-          </div>
-        </motion.div>
-      )}
-      {hasSecondRow && (
-        <motion.div variants={dropContainer} className="w-full">
-          <div className="grid w-full grid-cols-1 sm:grid-cols-2 items-start gap-5">
-            {showServer && (
-              <motion.div variants={dropItem} className="w-full">
-                <DiscordServerCard config={config.discordServer!} instant={instant} />
-              </motion.div>
-            )}
-            {showLastfm && (
-              <motion.div variants={dropItem} className="w-full">
-                <LastfmCard config={config.lastfm!} instant={instant} />
-              </motion.div>
+            {rightHas && (
+              <div className="flex w-full flex-col gap-5">
+                {config.clock && (
+                  <motion.div variants={dropItem} className="w-full">
+                    <ClockWidget widget={config.clock} />
+                  </motion.div>
+                )}
+                {showServer && (
+                  <motion.div variants={dropItem} className="w-full">
+                    <DiscordServerCard config={config.discordServer!} instant={instant} />
+                  </motion.div>
+                )}
+              </div>
             )}
           </div>
         </motion.div>
