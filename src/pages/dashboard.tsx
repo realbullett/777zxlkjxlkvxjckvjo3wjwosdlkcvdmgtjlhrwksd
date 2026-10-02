@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams, Link as RouterLink, Link } from "react-ro
 import { motion, AnimatePresence, LayoutGroup, useMotionValue } from "motion/react";
 import { User, Paintbrush, Link as LucideLink, Image, Crown, Layout, Shield, Home, AtSign, Hash, Eye, User as UserIcon, Volume2, X, Music, Play, Pause, Trash2, Upload, LogOut, Check, Database, Award, Copy, Lock, HardDrive, Layers, Type, Star, Clock, Search, TrendingUp, RefreshCw } from "lucide-react";
 import { PLATFORMS } from "../lib/platforms";
-import { FONTS } from "../lib/fonts";
+import { FONTS, CUSTOM_FONT_FAMILY, CUSTOM_FONT_NAME, ResolveFontFamily } from "../lib/fonts";
 import { SparkleText } from "../components/SparkleText";
 import { RainEffect, SnowEffect, AuroraEffect, TvStaticEffect, ParticlesEffect, GalaxyEffect, MatrixEffect, SpotlightEffect } from "../components/BackgroundEffect";
 import { parseSongUrl } from "../lib/song";
@@ -52,6 +52,7 @@ type User = {
   banner_enabled: boolean;
   show_username: boolean;
   show_joindate: boolean;
+  custom_font_scope: string | null;
   video_audio: boolean;
   seo_title: string | null;
   seo_description: string | null;
@@ -1202,6 +1203,8 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
   const [savingColors, setSavingColors] = useState(false);
   const [displayEffect, setDisplayEffect] = useState(user?.display_effect || "none");
   const [font, setFont] = useState(user?.font || "Inter");
+  const [fontScope, setFontScope] = useState("all");
+  const [customFontUrl, setCustomFontUrl] = useState("");
   const [bgEffect, setBgEffect] = useState(user?.bg_effect || "none");
   const [entryText, setEntryText] = useState(user?.entry_text || "click anywhere to enter");
   const [entryFont, setEntryFont] = useState(user?.entry_font || "Inter");
@@ -1317,6 +1320,7 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
     setSecondaryColor(user.secondary_color || "rgba(255, 255, 255, 0.15)");
     setDisplayEffect(user.display_effect || "none");
     setFont(user.font || "Inter");
+    setFontScope(user.custom_font_scope === "name" ? "name" : "all");
     setBgEffect(user.bg_effect || "none");
     setEntryText(user.entry_text || "click anywhere to enter");
     setEntryFont(user.entry_font || "Inter");
@@ -1377,6 +1381,7 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
         if (a.type === "custom_cursor") setCustomCursor(a.url);
         if (a.type === "video_background") setVideoBg(a.url);
         if (a.type === "banner") setBanner(a.url);
+        if (a.type === "custom_font") setCustomFontUrl(String(a.url || "").split("?")[0]);
       }
       if (Array.isArray(J.badges)) setMyBadges(J.badges);
     }).catch(() => {});
@@ -1506,6 +1511,7 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
     if (type === "custom_cursor") setCustomCursor(busted);
     if (type === "video_background") setVideoBg(busted);
     if (type === "banner") setBanner(busted);
+    if (type === "custom_font") { setCustomFontUrl(hd.url.split("?")[0]); setFont("Custom"); }
     setSaving(null);
   };
 
@@ -2015,7 +2021,7 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
     </div>
 
     <div className="lg:w-[55%] flex-1 space-y-6">
-      <Preview user={user} desc={desc} descEffect={descEffect} descSpeed={descSpeed} descLines={descLines} background={background} audio={audio1 || audio2} profileAvatar={profileAvatar} customCursor={customCursor} displayEffect={displayEffect} font={font} videoBg={videoBg} videoAudio={videoAudio} bgEffect={bgEffect} avatarShape={avatarShape} avatarSize={avatarSize} avatarOffsetX={avatarOffsetX} avatarOffsetY={avatarOffsetY} onAvatarOffsetChange={(x, y) => { setAvatarOffsetX(Math.round(x)); setAvatarOffsetY(Math.round(y)); }} banner={banner} bannerEnabled={bannerEnabled} entryText={entryText} entryFont={entryFont} entryColor={entryColor} entryEffect={entryEffect} songPlatform={songPlatform} songId={songId} showUsername={showUsername} primaryColor={primaryColor} secondaryColor={secondaryColor} accentColor={accentColor} textColor={textColor} backgroundColor={backgroundColor} iconColor={iconColor} bgEffectColor={bgEffectColor} panelMouseFollow={panelMouseFollow} cursorEffect={cursorEffect} nameOffsetX={nameOffsetX} nameOffsetY={nameOffsetY} onNameOffsetChange={(x, y) => { setNameOffsetX(Math.round(x)); setNameOffsetY(Math.round(y)); }} badgeOffsetX={badgeOffsetX} badgeOffsetY={badgeOffsetY} onBadgeOffsetChange={(x, y) => { setBadgeOffsetX(Math.round(x)); setBadgeOffsetY(Math.round(y)); }} descOffsetX={descOffsetX} descOffsetY={descOffsetY} onDescOffsetChange={(x, y) => { setDescOffsetX(Math.round(x)); setDescOffsetY(Math.round(y)); }} songOffsetX={songOffsetX} songOffsetY={songOffsetY} onSongOffsetChange={(x, y) => { setSongOffsetX(Math.round(x)); setSongOffsetY(Math.round(y)); }} rpcOffsetX={rpcOffsetX} rpcOffsetY={rpcOffsetY} onRpcOffsetChange={(x, y) => { setRpcOffsetX(Math.round(x)); setRpcOffsetY(Math.round(y)); }} badges={myBadges} panelOpacity={panelOpacity} panelHidden={panelHidden} discordId={linkedDiscordId} discordRpcEnabled={discordRpcEnabled} />
+      <Preview user={user} desc={desc} descEffect={descEffect} descSpeed={descSpeed} descLines={descLines} background={background} audio={audio1 || audio2} profileAvatar={profileAvatar} customCursor={customCursor} displayEffect={displayEffect} font={font} customFontUrl={customFontUrl} fontScope={fontScope} videoBg={videoBg} videoAudio={videoAudio} bgEffect={bgEffect} avatarShape={avatarShape} avatarSize={avatarSize} avatarOffsetX={avatarOffsetX} avatarOffsetY={avatarOffsetY} onAvatarOffsetChange={(x, y) => { setAvatarOffsetX(Math.round(x)); setAvatarOffsetY(Math.round(y)); }} banner={banner} bannerEnabled={bannerEnabled} entryText={entryText} entryFont={entryFont} entryColor={entryColor} entryEffect={entryEffect} songPlatform={songPlatform} songId={songId} showUsername={showUsername} primaryColor={primaryColor} secondaryColor={secondaryColor} accentColor={accentColor} textColor={textColor} backgroundColor={backgroundColor} iconColor={iconColor} bgEffectColor={bgEffectColor} panelMouseFollow={panelMouseFollow} cursorEffect={cursorEffect} nameOffsetX={nameOffsetX} nameOffsetY={nameOffsetY} onNameOffsetChange={(x, y) => { setNameOffsetX(Math.round(x)); setNameOffsetY(Math.round(y)); }} badgeOffsetX={badgeOffsetX} badgeOffsetY={badgeOffsetY} onBadgeOffsetChange={(x, y) => { setBadgeOffsetX(Math.round(x)); setBadgeOffsetY(Math.round(y)); }} descOffsetX={descOffsetX} descOffsetY={descOffsetY} onDescOffsetChange={(x, y) => { setDescOffsetX(Math.round(x)); setDescOffsetY(Math.round(y)); }} songOffsetX={songOffsetX} songOffsetY={songOffsetY} onSongOffsetChange={(x, y) => { setSongOffsetX(Math.round(x)); setSongOffsetY(Math.round(y)); }} rpcOffsetX={rpcOffsetX} rpcOffsetY={rpcOffsetY} onRpcOffsetChange={(x, y) => { setRpcOffsetX(Math.round(x)); setRpcOffsetY(Math.round(y)); }} badges={myBadges} panelOpacity={panelOpacity} panelHidden={panelHidden} discordId={linkedDiscordId} discordRpcEnabled={discordRpcEnabled} />
 
       <div className="glass-card rounded-2xl p-5 space-y-4">
         <div className="flex items-center justify-between">
@@ -2253,6 +2259,9 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
       </div>
 
       <div className="glass-card rounded-2xl p-6">
+        {customFontUrl ? (
+          <style>{`@font-face { font-family: 'SireCustomFont'; src: url('${customFontUrl}'); font-display: swap; }`}</style>
+        ) : null}
         <h3 className="text-sm font-semibold text-white/80 mb-4">Font</h3>
         <div className="flex flex-wrap gap-2 mb-4">
           {FONTS.map((f) => (
@@ -2269,9 +2278,59 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
               {f.name}
             </button>
           ))}
+          <button
+            onClick={() => setFont(CUSTOM_FONT_NAME)}
+            className={`text-xs px-3 py-1.5 rounded-lg border transition-colors cursor-pointer ${
+              font === CUSTOM_FONT_NAME
+                ? "bg-blue-600/20 border-blue-500/40 text-blue-300"
+                : "bg-white/[0.03] border-white/10 text-white/40 hover:text-white/60"
+            }`}
+            style={customFontUrl ? { fontFamily: CUSTOM_FONT_FAMILY } : undefined}
+          >
+            Custom{customFontUrl ? "" : "*"}
+          </button>
         </div>
+        {font === CUSTOM_FONT_NAME ? (
+          <div className="mb-4 p-4 rounded-xl bg-white/[0.02] border border-white/[0.06]">
+            <p className="text-[11px] text-white/40 mb-3">Upload your own font (.ttf or .otf, max 10MB). It styles your biolink page only.</p>
+            <label className="inline-block text-xs bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 px-4 py-2 rounded-lg text-white/70 font-semibold transition-all cursor-pointer mb-3">
+              {customFontUrl ? "replace font file" : "upload font file"}
+              <input
+                type="file"
+                accept=".ttf,.otf,.woff,.woff2"
+                className="hidden"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  e.target.value = "";
+                  if (file) await uploadAsset("custom_font", file);
+                }}
+              />
+            </label>
+            {customFontUrl ? (
+              <p className="text-[11px] text-emerald-400/80 mb-3">custom font uploaded ✓</p>
+            ) : (
+              <p className="text-[11px] text-amber-400/80 mb-3">* upload a font file first, then save</p>
+            )}
+            <p className="text-[11px] text-white/40 mb-2">Apply custom font to:</p>
+            <div className="flex flex-wrap gap-2">
+              {[{ v: "all", label: "Entire profile" }, { v: "name", label: "Display name only" }].map((o) => (
+                <button
+                  key={o.v}
+                  onClick={() => setFontScope(o.v)}
+                  className={`text-xs px-3 py-1.5 rounded-lg border transition-colors cursor-pointer ${
+                    fontScope === o.v
+                      ? "bg-blue-600/20 border-blue-500/40 text-blue-300"
+                      : "bg-white/[0.03] border-white/10 text-white/40 hover:text-white/60"
+                  }`}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null}
         <div className="mb-4 p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] flex items-center justify-center min-h-[48px]">
-          <span className="text-lg font-black tracking-tight" style={{ fontFamily: FONTS.find(f => f.name === font)?.family || "'Inter', sans-serif" }}>
+          <span className="text-lg font-black tracking-tight" style={{ fontFamily: ResolveFontFamily(font, !!customFontUrl) }}>
             {user?.display_name || user?.username || "preview"}
           </span>
         </div>
@@ -2279,7 +2338,7 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
           <button
             onClick={async () => {
               if (!user) return;
-              await apiCall("update", { data: { font } });
+              await apiCall("update", { data: { font, custom_font_scope: fontScope } });
               showSaved("font saved!");
             }}
             className="text-xs bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-white font-semibold transition-all cursor-pointer"
@@ -2847,7 +2906,7 @@ function Toggle({ checked, onChange, className = "" }: { checked: boolean; onCha
   );
 }
 
-function Preview({ user, desc, background, audio, profileAvatar, customCursor, displayEffect, font, videoBg, videoAudio, bgEffect, descEffect, descSpeed, descLines, avatarShape, avatarSize, avatarOffsetX, avatarOffsetY, onAvatarOffsetChange, banner, bannerEnabled, entryText, entryFont, entryColor, entryEffect, songPlatform, songId, showUsername, primaryColor, secondaryColor, accentColor, textColor, backgroundColor, iconColor, bgEffectColor, panelMouseFollow, cursorEffect: cursorEffectType, nameOffsetX, nameOffsetY, onNameOffsetChange, badgeOffsetX, badgeOffsetY, onBadgeOffsetChange, descOffsetX, descOffsetY, onDescOffsetChange, songOffsetX, songOffsetY, onSongOffsetChange, rpcOffsetX, rpcOffsetY, onRpcOffsetChange, badges, panelOpacity, panelHidden, discordId, discordRpcEnabled }: { 
+function Preview({ user, desc, background, audio, profileAvatar, customCursor, displayEffect, font, customFontUrl, fontScope, videoBg, videoAudio, bgEffect, descEffect, descSpeed, descLines, avatarShape, avatarSize, avatarOffsetX, avatarOffsetY, onAvatarOffsetChange, banner, bannerEnabled, entryText, entryFont, entryColor, entryEffect, songPlatform, songId, showUsername, primaryColor, secondaryColor, accentColor, textColor, backgroundColor, iconColor, bgEffectColor, panelMouseFollow, cursorEffect: cursorEffectType, nameOffsetX, nameOffsetY, onNameOffsetChange, badgeOffsetX, badgeOffsetY, onBadgeOffsetChange, descOffsetX, descOffsetY, onDescOffsetChange, songOffsetX, songOffsetY, onSongOffsetChange, rpcOffsetX, rpcOffsetY, onRpcOffsetChange, badges, panelOpacity, panelHidden, discordId, discordRpcEnabled }: { 
   user: User | null; 
   desc?: string;
   background: string | null; 
@@ -2856,6 +2915,8 @@ function Preview({ user, desc, background, audio, profileAvatar, customCursor, d
   customCursor: string | null; 
   displayEffect?: string;
   font?: string;
+  customFontUrl?: string | null;
+  fontScope?: string;
   videoBg?: string | null;
   videoAudio?: boolean;
   bgEffect?: string;
@@ -3111,7 +3172,7 @@ function Preview({ user, desc, background, audio, profileAvatar, customCursor, d
                 >
                   <h1
                     className={`inline-block text-2xl font-black tracking-tight mb-1 ${displayEffect !== "sparkle" && displayEffect !== "none" ? `display-effect-${displayEffect}` : ""}`}
-                    style={{ color: textColor || "#ffffff", fontFamily: FONTS.find(f => f.name === (font || "Inter"))?.family || "'Inter', sans-serif" }}
+                    style={{ color: textColor || "#ffffff", fontFamily: ResolveFontFamily(font, !!customFontUrl) }}
                   >
                     {displayEffect === "sparkle" ? (
                       <SparkleText text={user?.display_name || user?.username || "Your Name"} />

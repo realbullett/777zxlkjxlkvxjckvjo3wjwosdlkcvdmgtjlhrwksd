@@ -12,3 +12,10 @@ export const FONTS = [
   { name: "Instrument Sans", family: "'Instrument Sans', sans-serif" },
   { name: "Plus Jakarta Sans", family: "'Plus Jakarta Sans', sans-serif" },
 ];
+export const CUSTOM_FONT_NAME = "Custom";
+export const CUSTOM_FONT_FAMILY = "'SireCustomFont', sans-serif";
+
+export function ResolveFontFamily(name: string | undefined | null, hasCustom: boolean) {
+  if (name === CUSTOM_FONT_NAME && hasCustom) return CUSTOM_FONT_FAMILY;
+  return FONTS.find(f => f.name === (name || "Inter"))?.family || "'Inter', sans-serif";
+}

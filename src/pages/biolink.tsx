@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence, LayoutGroup, type Variants } from "motion/react";
 import { Eye, Link as LinkIcon, ThumbsUp, ThumbsDown, Calendar, CheckCircle2, X, ChevronDown, ChevronUp } from "lucide-react";
 import { PLATFORMS } from "../lib/platforms";
-import { FONTS } from "../lib/fonts";
+import { FONTS, CUSTOM_FONT_FAMILY, ResolveFontFamily } from "../lib/fonts";
 import { SparkleText } from "../components/SparkleText";
 import { RainEffect, SnowEffect, AuroraEffect, TvStaticEffect, ParticlesEffect, GalaxyEffect, MatrixEffect, SpotlightEffect } from "../components/BackgroundEffect";
 import SongPlayer from "../components/SongPlayer";
@@ -54,6 +54,7 @@ type User = {
   views_blacklisted: boolean;
   created_at: string | null;
   show_joindate: boolean | null;
+  custom_font_scope: string | null;
   description: string | null;
   accent_color: string | null;
   text_color: string | null;
@@ -574,9 +575,15 @@ export default function Biolink() {
     isPremium || !PREMIUM_BG_EFFECTS.has(user.bg_effect || "")
       ? user.bg_effect
       : "none";
+  const customFontUrl = (getAsset("custom_font") || "").split("?")[0];
+  const hasCustomFont = user.font === "Custom" && !!customFontUrl;
+  const customFontAll = hasCustomFont && (user.custom_font_scope || "all") === "all";
 
   return (
     <>
+      {hasCustomFont ? (
+        <style>{`@font-face { font-family: 'SireCustomFont'; src: url('${customFontUrl}'); font-display: swap; }`}</style>
+      ) : null}
       <SEO
         title={user.seo_title || `${user.display_name || user.username} — sire.lol`}
         description={user.seo_description || ((user.desc_effect === "typewriter" && user.desc_lines?.length ? user.desc_lines.join(" / ") : user.description || "") || undefined)}
@@ -584,7 +591,7 @@ export default function Biolink() {
         path={`/${user.username}`}
         favicon={user.seo_favicon || undefined}
       />
-      <div className="relative min-h-screen overflow-hidden" style={{ backgroundColor: "var(--background-color, #080808)" }}>
+      <div className="relative min-h-screen overflow-hidden" style={{ backgroundColor: "var(--background-color, #080808)", fontFamily: customFontAll ? CUSTOM_FONT_FAMILY : undefined }}>
       {videoBg ? (
         <video
           key={videoBg}
@@ -725,7 +732,7 @@ export default function Biolink() {
                   onMouseEnter={() => setHoveredUid(true)}
                   onMouseLeave={() => setHoveredUid(false)}
                   className={`inline-block text-2xl font-black tracking-tight mb-1 ${displayEffect !== "sparkle" && displayEffect !== "none" ? `display-effect-${displayEffect}` : ""}`}
-                  style={{ color: "var(--text-color, #ffffff)", fontFamily: FONTS.find(f => f.name === (user.font || "Inter"))?.family || "'Inter', sans-serif" }}
+                  style={{ color: "var(--text-color, #ffffff)", fontFamily: ResolveFontFamily(user.font, hasCustomFont) }}
                 >
                   {displayEffect === "sparkle" ? (
                     <SparkleText text={user.display_name || user.username} />

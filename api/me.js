@@ -32,7 +32,7 @@ const USER_FIELDS = new Set([
   "desc_offset_x", "desc_offset_y", "song_offset_x", "song_offset_y",
   "discord_rpc_offset_x", "discord_rpc_offset_y",
   "panel_opacity", "panel_hidden", "discord_rpc_enabled",
-  "widgets", "onboarding_done", "use_case", "show_joindate",
+  "widgets", "onboarding_done", "use_case", "show_joindate", "custom_font_scope",
 ]);
 
 const PREMIUM_VALUES = {
@@ -59,7 +59,7 @@ const TEMPLATE_FIELDS = new Set([
   "tags",
 ]);
 
-const ASSET_TYPES = new Set(["background", "audio", "audio_1", "audio_2", "profile_avatar", "custom_cursor", "video_background", "banner"]);
+const ASSET_TYPES = new Set(["background", "audio", "audio_1", "audio_2", "profile_avatar", "custom_cursor", "video_background", "banner", "custom_font"]);
 const BADGES = new Set(["og", "premium", "verified", "booster", "staff", "bug", "corrupt", "owner"]);
 const ADMIN_DELETE_TABLES = ["badges", "links", "page_views", "templates", "songs", "template_installs"];
 
@@ -91,6 +91,10 @@ const HOST_MEDIA_TYPES = {
   m4a: "audio/mp4",
   aac: "audio/aac",
   flac: "audio/flac",
+  ttf: "font/ttf",
+  otf: "font/otf",
+  woff: "font/woff",
+  woff2: "font/woff2",
 };
 const HOST_FILE_TYPES = {
   txt: "text/plain", md: "text/markdown", json: "application/json", csv: "text/csv",
@@ -204,6 +208,7 @@ async function EnsureSchema() {
     D.execute("ALTER TABLE users ADD COLUMN hidden INTEGER NOT NULL DEFAULT 0"),
     D.execute("ALTER TABLE users ADD COLUMN signup_ip TEXT"),
     D.execute("ALTER TABLE users ADD COLUMN show_joindate INTEGER NOT NULL DEFAULT 1"),
+    D.execute("ALTER TABLE users ADD COLUMN custom_font_scope TEXT DEFAULT 'all'"),
     D.execute("CREATE TABLE IF NOT EXISTS admin_log (id INTEGER PRIMARY KEY AUTOINCREMENT, admin_id INTEGER NOT NULL, action TEXT NOT NULL, target_uid INTEGER, detail TEXT, created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')))"),
     D.execute("CREATE INDEX IF NOT EXISTS idx_admin_log_time ON admin_log (created_at DESC)"),
     D.execute("CREATE TABLE IF NOT EXISTS badge_prefs (user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, badge TEXT NOT NULL, hidden INTEGER NOT NULL DEFAULT 0, by_name INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (user_id, badge))"),
@@ -355,7 +360,7 @@ async function assetUpload(req, res) {
   const name = String(req.body.filename || "").trim().toLowerCase();
   const ext = name.includes(".") ? name.split(".").pop() : "";
   const contentType = ext ? HOST_MEDIA_TYPES[ext] : null;
-  if (!contentType) { res.status(400).json({ error: "Unsupported file type. Images, videos and audio only." }); return; }
+  if (!contentType) { res.status(400).json({ error: "Unsupported file type. Images, videos, audio and fonts only." }); return; }
   const premium = await isPremiumUser(uid);
   const Cap = AssetCap(assetType, premium);
 
@@ -693,6 +698,12 @@ export default async function handler(req, res) {
         if (data[k] !== undefined && data[k] !== null && !Number.isNaN(Number(data[k]))) {
           data[k] = Math.round(Number(data[k]));
         }
+      }
+      if (data.custom_font_scope !== undefined) {
+        data.custom_font_scope = String(data.custom_font_scope) === "name" ? "name" : "all";
+      }
+      if (data.font !== undefined) {
+        data.font = String(data.font).slice(0, 64);
       }
       if (data.widgets !== undefined) {
         if (!(await isPremiumUser(uid))) {

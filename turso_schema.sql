@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS users (
   secondary_color TEXT DEFAULT '#a855f7',
   show_username INTEGER DEFAULT 1,
   show_joindate INTEGER NOT NULL DEFAULT 1,
+  custom_font_scope TEXT DEFAULT 'all',
   display_effect TEXT DEFAULT 'none',
   font TEXT DEFAULT 'Inter',
   video_audio INTEGER DEFAULT 0,
