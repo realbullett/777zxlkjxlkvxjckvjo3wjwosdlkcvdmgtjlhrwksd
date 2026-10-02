@@ -3263,13 +3263,6 @@ function UserBadges({ user }: { user: User | null }) {
                       : "bg-white/[0.02] border-white/[0.06] hover:border-white/20"
                 }`}
               >
-                {/* Holographic border shine */}
-                <motion.div
-                  className="absolute inset-0 rounded-2xl pointer-events-none"
-                  style={{ background: "linear-gradient(135deg, transparent 40%, rgba(255,255,255,0.06) 50%, transparent 60%)", backgroundSize: "200% 200%" }}
-                  animate={{ backgroundPosition: ["200% 200%", "-100% -100%"] }}
-                  transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
-                />
 
                 {/* Glow spots */}
                 {active && !locked && (
