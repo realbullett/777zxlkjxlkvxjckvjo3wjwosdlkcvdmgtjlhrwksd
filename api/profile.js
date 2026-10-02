@@ -175,11 +175,17 @@ export default async function handler(req, res) {
     } else {
       res.setHeader("Cache-Control", "public, max-age=30, s-maxage=60, stale-while-revalidate=300");
     }
+    let Prefs = {};
+    try {
+      const PrefRs = await Db.execute({ sql: "SELECT badge, hidden, by_name FROM badge_prefs WHERE user_id = ?", args: [Uid] });
+      Prefs = Object.fromEntries((PrefRs.rows || []).map((R) => [R.badge, { hidden: Number(R.hidden || 0) === 1, byName: Number(R.by_name || 0) === 1 }]));
+    } catch { /* table may not exist yet on cold start */ }
     res.status(200).json({
       source: "turso",
       user: Match,
       views: Number(CountRs.rows?.[0]?.c || 0),
       badges: (BadgeRs.rows || []).map((R) => R.badge),
+      badgePrefs: Prefs,
       links: Object.fromEntries((LinkRs.rows || []).map((R) => [R.platform, R.url])),
       assets: AssetRs.rows || [],
       likes: Number(VoteRs.rows?.[0]?.likes || 0),

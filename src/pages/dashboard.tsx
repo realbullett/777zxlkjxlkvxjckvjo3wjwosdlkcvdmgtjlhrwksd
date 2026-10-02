@@ -3197,19 +3197,123 @@ const BADGE_LIST = [
   { id: "owner", file: "owner.webp" },
 ];
 
-const SELF_BADGE_LIST = [
-  { id: "og", file: "og.png", claimable: true, desc: "secured this badge in the early days of sire.lol" },
-  { id: "premium", file: "premium.webp", claimable: false, desc: "exclusive badge for premium supporters" },
-];
+const BADGE_DESCS: Record<string, string> = {
+  og: "secured this badge in the early days of sire.lol",
+  premium: "exclusive badge for premium supporters",
+  verified: "officially verified account on sire.lol",
+  booster: "thank you for boosting the discord server",
+  staff: "member of the sire.lol staff team",
+  bug: "reported bugs that made sire.lol better",
+  corrupt: "corrupted... don't ask questions",
+  owner: "the owner of sire.lol",
+};
+
+function BadgeLabel(id: string) {
+  if (id === "og") return "OG";
+  if (id === "bug") return "bug hunter";
+  return id.charAt(0).toUpperCase() + id.slice(1);
+}
+
+function BadgeActionBtn({ onClick, on, children }: { onClick: () => void; on: boolean; children: any }) {
+  return (
+    <motion.button
+      onClick={onClick}
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
+      className={`px-4 py-1.5 rounded-lg text-[9px] font-bold tracking-widest uppercase transition-colors duration-300 cursor-pointer ${
+        on
+          ? "bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 hover:bg-emerald-500/30"
+          : "bg-white/[0.04] text-white/30 border border-white/[0.06] hover:bg-white/[0.08] hover:text-white/60"
+      }`}
+    >
+      {children}
+    </motion.button>
+  );
+}
+
+function BadgeCard({ id, file, desc, active, locked, status, action }: { key?: any; id: string; file: string; desc: string; active: boolean; locked: boolean; status: string; action: any }) {
+  return (
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ type: "spring", stiffness: 200, damping: 20 }}
+      className={`relative overflow-hidden rounded-2xl border min-h-[220px] ${
+        locked
+          ? "bg-white/[0.01] border-white/[0.04]"
+          : active
+            ? "bg-gradient-to-br from-emerald-500/10 via-white/[0.04] to-emerald-500/10 border-emerald-400/30"
+            : "bg-white/[0.02] border-white/[0.06] hover:border-white/20"
+      }`}
+    >
+      {active && !locked && (
+        <>
+          <motion.div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-36 h-36 bg-emerald-400/10 rounded-full blur-3xl" animate={{ scale: [1, 1.3, 1], opacity: [0.15, 0.35, 0.15] }} transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }} />
+          <motion.div className="absolute -top-6 -right-6 w-20 h-20 bg-emerald-300/20 rounded-full blur-2xl" animate={{ scale: [1, 1.4, 1], opacity: [0.1, 0.3, 0.1] }} transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }} />
+        </>
+      )}
+
+      <div className="relative h-full flex flex-col p-5">
+        <div className="flex items-start gap-4">
+          <motion.div
+            animate={!locked ? { y: [0, -3, 0] } : {}}
+            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+            className={`relative h-14 w-14 shrink-0 flex items-center justify-center overflow-hidden ${locked || !active ? "opacity-50" : ""}`}
+          >
+            <div className={`absolute inset-0 rounded-2xl ${active && !locked ? "bg-gradient-to-br from-emerald-400/20 to-emerald-600/10 shadow-[0_0_20px_rgba(16,185,129,0.12)]" : "bg-white/[0.04] rounded-2xl"}`} />
+            <motion.img
+              src={`/emojis/${file}`}
+              alt={id}
+              className="h-9 w-9 object-contain relative z-[1]"
+              animate={active && !locked ? { scale: [1, 1.1, 1] } : { filter: "grayscale(100%)", opacity: 0.5 }}
+              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+            />
+            {(locked || !active) && <div className="absolute inset-0 flex items-center justify-center"><div className="h-8 w-0.5 bg-white/10 rotate-45" /></div>}
+          </motion.div>
+
+          <div className="flex-1 min-w-0 pt-1">
+            <motion.p className={`text-lg font-black tracking-tight ${locked ? "text-white/20" : active ? "text-white" : "text-white/50"}`}
+              animate={active && !locked ? { letterSpacing: ["-0.02em", "0.02em", "-0.02em"] } : {}}
+              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+            >
+              {BadgeLabel(id)}
+            </motion.p>
+            <p className="text-[11px] text-white/30 mt-1 leading-relaxed">{desc}</p>
+          </div>
+        </div>
+
+        <div className="flex-1" />
+
+        <div className="flex items-center justify-between pt-3 border-t border-white/[0.04]">
+          <motion.span
+            className={`text-[10px] font-semibold uppercase tracking-widest ${locked ? "text-white/8" : active ? "text-emerald-300/60" : "text-white/20"}`}
+            animate={locked ? { opacity: [0.2, 0.5, 0.2] } : {}}
+            transition={{ duration: 3, repeat: Infinity }}
+          >
+            {status}
+          </motion.span>
+
+          {locked ? (
+            <div className="px-4 py-1.5 rounded-lg text-[9px] font-bold tracking-widest uppercase bg-white/[0.02] text-white/10 border border-white/[0.04] select-none">locked</div>
+          ) : (
+            <div className="flex items-center gap-2">{action}</div>
+          )}
+        </div>
+      </div>
+    </motion.div>
+  );
+}
 
 function UserBadges({ user }: { user: User | null }) {
   const [myBadges, setMyBadges] = useState<string[]>([]);
+  const [prefs, setPrefs] = useState<Record<string, { hidden: boolean; byName: boolean }>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user) return;
     FetchProfile(user.username).then((J) => {
       setMyBadges(Array.isArray(J?.badges) ? J.badges : []);
+      setPrefs(J?.badgePrefs && typeof J.badgePrefs === "object" ? J.badgePrefs : {});
       setLoading(false);
     }).catch(() => setLoading(false));
   }, [user]);
@@ -3226,7 +3330,18 @@ function UserBadges({ user }: { user: User | null }) {
     }
   };
 
+  const setPref = async (badge: string, patch: { hidden?: boolean; byName?: boolean }) => {
+    const cur = prefs[badge] || { hidden: false, byName: false };
+    const next = { ...cur, ...patch };
+    setPrefs({ ...prefs, [badge]: next });
+    await apiCall("badge_pref", { badge, hidden: next.hidden, byName: next.byName });
+  };
+
   if (loading) return <div className="glass-card rounded-2xl p-6"><p className="text-sm text-white/40">loading...</p></div>;
+
+  const hasOg = myBadges.includes("og");
+  const hasPremium = myBadges.includes("premium");
+  const owned = myBadges.filter((b) => b !== "og");
 
   return (
     <div>
@@ -3240,104 +3355,55 @@ function UserBadges({ user }: { user: User | null }) {
           <div className="absolute -bottom-6 -left-6 h-24 w-24 bg-white/10 rounded-full blur-3xl" />
           <div className="relative">
             <p className="text-xl font-bold text-white mb-2">What are badges?</p>
-            <p className="text-sm text-blue-200/80 leading-relaxed max-w-xl">These are badges that are claimable to the public as of now, they could become unclaimable any day in the near future, claim it now!</p>
+            <p className="text-sm text-blue-200/80 leading-relaxed max-w-xl">Every badge on your account lives here. Hide the ones you don't want on your biolink, and if you're verified you can pin the check right next to your name.</p>
           </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {SELF_BADGE_LIST.map((b) => {
-            const active = myBadges.includes(b.id);
-            const locked = b.claimable === false;
+          <BadgeCard
+            id="og"
+            file="og.png"
+            desc={BADGE_DESCS.og}
+            active={hasOg}
+            locked={false}
+            status={hasOg ? "equipped" : "available"}
+            action={<BadgeActionBtn onClick={() => toggleBadge("og")} on={hasOg}>{hasOg ? "unequip" : "claim"}</BadgeActionBtn>}
+          />
+          {!hasPremium && (
+            <BadgeCard
+              id="premium"
+              file="premium.webp"
+              desc={BADGE_DESCS.premium}
+              active={false}
+              locked={true}
+              status="unclaimable"
+              action={null}
+            />
+          )}
+          {owned.map((b) => {
+            const meta = BADGE_LIST.find((x) => x.id === b);
+            const hidden = !!prefs[b]?.hidden;
+            const byName = !!prefs[b]?.byName;
             return (
-              <motion.div
-                key={b.id}
-                layout
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ type: "spring", stiffness: 200, damping: 20 }}
-                className={`relative overflow-hidden rounded-2xl border min-h-[220px] ${
-                  locked
-                    ? "bg-white/[0.01] border-white/[0.04]"
-                    : active
-                      ? "bg-gradient-to-br from-emerald-500/10 via-white/[0.04] to-emerald-500/10 border-emerald-400/30"
-                      : "bg-white/[0.02] border-white/[0.06] hover:border-white/20"
-                }`}
-              >
-
-                {/* Glow spots */}
-                {active && !locked && (
-                  <>
-                    <motion.div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-36 h-36 bg-emerald-400/10 rounded-full blur-3xl" animate={{ scale: [1, 1.3, 1], opacity: [0.15, 0.35, 0.15] }} transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }} />
-                    <motion.div className="absolute -top-6 -right-6 w-20 h-20 bg-emerald-300/20 rounded-full blur-2xl" animate={{ scale: [1, 1.4, 1], opacity: [0.1, 0.3, 0.1] }} transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }} />
-                  </>
-                )}
-
-                <div className="relative h-full flex flex-col p-5">
-                  {/* Top section: icon + title + desc */}
-                  <div className="flex items-start gap-4">
-                    <motion.div
-                      animate={!locked ? { y: [0, -3, 0] } : {}}
-                      transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                      className={`relative h-14 w-14 shrink-0 flex items-center justify-center overflow-hidden ${
-                        locked || !active
-                          ? "opacity-50"
-                          : ""
-                      }`}
-                    >
-                      <div className={`absolute inset-0 rounded-2xl ${active && !locked ? "bg-gradient-to-br from-emerald-400/20 to-emerald-600/10 shadow-[0_0_20px_rgba(16,185,129,0.12)]" : "bg-white/[0.04] rounded-2xl"}`} />
-                      <motion.img
-                        src={`/emojis/${b.file}`}
-                        alt={b.id}
-                        className="h-9 w-9 object-contain relative z-[1]"
-                        animate={active && !locked ? { scale: [1, 1.1, 1] } : { filter: "grayscale(100%)", opacity: 0.5 }}
-                        transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                      />
-                      {(locked || !active) && <div className="absolute inset-0 flex items-center justify-center"><div className="h-8 w-0.5 bg-white/10 rotate-45" /></div>}
-                    </motion.div>
-
-                    <div className="flex-1 min-w-0 pt-1">
-                      <motion.p className={`text-lg font-black tracking-tight ${locked ? "text-white/20" : active ? "text-white" : "text-white/50"}`}
-                        animate={active && !locked ? { letterSpacing: ["-0.02em", "0.02em", "-0.02em"] } : {}}
-                        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                      >
-                        {b.id === "og" ? "OG" : b.id.charAt(0).toUpperCase() + b.id.slice(1)}
-                      </motion.p>
-                      <p className="text-[11px] text-white/30 mt-1 leading-relaxed">{b.desc}</p>
-        </div>
-      </div>
-
-                  {/* Spacer */}
-                  <div className="flex-1" />
-
-                  {/* Bottom bar: status + action */}
-                  <div className="flex items-center justify-between pt-3 border-t border-white/[0.04]">
-                    <motion.span
-                      className={`text-[10px] font-semibold uppercase tracking-widest ${locked ? "text-white/8" : active ? "text-emerald-300/60" : "text-white/20"}`}
-                      animate={locked ? { opacity: [0.2, 0.5, 0.2] } : {}}
-                      transition={{ duration: 3, repeat: Infinity }}
-                    >
-                      {locked ? "unclaimable" : active ? "equipped" : "available"}
-                    </motion.span>
-
-                    {locked ? (
-                      <div className="px-4 py-1.5 rounded-lg text-[9px] font-bold tracking-widest uppercase bg-white/[0.02] text-white/10 border border-white/[0.04] select-none">locked</div>
-                    ) : (
-                      <motion.button
-                        onClick={() => toggleBadge(b.id)}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        className={`px-4 py-1.5 rounded-lg text-[9px] font-bold tracking-widest uppercase transition-colors duration-300 cursor-pointer ${
-                          active
-                            ? "bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 hover:bg-emerald-500/30"
-                            : "bg-white/[0.04] text-white/30 border border-white/[0.06] hover:bg-white/[0.08] hover:text-white/60"
-                        }`}
-                      >
-                        {active ? "unequip" : "claim"}
-                      </motion.button>
-                    )}
-                  </div>
-                </div>
-              </motion.div>
+              <BadgeCard
+                key={b}
+                id={b}
+                file={meta?.file || `${b}.png`}
+                desc={BADGE_DESCS[b] || "exclusive sire.lol badge"}
+                active={!hidden}
+                locked={false}
+                status={hidden ? "hidden" : "shown"}
+                action={<>
+                  {b === "verified" && (
+                    <BadgeActionBtn onClick={() => setPref(b, { byName: !byName })} on={byName}>
+                      {byName ? "name on" : "name off"}
+                    </BadgeActionBtn>
+                  )}
+                  <BadgeActionBtn onClick={() => setPref(b, { hidden: !hidden })} on={!hidden}>
+                    {b === "verified" ? (hidden ? "row off" : "row on") : hidden ? "unhide" : "hide"}
+                  </BadgeActionBtn>
+                </>}
+              />
             );
           })}
         </div>

@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence, LayoutGroup, type Variants } from "motion/react";
-import { Eye, Link as LinkIcon, ThumbsUp, ThumbsDown, Calendar } from "lucide-react";
+import { Eye, Link as LinkIcon, ThumbsUp, ThumbsDown, Calendar, CheckCircle2, X, ChevronDown, ChevronUp } from "lucide-react";
 import { PLATFORMS } from "../lib/platforms";
 import { FONTS } from "../lib/fonts";
 import { SparkleText } from "../components/SparkleText";
@@ -125,6 +125,9 @@ export default function Biolink() {
   const [dislikes, setDislikes] = useState(0);
   const [myVote, setMyVote] = useState(0);
   const [badges, setBadges] = useState<string[]>([]);
+  const [badgePrefs, setBadgePrefs] = useState<Record<string, { hidden: boolean; byName: boolean }>>({});
+  const visibleBadges = badges.filter((b) => !badgePrefs[b]?.hidden);
+  const showVerifiedByName = badges.includes("verified") && !!badgePrefs.verified?.byName && !badgePrefs.verified?.hidden;
   const [links, setLinks] = useState<Record<string, string>>({});
   const [hoveredBadge, setHoveredBadge] = useState<string | null>(null);
   const [hoveredUid, setHoveredUid] = useState(false);
@@ -165,6 +168,7 @@ export default function Biolink() {
       if (typeof J.dislikes === "number") setDislikes(J.dislikes);
       if (typeof J.mine === "number") setMyVote(J.mine);
       if (Array.isArray(J.badges)) setBadges(J.badges);
+      if (J.badgePrefs && typeof J.badgePrefs === "object") setBadgePrefs(J.badgePrefs);
       if (J.links) setLinks(J.links);
       if (Array.isArray(J.assets)) setAssets(J.assets);
     }).catch(() => setNotFound(true));
@@ -470,10 +474,43 @@ export default function Biolink() {
       }
       if (typeof J?.likes === "number") setLikes(J.likes);
       if (typeof J?.dislikes === "number") setDislikes(J.dislikes);
-      if (typeof J?.mine === "number") setMyVote(J.mine);
+      const mine = typeof J?.mine === "number" ? J.mine : next;
+      setMyVote(mine);
+      playVoteSound(mine !== 0);
+      if (mine === 1) showVoteToast("Your like got saved.", "The author will see it in their counter.");
+      else if (mine === -1) showVoteToast("Your dislike got saved.", "The author will see it in their counter.");
+      else showVoteToast(prevVote === 1 ? "Your like was removed." : "Your dislike was removed.", "The author will see it in their counter.");
     } catch {
       setMyVote(prevVote); setLikes(prevLikes); setDislikes(prevDislikes);
     }
+  };
+
+  const voteToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [voteToast, setVoteToast] = useState<{ title: string; sub: string } | null>(null);
+  const showVoteToast = (title: string, sub: string) => {
+    if (voteToastTimer.current) clearTimeout(voteToastTimer.current);
+    setVoteToast({ title, sub });
+    voteToastTimer.current = setTimeout(() => setVoteToast(null), 3000);
+  };
+
+  const voteAudioRef = useRef<AudioContext | null>(null);
+  const playVoteSound = (saved: boolean) => {
+    try {
+      if (!voteAudioRef.current) voteAudioRef.current = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+      const ctx = voteAudioRef.current;
+      if (ctx.state === "suspended") void ctx.resume();
+      const notes = saved ? [660, 880] : [520, 330];
+      notes.forEach((f, i) => {
+        const o = ctx.createOscillator(), g = ctx.createGain();
+        o.type = "sine"; o.frequency.value = f;
+        const t = ctx.currentTime + i * 0.09;
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(0.22, t + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + 0.12);
+        o.connect(g); g.connect(ctx.destination);
+        o.start(t); o.stop(t + 0.14);
+      });
+    } catch { /* no audio */ }
   };
 
   const handleEnter = async () => {
@@ -588,6 +625,27 @@ export default function Biolink() {
         effect={user.entry_effect || "none"}
       />
 
+      <AnimatePresence>
+        {voteToast && (
+          <motion.div
+            initial={{ opacity: 0, y: -24, x: "-50%" }}
+            animate={{ opacity: 1, y: 0, x: "-50%" }}
+            exit={{ opacity: 0, y: -12, x: "-50%" }}
+            transition={{ type: "spring", stiffness: 400, damping: 30 }}
+            className="fixed top-6 left-1/2 z-[100] flex items-center gap-3 rounded-2xl border border-emerald-500/25 bg-[#0a2e1f]/95 px-4 py-3 shadow-xl shadow-black/50 backdrop-blur-md max-w-[calc(100vw-2rem)]"
+          >
+            <CheckCircle2 size={22} className="text-emerald-400 shrink-0" />
+            <div className="min-w-0 text-left">
+              <p className="text-sm font-semibold text-white whitespace-nowrap">{voteToast.title}</p>
+              <p className="text-xs text-emerald-100/60">{voteToast.sub}</p>
+            </div>
+            <button onClick={() => setVoteToast(null)} aria-label="dismiss" className="ml-1 text-emerald-100/40 hover:text-white transition-colors cursor-pointer shrink-0">
+              <X size={16} />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
 <motion.div
         id="bio-page-1"
         initial={{ opacity: 0, y: 20 }}
@@ -674,6 +732,9 @@ export default function Biolink() {
                   ) : (
                     user.display_name || user.username
                   )}
+                  {showVerifiedByName && (
+                    <img src="/emojis/verified.png" alt="verified" className="inline-block h-[1em] w-[1em] ml-2 -mt-1 brightness-150" />
+                  )}
                 </h1>
                 </motion.div>
                 <AnimatePresence>
@@ -691,7 +752,7 @@ export default function Biolink() {
                   )}
                 </AnimatePresence>
               </div>
-              {badges.length > 0 && (
+              {visibleBadges.length > 0 && (
                 <motion.div variants={dropContainer} style={{ transform: `translate(${user.badge_offset_x || 0}px, ${user.badge_offset_y || 0}px)` }}>
                   <div className="flex items-center justify-center mb-4">
                     <LayoutGroup>
@@ -699,9 +760,9 @@ export default function Biolink() {
                         layout
                         onMouseLeave={() => setHoveredBadge(null)}
                         className="flex items-center justify-center gap-2 h-11 rounded-xl bg-white/[0.06] px-4"
-                        style={{ width: `${badges.length * 32 + 20}px` }}
+                        style={{ width: `${visibleBadges.length * 32 + 20}px` }}
                       >
-                        {badges.map((b) => {
+                        {visibleBadges.map((b) => {
                           const src = BADGE_FILES[b] ? `/emojis/${BADGE_FILES[b]}` : null;
                           if (!src) return null;
                           return (
@@ -885,6 +946,21 @@ export default function Biolink() {
                 />
               ))}
             </div>
+          ) : null}
+          {pageCount > 1 && entered ? (
+            <motion.button
+              onClick={() => goToPage(activePage < pageCount - 1 ? activePage + 1 : 0)}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5, delay: 1 }}
+              className="fixed bottom-5 left-1/2 z-[5] flex -translate-x-1/2 cursor-pointer flex-col items-center gap-0.5 text-white/70 transition-colors hover:text-white"
+              aria-label={activePage < pageCount - 1 ? "scroll for more" : "back to top"}
+            >
+              <span className="text-xs font-semibold tracking-wide drop-shadow-[0_1px_4px_rgba(0,0,0,0.8)]">{activePage < pageCount - 1 ? "Scroll for more" : "Back to top"}</span>
+              <motion.span animate={{ y: [0, 6, 0] }} transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }} className="flex">
+                {activePage < pageCount - 1 ? <ChevronDown size={20} /> : <ChevronUp size={20} />}
+              </motion.span>
+            </motion.button>
           ) : null}
       </div>
       </>

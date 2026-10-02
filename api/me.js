@@ -206,6 +206,7 @@ async function EnsureSchema() {
     D.execute("ALTER TABLE users ADD COLUMN show_joindate INTEGER NOT NULL DEFAULT 1"),
     D.execute("CREATE TABLE IF NOT EXISTS admin_log (id INTEGER PRIMARY KEY AUTOINCREMENT, admin_id INTEGER NOT NULL, action TEXT NOT NULL, target_uid INTEGER, detail TEXT, created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')))"),
     D.execute("CREATE INDEX IF NOT EXISTS idx_admin_log_time ON admin_log (created_at DESC)"),
+    D.execute("CREATE TABLE IF NOT EXISTS badge_prefs (user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, badge TEXT NOT NULL, hidden INTEGER NOT NULL DEFAULT 0, by_name INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (user_id, badge))"),
   ]);
   SchemaReady = true;
 }
@@ -873,11 +874,28 @@ export default async function handler(req, res) {
         res.status(400).json({ error: "Invalid badge" });
         return;
       }
+      if (action === "badge_set" && badge !== "og") {
+        res.status(403).json({ error: "This badge can only be granted by an admin" });
+        return;
+      }
       if (action === "badge_set") {
         await Db().execute({ sql: "INSERT OR IGNORE INTO badges (user_id, badge) VALUES (?, ?)", args: [uid, badge] });
       } else {
         await Db().execute({ sql: "DELETE FROM badges WHERE user_id = ? AND badge = ?", args: [uid, badge] });
       }
+      res.status(200).json({ ok: true });
+      return;
+    }
+
+    case "badge_pref": {
+      const badge = String(req.body.badge || "");
+      if (!BADGES.has(badge)) {
+        res.status(400).json({ error: "Invalid badge" });
+        return;
+      }
+      const hidden = req.body.hidden === true ? 1 : 0;
+      const byName = badge === "verified" && req.body.byName === true ? 1 : 0;
+      await Db().execute({ sql: "INSERT INTO badge_prefs (user_id, badge, hidden, by_name) VALUES (?, ?, ?, ?) ON CONFLICT (user_id, badge) DO UPDATE SET hidden = excluded.hidden, by_name = excluded.by_name", args: [uid, badge, hidden, byName] });
       res.status(200).json({ ok: true });
       return;
     }
