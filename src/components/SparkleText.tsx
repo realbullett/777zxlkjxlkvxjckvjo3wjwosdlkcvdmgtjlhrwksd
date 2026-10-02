@@ -1,19 +1,26 @@
+const GLYPHS = ["\u2726", "\u2727"];
+
 export function SparkleText({ text }: { text: string }) {
   return (
-    <>
+    <span className="relative inline-block sparkle-group">
       {text.split("").map((char, i) => (
-        <span key={i} className="relative inline-block sparkle-group">
-          <span className="relative z-[1]">{char === " " ? "\u00A0" : char}</span>
-          <span className="sparkle-layer" aria-hidden="true">
-            <span className="sparkle-dot" style={{ top: "8%", left: "5%", animationDelay: `${i * 0.06 + 0}s` }} />
-            <span className="sparkle-dot" style={{ top: "35%", left: "35%", animationDelay: `${i * 0.06 + 0.06}s` }} />
-            <span className="sparkle-dot" style={{ top: "65%", left: "10%", animationDelay: `${i * 0.06 + 0.12}s` }} />
-            <span className="sparkle-dot" style={{ top: "15%", left: "70%", animationDelay: `${i * 0.06 + 0.18}s` }} />
-            <span className="sparkle-dot" style={{ top: "55%", left: "75%", animationDelay: `${i * 0.06 + 0.24}s` }} />
-            <span className="sparkle-dot" style={{ top: "85%", left: "45%", animationDelay: `${i * 0.06 + 0.3}s` }} />
-          </span>
-        </span>
+        <span key={i} className="relative z-[1] inline-block">{char === " " ? "\u00A0" : char}</span>
       ))}
-    </>
+      <span className="sparkle-layer" aria-hidden="true">
+        {Array.from({ length: 14 }).map((_, i) => (
+          <span
+            key={i}
+            className="sparkle-rise"
+            style={{
+              left: `${(i * 71 + 13) % 100}%`,
+              fontSize: `${8 + ((i * 5) % 9)}px`,
+              animationDelay: `${i * 0.2}s`,
+            }}
+          >
+            {GLYPHS[i % 2]}
+          </span>
+        ))}
+      </span>
+    </span>
   );
 }

@@ -315,13 +315,20 @@
     pointer-events: none;
     z-index: 0;
   }
-  .sparkle-dot {
+  .sparkle-rise {
     position: absolute;
-    width: 2.5px;
-    height: 2.5px;
-    border-radius: 50%;
-    background: white;
-    animation: jitter 0.35s ease-in-out infinite;
+    bottom: -6px;
+    z-index: 0;
+    color: white;
+    opacity: 0;
+    text-shadow: 0 0 6px rgba(255,255,255,0.95), 0 0 14px rgba(160,220,255,0.7);
+    animation: sparkle-rise 2.8s linear infinite;
+  }
+  @keyframes sparkle-rise {
+    0% { opacity: 0; transform: translateY(10px) scale(0.3) rotate(0deg); }
+    18% { opacity: 1; transform: translateY(0) scale(1) rotate(25deg); }
+    70% { opacity: 1; }
+    100% { opacity: 0; transform: translateY(-46px) scale(0.5) rotate(70deg); }
   }
   @keyframes saved-toast {
     0% { opacity: 0; transform: translateY(8px); }
@@ -401,20 +408,5 @@
     animation: marquee 20s linear infinite;
   }
 
-  @keyframes jitter {
-    0% { transform: translate(0, 0); opacity: 0.5; }
-    8% { transform: translate(-1px, 1.5px); opacity: 1; }
-    16% { transform: translate(1.5px, -1px); opacity: 0.6; }
-    24% { transform: translate(-1.5px, -1px); opacity: 0.9; }
-    32% { transform: translate(1px, 1.5px); opacity: 0.4; }
-    40% { transform: translate(0, -1.5px); opacity: 1; }
-    48% { transform: translate(-1.5px, 0); opacity: 0.5; }
-    56% { transform: translate(1px, 1px); opacity: 0.8; }
-    64% { transform: translate(-1px, 1px); opacity: 0.4; }
-    72% { transform: translate(0, 1.5px); opacity: 0.9; }
-    80% { transform: translate(1.5px, -1.5px); opacity: 0.5; }
-    88% { transform: translate(-1.5px, 1px); opacity: 1; }
-    100% { transform: translate(0, 0); opacity: 0.5; }
-  }
 
 }
