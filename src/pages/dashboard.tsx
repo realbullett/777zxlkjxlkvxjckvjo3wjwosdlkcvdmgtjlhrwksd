@@ -1920,6 +1920,21 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
               <a href="/api/auth/discord" className="text-xs text-blue-400 hover:text-blue-300 transition-colors">link account</a>
             )}
           </div>
+          {(user?.provider === "discord" || !!user?.discord_id) && (
+            <button
+              onClick={async () => {
+                if (!user || !window.confirm("Unlink your Discord account? Your Discord status will stop showing on your page.")) return;
+                const { error } = await apiCall("discord_unlink", {});
+                if (error) { alert(error); return; }
+                setDiscordRpcEnabled(false);
+                if (onUpdateUser) onUpdateUser({ ...user, discord_id: null, discord_rpc_enabled: false });
+                showSaved("discord unlinked!");
+              }}
+              className="text-xs font-medium text-red-400/80 px-3 py-1.5 rounded-lg transition-all border border-red-500/20 hover:text-red-300 hover:bg-red-500/10 w-full mt-2 cursor-pointer"
+            >
+              unlink discord
+            </button>
+          )}
         </div>
 
         <div>
@@ -1931,7 +1946,11 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
                   <Toggle checked={discordRpcEnabled} onChange={setDiscordRpcEnabled} />
                   Show Discord presence on my biolink
                 </label>
-                <p className="text-[10px] text-white/30">Shows your Discord profile picture, username, badges and online status next to your song.</p>
+                <ol className="text-[11px] text-white/40 space-y-1 list-decimal list-inside">
+                  <li>Join our <a href="https://discord.gg/npN6H47KEn" target="_blank" rel="noreferrer" className="text-blue-400 hover:text-blue-300">Discord server</a> (the sire bot can only see members who are in the server).</li>
+                  <li>Run <span className="text-white/70 font-mono">/link</span> in the server to get the linked role.</li>
+                  <li>Turn on the toggle above and hit save. Your status, custom status and activity show on your page within ~15 seconds.</li>
+                </ol>
                 <div className="flex justify-end">
                   <button
                     onClick={async () => {

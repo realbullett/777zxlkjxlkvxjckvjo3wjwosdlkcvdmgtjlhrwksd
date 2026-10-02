@@ -912,6 +912,21 @@ export default async function handler(req, res) {
       return;
     }
 
+    case "discord_unlink": {
+      const me = await One("SELECT discord_id, provider, provider_id FROM users WHERE id = ?", [uid]);
+      if (!me || (!me.discord_id && me.provider !== "discord")) {
+        res.status(400).json({ error: "No Discord account linked" });
+        return;
+      }
+      const did = me.discord_id || (me.provider === "discord" ? me.provider_id : null);
+      await Db().execute({ sql: "UPDATE users SET discord_id = NULL, discord_rpc_enabled = 0 WHERE id = ?", args: [uid] });
+      if (did) {
+        try { await Db().execute({ sql: "DELETE FROM discord_presence WHERE discord_id = ?", args: [String(did)] }); } catch {}
+      }
+      res.status(200).json({ ok: true });
+      return;
+    }
+
     case "template_toggle": {
       if (req.body.on !== true) {
         await Db().execute({ sql: "DELETE FROM templates WHERE user_id = ?", args: [uid] });
