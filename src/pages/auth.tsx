@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "motion/react";
 import SEO from "../components/SEO";
+import Logo from "../components/Logo";
 
 const EMAIL_REGISTRATIONS_DISABLED_UNTIL = new Date("2027-01-01T00:00:00Z");
 const emailRegistrationsDisabled = Date.now() < EMAIL_REGISTRATIONS_DISABLED_UNTIL.getTime();
@@ -169,7 +170,7 @@ export default function AuthPage() {
           <div className="glass-card rounded-2xl p-8 flex-1">
             <div className="text-center mb-6">
               <button onClick={() => navigate("/")} className="hover:opacity-70 transition-opacity">
-                <img src="/logo.png" alt="sire.lol" className="h-8 w-auto mx-auto" />
+                <Logo ClassName="h-9 w-9 text-xl mx-auto" />
               </button>
               <motion.p
                 animate={{ backgroundPositionX: ["0%", "100%", "0%"] }}

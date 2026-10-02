@@ -1,6 +1,7 @@
 import { motion } from "motion/react";
 import { Link } from "react-router-dom";
 import { Trophy } from "lucide-react";
+import Logo from "./Logo";
 
 export const Navbar = () => {
   return (
@@ -13,7 +14,7 @@ export const Navbar = () => {
       >
         <div className="flex items-center gap-6">
           <Link to="/" className="block shrink-0">
-            <img src="/logo.png" alt="sire.lol" className="h-7 w-auto" />
+            <Logo ClassName="h-7 w-7 text-base" />
           </Link>
           
           <div className="hidden items-center gap-6 md:flex">

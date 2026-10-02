@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { motion } from "motion/react";
 import { Headphones, Users } from "lucide-react";
 import type { LastfmConfig } from "../lib/widgets";
@@ -33,8 +33,13 @@ export function timeAgo(uts: number): string {
   return `${Math.floor(mo / 12)} year${Math.floor(mo / 12) === 1 ? "" : "s"} ago`;
 }
 
-export default function LastfmCard({ config, instant = false }: { config: LastfmConfig; instant?: boolean }) {
-  const [info, setInfo] = useState<FmInfo | null>(null);
+function SafeImg({ src, ClassName, Fallback }: { src: string; ClassName: string; Fallback: ReactNode }) {
+  const [dead, setDead] = useState(false);
+  if (!src || dead) return <>{Fallback}</>;
+  return <img src={src} alt="" className={ClassName} onError={() => setDead(true)} />;
+}
+
+export default function LastfmCard({ config, instant = false }: { config: LastfmConfig; instant?: boolean }) {  const [info, setInfo] = useState<FmInfo | null>(null);
   const [failed, setFailed] = useState(false);
   const username = (config.username || "").trim();
 
@@ -80,13 +85,15 @@ export default function LastfmCard({ config, instant = false }: { config: Lastfm
       {info && (
         <div>
           <div className="flex items-center gap-4">
-            {info.image ? (
-              <img src={info.image} alt="" className="h-14 w-14 rounded-2xl object-cover" />
-            ) : (
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10 text-xl font-black" style={{ color: "var(--text-color, #ffffff)" }}>
-                {info.name.charAt(0).toUpperCase()}
-              </div>
-            )}
+            <SafeImg
+              src={info.image}
+              ClassName="h-14 w-14 rounded-2xl object-cover"
+              Fallback={
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10 text-xl font-black" style={{ color: "var(--text-color, #ffffff)" }}>
+                  {info.name.charAt(0).toUpperCase()}
+                </div>
+              }
+            />
             <div className="min-w-0">
               <p className="truncate text-xl font-bold tracking-tight" style={{ color: "var(--text-color, #ffffff)" }}>
                 {info.name}
@@ -120,11 +127,11 @@ export default function LastfmCard({ config, instant = false }: { config: Lastfm
               <div className="grid grid-cols-1 gap-x-6 min-[420px]:grid-cols-2">
                 {info.tracks.map((t, i) => (
                   <div key={i} className="flex items-center gap-3 py-2">
-                    {t.image ? (
-                      <img src={t.image} alt="" className="h-11 w-11 shrink-0 rounded-xl object-cover" />
-                    ) : (
-                      <div className="h-11 w-11 shrink-0 rounded-xl bg-white/10" />
-                    )}
+                    <SafeImg
+                      src={t.image}
+                      ClassName="h-11 w-11 shrink-0 rounded-xl object-cover"
+                      Fallback={<div className="h-11 w-11 shrink-0 rounded-xl bg-white/10" />}
+                    />
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-bold leading-tight" style={{ color: "var(--text-color, #ffffff)" }}>
                         {t.nowPlaying ? <span className="mr-1.5 inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400 align-middle" /> : null}{t.name}

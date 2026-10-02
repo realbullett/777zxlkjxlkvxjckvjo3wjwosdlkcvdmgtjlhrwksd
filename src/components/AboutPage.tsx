@@ -61,29 +61,17 @@ export default function AboutPage({
       {hasRow && (
         <motion.div variants={dropContainer} className="w-full">
           <div className="grid w-full grid-cols-1 sm:grid-cols-2 items-stretch gap-5">
-            <div className="flex w-full flex-col gap-5">
-              {showDiscord && (
-                <motion.div variants={dropItem} className="w-full">
-                  <DiscordRPC discordId={discordId!} wide />
-                </motion.div>
-              )}
-              {showTags && (
-                <motion.div variants={dropItem} className="w-full">
-                  <TagsCard tags={tags} />
-                </motion.div>
-              )}
-            </div>
+            {showDiscord && (
+              <motion.div variants={dropItem} className="w-full">
+                <DiscordRPC discordId={discordId!} wide />
+              </motion.div>
+            )}
             {config.clock && (
               <motion.div variants={dropItem} className="w-full">
                 <ClockWidget widget={config.clock} />
               </motion.div>
             )}
           </div>
-        </motion.div>
-      )}
-      {!hasRow && showTags && (
-        <motion.div variants={dropItem} className="w-full">
-          <TagsCard tags={tags} />
         </motion.div>
       )}
       {hasSecondRow && (
@@ -100,6 +88,11 @@ export default function AboutPage({
               </motion.div>
             )}
           </div>
+        </motion.div>
+      )}
+      {showTags && (
+        <motion.div variants={dropItem} className="w-full">
+          <TagsCard tags={tags} />
         </motion.div>
       )}
     </motion.div>
