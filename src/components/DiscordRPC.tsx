@@ -21,22 +21,9 @@ const STATUS_META: Record<string, { label: string; color: string }> = {
   offline: { label: "invisible", color: "#80848e" },
 };
 
-const DISCORD_BADGES: Array<{ bit: number; label: string; bg: string }> = [
-  { bit: 1 << 0, label: "Staff", bg: "#5865F2" },
-  { bit: 1 << 1, label: "Partner", bg: "#9B59B6" },
-  { bit: 1 << 2, label: "HypeSquad Events", bg: "#F47FFF" },
-  { bit: 1 << 3, label: "Bug Hunter Level 1", bg: "#3BA55D" },
-  { bit: 1 << 6, label: "HypeSquad Bravery", bg: "#F47FFF" },
-  { bit: 1 << 7, label: "HypeSquad Brilliance", bg: "#A3B9FF" },
-  { bit: 1 << 8, label: "HypeSquad Balance", bg: "#45DDC0" },
-  { bit: 1 << 9, label: "Early Supporter", bg: "#FAA61A" },
-  { bit: 1 << 10, label: "Team User", bg: "#5865F2" },
-  { bit: 1 << 12, label: "Bug Hunter Level 2", bg: "#C9B84C" },
-  { bit: 1 << 14, label: "Verified Bot Developer", bg: "#3BA55D" },
-  { bit: 1 << 16, label: "Certified Moderator", bg: "#45DDC0" },
-  { bit: 1 << 17, label: "Bot HTTP Interactions", bg: "#5865F2" },
-  { bit: 1 << 18, label: "Active Developer", bg: "#3BA55D" },
-];
+const BADGE_ICONS: Record<number, string> = {
+  [1 << 6]: "8a88d63823d8a71cd5e390baa45efa02",
+};
 
 export default function DiscordRPC({ discordId, wide = false }: { discordId: string; wide?: boolean }) {
   const [data, setData] = useState<PresenceRow | null>(null);
@@ -68,7 +55,6 @@ export default function DiscordRPC({ discordId, wide = false }: { discordId: str
     ? `https://cdn.discordapp.com/avatars/${data.discord_id}/${data.avatar}.png?size=128`
     : `https://cdn.discordapp.com/embed/avatars/${Number(data.discord_id) % 5}.png`;
   const flags = Number(data.public_flags || 0);
-  const badges = DISCORD_BADGES.filter((b) => (flags & b.bit) !== 0);
   const textStatus = data.custom_status;
   const activity = data.activity_name;
   let emoji: { id: string | null; name: string | null; animated?: boolean } | null = null;
@@ -77,37 +63,39 @@ export default function DiscordRPC({ discordId, wide = false }: { discordId: str
       emoji = JSON.parse(data.custom_status_emoji);
     } catch {}
   }
+  const badgeBits = [1, 2, 4, 8, 64, 128, 256, 512, 1024, 4096, 16384, 131072, 262144, 524288].filter((b) => (flags & b) !== 0);
 
   return (
-    <div className={`w-full mx-auto ${wide ? "h-full" : "max-w-xs"}`}>
-      <div className={`flex items-center gap-4 rounded-2xl bg-white/[0.05] border border-white/[0.08] px-5 py-4 backdrop-blur-sm ${wide ? "h-full" : ""}`}>
+    <div className={`w-full mx-auto ${wide ? "" : "max-w-xs"}`}>
+      <div className={`flex items-center gap-4 rounded-[26px] bg-black/45 border border-white/10 px-5 py-4 backdrop-blur-md ${wide ? "h-full" : ""}`}>
         <div className="relative flex-shrink-0">
-          <img src={avatarUrl} alt={data.username || ""} className={`${wide ? "h-12 w-12" : "h-10 w-10"} rounded-full`} />
+          <img src={avatarUrl} alt={data.username || ""} className={`${wide ? "h-[72px] w-[72px]" : "h-16 w-16"} rounded-full`} />
           <span
-            className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-[#101014]"
+            className="absolute bottom-0 right-0 h-5 w-5 rounded-full border-[3px] border-[#17130f]"
             style={{ backgroundColor: status.color }}
           />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 min-w-0">
-            <span className={`truncate font-semibold text-white/90 ${wide ? "text-base" : "text-sm"}`}>{data.global_name || data.display_name || data.username || "user"}</span>
-            {badges.map((b) => (
-              <span key={b.bit} title={b.label} className={`${wide ? "h-3.5 w-3.5" : "h-3 w-3"} shrink-0 rounded-[4px] border border-black/30`} style={{ backgroundColor: b.bg }} />
+            <span className={`truncate font-semibold text-white ${wide ? "text-xl" : "text-[18px]"}`} style={{ fontWeight: 550 }}>{data.global_name || data.display_name || data.username || "user"}</span>
+            {badgeBits.map((b) => (
+              BADGE_ICONS[b] ? (
+                <img key={b} src={`https://cdn.discordapp.com/badge-icons/${BADGE_ICONS[b]}.png`} alt="" className={`${wide ? "h-5 w-5" : "h-[18px] w-[18px]"} shrink-0`} onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+              ) : (
+                <span key={b} className={`${wide ? "h-5 w-5" : "h-[18px] w-[18px]"} shrink-0 rounded-[5px] bg-white/20 border border-black/30`} />
+              )
             ))}
           </div>
-          {(textStatus || emoji) && (
+          {(textStatus || emoji || activity) && (
             <div className="flex items-center gap-1.5 mt-0.5 min-w-0">
               {emoji && (
                 emoji.id
                   ? <img src={`https://cdn.discordapp.com/emojis/${emoji.id}.${emoji.animated ? "gif" : "png"}`} alt={emoji.name || ""} className="h-3.5 w-3.5 shrink-0" />
-                  : <span className="shrink-0 text-[10px]">{emoji.name || ""}</span>
+                  : <span className="shrink-0 text-xs">{emoji.name || ""}</span>
               )}
-              {textStatus && <span className={`truncate text-white/50 font-medium ${wide ? "text-xs" : "text-[10px]"}`}>{textStatus}</span>}
+              <span className={`truncate text-white/50 ${wide ? "text-sm" : "text-[13.5px]"}`}>{textStatus || activity}</span>
             </div>
           )}
-        </div>
-        <div className="flex-shrink-0 flex flex-col items-end gap-0.5">
-          {activity && <span className={`truncate text-white/40 ${wide ? "max-w-[240px] text-xs" : "max-w-[90px] text-[10px]"}`}>{activity}</span>}
         </div>
       </div>
     </div>
