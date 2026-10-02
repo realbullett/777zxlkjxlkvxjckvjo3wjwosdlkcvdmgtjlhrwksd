@@ -13,7 +13,24 @@ export type AboutPageConfig = {
   description: string;
   clock: ClockWidgetConfig | null;
   tags: string[];
+  discordServer: DiscordServerConfig | null;
+  lastfm: LastfmConfig | null;
 };
+
+export type DiscordServerConfig = {
+  inviteCode: string;
+};
+
+export type LastfmConfig = {
+  username: string;
+};
+
+export function parseInviteCode(raw: string): string {
+  const s = String(raw || "").trim();
+  if (!s) return "";
+  const m = s.match(/(?:discord\.gg\/|discord\.com\/invite\/)([a-zA-Z0-9-]+)/);
+  return (m ? m[1] : s).slice(0, 32);
+}
 
 export const MAX_TAGS = 6;
 
@@ -75,6 +92,8 @@ export const defaultAboutPage = (): AboutPageConfig => {
     description: "",
     clock: { id: widgetId(), type: "clock", timeZone: tz, label: defaultLabel(tz), mouseFollow: false },
     tags: [],
+    discordServer: null,
+    lastfm: null,
   };
 };
 
@@ -107,7 +126,7 @@ export function normalizeWidgets(raw: unknown): WidgetsConfig {
     if (!clock) return emptyWidgets();
     return {
       pages: 2,
-      about: { title: "About me", description: "", clock, tags: [] },
+      about: { title: "About me", description: "", clock, tags: [], discordServer: null, lastfm: null },
       song: null,
       projects: null,
     };
@@ -122,6 +141,10 @@ export function normalizeWidgets(raw: unknown): WidgetsConfig {
     : [];
   const s = w.song && typeof w.song === "object" ? (w.song as Partial<SongPageConfig>) : null;
   const p = w.projects && typeof w.projects === "object" ? (w.projects as Record<string, unknown>) : null;
+  const ds = a?.discordServer && typeof a.discordServer === "object" ? (a.discordServer as Partial<DiscordServerConfig>) : null;
+  const lf = a?.lastfm && typeof a.lastfm === "object" ? (a.lastfm as Partial<LastfmConfig>) : null;
+  const inviteCode = parseInviteCode(String(ds?.inviteCode || ""));
+  const lastfmUser = String(lf?.username || "").trim().slice(0, 64);
   return {
     pages,
     about: pages >= 2 ? {
@@ -129,6 +152,8 @@ export function normalizeWidgets(raw: unknown): WidgetsConfig {
       description: String(a?.description || ""),
       clock: clock ? { ...clock } : null,
       tags,
+      discordServer: inviteCode ? { inviteCode } : null,
+      lastfm: lastfmUser ? { username: lastfmUser } : null,
     } : null,
     song: pages >= 3 ? { url: String(s?.url || "") } : null,
     projects: pages >= 4 ? normalizeProjects(p) : null,

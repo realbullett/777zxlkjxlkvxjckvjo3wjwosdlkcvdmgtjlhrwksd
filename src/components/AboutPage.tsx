@@ -1,6 +1,8 @@
 import { motion, type Variants } from "motion/react";
 import type { AboutPageConfig } from "../lib/widgets";
 import DiscordRPC from "./DiscordRPC";
+import DiscordServerCard from "./DiscordServerCard";
+import LastfmCard from "./LastfmCard";
 import ClockWidget from "./ClockWidget";
 import TagIcon from "./TagIcon";
 
@@ -30,6 +32,9 @@ export default function AboutPage({
   const tags = (config.tags || []).slice(0, 6);
   const hasRow = showDiscord || !!config.clock;
   const showTags = tags.length > 0;
+  const showServer = !!config.discordServer?.inviteCode;
+  const showLastfm = !!config.lastfm?.username;
+  const hasSecondRow = showServer || showLastfm;
   const scrollAnim = instant ? {} : { whileInView: "show" as const, viewport: dropInView };
   return (
     <motion.div
@@ -79,6 +84,22 @@ export default function AboutPage({
       {!hasRow && showTags && (
         <motion.div variants={dropItem} className="w-full">
           <TagsCard tags={tags} />
+        </motion.div>
+      )}
+      {hasSecondRow && (
+        <motion.div variants={dropContainer} className="w-full">
+          <div className="grid w-full grid-cols-1 sm:grid-cols-2 items-start gap-5">
+            {showServer && (
+              <motion.div variants={dropItem} className="w-full">
+                <DiscordServerCard config={config.discordServer!} instant={instant} />
+              </motion.div>
+            )}
+            {showLastfm && (
+              <motion.div variants={dropItem} className="w-full">
+                <LastfmCard config={config.lastfm!} instant={instant} />
+              </motion.div>
+            )}
+          </div>
         </motion.div>
       )}
     </motion.div>

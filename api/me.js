@@ -642,6 +642,7 @@ export default async function handler(req, res) {
     if (action === "serveMedia" || action === "serveFile" || req.params?.code) return hostServe(req, res);
     if (action === "asset") return assetServe(req, res);
     if (action === "track") return trackInfo(req, res);
+    if (action === "lastfm") return lastfmInfo(req, res);
     const sessionToken = req.query.sessionToken || req.query.s;
     const uid = unsignToken(sessionToken);
     if (!uid) { res.status(401).json({ error: "Unauthorized" }); return; }
@@ -719,6 +720,15 @@ export default async function handler(req, res) {
         const tags = Array.isArray(a.tags)
           ? a.tags.map((t) => String(t || "").trim().slice(0, 32)).filter(Boolean).slice(0, 6)
           : [];
+        const dsrv = a.discordServer && typeof a.discordServer === "object" && !Array.isArray(a.discordServer) ? a.discordServer : null;
+        const dlm = a.lastfm && typeof a.lastfm === "object" && !Array.isArray(a.lastfm) ? a.lastfm : null;
+        const cleanInvite = (() => {
+          const s = String(dsrv?.inviteCode || "").trim();
+          if (!s) return "";
+          const m = s.match(/(?:discord\.gg\/|discord\.com\/invite\/)([a-zA-Z0-9-]+)/);
+          return (m ? m[1] : s).slice(0, 32);
+        })();
+        const cleanLastfm = String(dlm?.username || "").trim().slice(0, 64);
         const projectList = Array.isArray(p.projects)
           ? p.projects
               .filter((x) => x && typeof x === "object" && !Array.isArray(x))
@@ -746,6 +756,8 @@ export default async function handler(req, res) {
               mouseFollow: !!clock.mouseFollow,
             } : null,
             tags,
+            discordServer: cleanInvite ? { inviteCode: cleanInvite } : null,
+            lastfm: cleanLastfm ? { username: cleanLastfm } : null,
           },
           song: { url: String(s.url || "").slice(0, 500) },
           projects: { projects: projectList },
@@ -1295,6 +1307,49 @@ async function trackInfo(req, res) {
     } catch {}
   }
   res.status(200).json({ title, artist, previewUrl, duration, synced, image, color, ytId });
+}
+
+async function lastfmInfo(req, res) {
+  const username = String(req.query.user || "").trim().slice(0, 64);
+  const key = process.env.LASTFM_API_KEY || "";
+  if (!username) { res.status(400).json({ error: "Missing user" }); return; }
+  if (!key) { res.status(500).json({ error: "Last.fm not configured" }); return; }
+  try {
+    const base = `https://ws.audioscrobbler.com/2.0/?api_key=${encodeURIComponent(key)}&format=json&user=${encodeURIComponent(username)}`;
+    const [infoR, recentR] = await Promise.all([
+      fetch(`${base}&method=user.getinfo`),
+      fetch(`${base}&method=user.getrecenttracks&limit=4&extended=0`),
+    ]);
+    if (!infoR.ok || !recentR.ok) { res.status(502).json({ error: "Last.fm fetch failed" }); return; }
+    const info = await infoR.json().catch(() => null);
+    const recent = await recentR.json().catch(() => null);
+    const u = info?.user;
+    if (!u || u.name === undefined) { res.status(404).json({ error: "Last.fm user not found" }); return; }
+    const pickImg = (arr) => {
+      if (!Array.isArray(arr)) return "";
+      const big = arr.find((x) => x && (x.size === "extralarge" || x.size === "large") && x["#text"]);
+      const any = arr.find((x) => x && x["#text"]);
+      return String((big || any || {})["#text"] || "");
+    };
+    const tracks = Array.isArray(recent?.recenttracks?.track) ? recent.recenttracks.track.slice(0, 4) : [];
+    res.setHeader("Cache-Control", "public, max-age=60, s-maxage=300, stale-while-revalidate=600");
+    res.status(200).json({
+      name: String(u.name || username),
+      playcount: Number(u.playcount || 0),
+      artistCount: Number(u.artist_count || 0),
+      image: pickImg(u.image),
+      tracks: tracks.map((t) => ({
+        name: String(t.name || ""),
+        artist: String(t.artist?.["#text"] || t.artist || ""),
+        image: pickImg(t.image),
+        uts: t.date?.uts ? Number(t.date.uts) : 0,
+        nowPlaying: !!(t["@attr"] && t["@attr"].nowplaying === "true"),
+      })),
+    });
+  } catch (e) {
+    console.error("lastfm error:", e);
+    res.status(502).json({ error: "Last.fm fetch failed" });
+  }
 }
 
 async function fetchSyncedLyrics(artist, title) {

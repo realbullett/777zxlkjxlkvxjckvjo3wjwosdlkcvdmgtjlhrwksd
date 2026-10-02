@@ -13,7 +13,7 @@ import { CursorEffect } from "../components/CursorEffect";
 import AboutPage from "../components/AboutPage";
 import SongPage from "../components/SongPage";
 import ProjectsPage from "../components/ProjectsPage";
-import { TIMEZONE_PRESETS, MAX_PROJECTS, MAX_TAGS, LANGUAGE_TAGS, defaultLabel, defaultAboutPage, defaultProjectsPage, defaultSongPage, emptyProject, emptyWidgets, findMyTimeZone, normalizeWidgets, tzOffsetHours, type AboutPageConfig, type ClockWidgetConfig, type ProjectItem, type SongPageConfig, type WidgetsConfig } from "../lib/widgets";
+import { TIMEZONE_PRESETS, MAX_PROJECTS, MAX_TAGS, LANGUAGE_TAGS, defaultLabel, defaultAboutPage, defaultProjectsPage, defaultSongPage, emptyProject, emptyWidgets, findMyTimeZone, normalizeWidgets, parseInviteCode, tzOffsetHours, type AboutPageConfig, type ClockWidgetConfig, type ProjectItem, type SongPageConfig, type WidgetsConfig } from "../lib/widgets";
 import TagIcon from "../components/TagIcon";
 
 type User = {
@@ -5464,6 +5464,28 @@ function Widgets({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (u:
                     </div>
                   </>
                 )}
+                <div>
+                  <label className="text-[11px] text-white/40 block mb-1">discord server invite</label>
+                  <input
+                    type="text"
+                    value={widgets.about.discordServer?.inviteCode || ""}
+                    onChange={(e) => patchAbout({ discordServer: parseInviteCode(e.target.value) ? { inviteCode: parseInviteCode(e.target.value) } : null })}
+                    placeholder="discord.gg/hauntgg"
+                    className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none placeholder:text-white/10 focus:border-blue-500/50 transition-colors"
+                  />
+                  <p className="text-[10px] text-white/30 mt-1">shows server icon, online + member counts and a join button</p>
+                </div>
+                <div>
+                  <label className="text-[11px] text-white/40 block mb-1">last.fm username</label>
+                  <input
+                    type="text"
+                    value={widgets.about.lastfm?.username || ""}
+                    onChange={(e) => patchAbout({ lastfm: e.target.value.trim() ? { username: e.target.value.trim().slice(0, 64) } : null })}
+                    placeholder="your last.fm username"
+                    className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none placeholder:text-white/10 focus:border-blue-500/50 transition-colors"
+                  />
+                  <p className="text-[10px] text-white/30 mt-1">shows scrobbles, artists and your 4 most recent tracks</p>
+                </div>
               </div>
               <div className="flex items-center justify-center rounded-2xl border border-white/[0.06] bg-black/20 p-6">
                 <AboutPage config={widgets.about} discordId={user?.discord_id} discordEnabled={user?.discord_rpc_enabled} instant />
