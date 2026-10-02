@@ -121,8 +121,8 @@ export default function LastfmCard({ config, instant = false }: { config: Lastfm
           </a>
           {info.tracks.length > 0 && (
             <div className="mt-5">
-              <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.2em]" style={{ color: "var(--text-color, #ffffff)", opacity: 0.5 }}>
-                Recent Tracks
+              <p className="mb-3 text-sm font-bold" style={{ color: "var(--text-color, #ffffff)", opacity: 0.85 }}>
+                Recent tracks
               </p>
               <div className="grid grid-cols-1 gap-x-6 min-[420px]:grid-cols-2">
                 {info.tracks.map((t, i) => (
