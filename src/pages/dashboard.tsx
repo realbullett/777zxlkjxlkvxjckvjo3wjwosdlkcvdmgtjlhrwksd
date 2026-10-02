@@ -3222,7 +3222,7 @@ function Pill({ onClick, kind, children }: { onClick?: () => void; kind: "action
       whileTap={onClick ? { scale: 0.95 } : {}}
       className={`shrink-0 rounded-full border px-4 py-1.5 text-xs font-semibold whitespace-nowrap ${onClick ? "cursor-pointer" : "cursor-default"} ${
         kind === "action"
-          ? "border-pink-400/30 bg-pink-500/10 text-pink-300 hover:bg-pink-500/20"
+          ? "border-blue-400/30 bg-blue-500/10 text-blue-300 hover:bg-blue-500/20"
           : kind === "off"
             ? "border-white/10 bg-white/[0.04] text-white/60 hover:bg-white/[0.08]"
             : "border-red-400/15 bg-red-500/[0.07] text-red-300/50"
@@ -3329,7 +3329,7 @@ function UserBadges({ user, onTab }: { user: User | null; onTab?: (t: TabId) => 
         <h2 className="text-xl font-bold text-white">Available badges</h2>
         <button
           onClick={sync}
-          className="flex shrink-0 items-center gap-1.5 rounded-full border border-pink-400/30 bg-pink-500/10 px-4 py-1.5 text-xs font-semibold text-pink-300 transition-colors hover:bg-pink-500/20 cursor-pointer"
+          className="flex shrink-0 items-center gap-1.5 rounded-full border border-blue-400/30 bg-blue-500/10 px-4 py-1.5 text-xs font-semibold text-blue-300 transition-colors hover:bg-blue-500/20 cursor-pointer"
         >
           <RefreshCw size={13} className={syncing ? "animate-spin" : ""} />
           Sync
