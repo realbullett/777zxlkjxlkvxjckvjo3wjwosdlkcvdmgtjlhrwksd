@@ -804,14 +804,13 @@ export default function Biolink() {
                 </div>
               )}
             </motion.div>
-            <motion.div variants={dropItem}>
-              {(user.views_blacklisted || viewCount !== null) && (
-                <div className="group absolute bottom-4 left-4 flex items-center gap-2 rounded-xl bg-white/10 px-3 py-1.5 backdrop-blur-sm cursor-default">
-                  <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-black/80 px-2 py-1 text-[11px] font-medium text-white/80 opacity-0 transition-opacity group-hover:opacity-100">views</span>
-                  <Eye size={16} className="text-white" />
-                  <span className="text-sm font-bold text-white">
-                    {user.views_blacklisted ? "NULL" : viewCount}
-                  </span>
+            <motion.div initial={{ opacity: 0 }} animate={entered ? { opacity: 1 } : {}} transition={{ duration: 0.4, delay: 0.5 }}>
+              <div className="group absolute bottom-4 left-4 flex items-center gap-2 rounded-xl bg-white/10 px-3 py-1.5 backdrop-blur-sm cursor-default">
+                <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-black/80 px-2 py-1 text-[11px] font-medium text-white/80 opacity-0 transition-opacity group-hover:opacity-100">views</span>
+                <Eye size={16} className="text-white shrink-0" />
+                <span className="text-sm font-bold text-white tabular-nums min-w-[2ch] text-center">
+                  {user.views_blacklisted ? "NULL" : viewCount ?? "–"}
+                </span>
                   {!user.views_blacklisted && user.created_at && user.show_joindate !== false ? (
                     <>
                       <span className="h-4 w-px bg-white/20" />
@@ -820,17 +819,16 @@ export default function Biolink() {
                       <span className="text-sm text-white/70">{relJoin(user.created_at)}</span>
                     </>
                   ) : null}
-                </div>
-              )}
+              </div>
               {!user.views_blacklisted && (
                 <div className="absolute bottom-4 right-4 flex items-center gap-1 rounded-xl bg-white/10 px-2 py-1.5 backdrop-blur-sm">
                   <button onClick={() => castVote(1)} aria-label="like profile" className="flex items-center gap-1 rounded-lg px-1.5 py-0.5 transition-all hover:scale-110">
                     <ThumbsUp size={16} className={myVote === 1 ? "text-green-400" : "text-white"} fill={myVote === 1 ? "currentColor" : "none"} />
-                    <span className="text-sm font-bold text-white">{likes}</span>
+                    <span className="text-sm font-bold text-white tabular-nums min-w-[2ch] text-center">{likes}</span>
                   </button>
                   <button onClick={() => castVote(-1)} aria-label="dislike profile" className="flex items-center gap-1 rounded-lg px-1.5 py-0.5 transition-all hover:scale-110">
                     <ThumbsDown size={16} className={myVote === -1 ? "text-red-400" : "text-white"} fill={myVote === -1 ? "currentColor" : "none"} />
-                    <span className="text-sm font-bold text-white">{dislikes}</span>
+                    <span className="text-sm font-bold text-white tabular-nums min-w-[2ch] text-center">{dislikes}</span>
                   </button>
                 </div>
               )}

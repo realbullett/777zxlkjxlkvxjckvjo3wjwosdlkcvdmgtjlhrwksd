@@ -1739,39 +1739,39 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
 
         <div>
           <p className="text-sm font-semibold text-white/80 mb-4">Assets uploader</p>
-          <div className="grid grid-cols-2 gap-2">
-            <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.02] border border-white/[0.06]">
-              <div className="flex items-center gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div className="flex items-center justify-between gap-2 p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] min-w-0">
+              <div className="flex items-center gap-3 min-w-0">
                 {videoBg ? (
-                  <video src={videoBg} className="h-8 w-12 rounded object-cover" muted />
+                  <video src={videoBg} className="h-8 w-12 rounded object-cover shrink-0" muted />
                 ) : background ? (
-                  <img src={background} className="h-8 w-12 rounded object-cover" />
+                  <img src={background} className="h-8 w-12 rounded object-cover shrink-0" />
                 ) : (
-                  <Image size={16} className="text-white/30" />
+                  <Image size={16} className="text-white/30 shrink-0" />
                 )}
-                <span className="text-sm text-white/60">Background</span>
+                <span className="text-sm text-white/60 truncate">Background</span>
               </div>
-              <button onClick={() => setIsBgModalOpen(true)} className="text-xs text-blue-400 hover:text-blue-300 transition-colors cursor-pointer ml-4">
+              <button onClick={() => setIsBgModalOpen(true)} className="text-xs text-blue-400 hover:text-blue-300 transition-colors cursor-pointer ml-4 shrink-0">
                 manage
               </button>
             </div>
 
-            <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.02] border border-white/[0.06]">
-              <div className="flex items-center gap-3">
-                <span className="text-white/30 text-sm">♪</span>
-                <span className="text-sm text-white/60">Audio</span>
+            <div className="flex items-center justify-between gap-2 p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] min-w-0">
+              <div className="flex items-center gap-3 min-w-0">
+                <span className="text-white/30 text-sm shrink-0">♪</span>
+                <span className="text-sm text-white/60 truncate">Audio</span>
               </div>
-              <button onClick={() => setIsAudioModalOpen(true)} className="text-xs text-blue-400 hover:text-blue-300 transition-colors cursor-pointer">
+              <button onClick={() => setIsAudioModalOpen(true)} className="text-xs text-blue-400 hover:text-blue-300 transition-colors cursor-pointer shrink-0">
                 manage
               </button>
             </div>
 
-            <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.02] border border-white/[0.06]">
-              <div className="flex items-center gap-3">
+            <div className="flex items-center justify-between gap-2 p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] min-w-0">
+              <div className="flex items-center gap-3 min-w-0">
                 {assetPreview("Profile Avatar") || assetIcon("Profile Avatar")}
-                <span className="text-sm text-white/60">Profile Avatar</span>
+                <span className="text-sm text-white/60 truncate">Profile Avatar</span>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 shrink-0">
                 <input ref={paRef} type="file" accept="image/*" className="hidden" onChange={() => handleAsset("Profile Avatar")} />
                 <button onClick={() => paRef.current?.click()} disabled={isSaving("Profile Avatar")} className="text-xs text-blue-400 hover:text-blue-300 disabled:opacity-40 transition-colors cursor-pointer">
                   {isSaving("Profile Avatar") ? "saving..." : profileAvatar ? "change" : "upload"}
@@ -1784,12 +1784,12 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
               </div>
             </div>
 
-            <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.02] border border-white/[0.06]">
-              <div className="flex items-center gap-3">
+            <div className="flex items-center justify-between gap-2 p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] min-w-0">
+              <div className="flex items-center gap-3 min-w-0">
                 {assetPreview("Banner") || assetIcon("Banner")}
-                <span className="text-sm text-white/60">Banner</span>
+                <span className="text-sm text-white/60 truncate">Banner</span>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 shrink-0">
                 <input ref={bannerRef} type="file" accept="image/*" className="hidden" onChange={() => handleAsset("Banner")} />
                 <button onClick={() => bannerRef.current?.click()} disabled={isSaving("Banner")} className="text-xs text-blue-400 hover:text-blue-300 disabled:opacity-40 transition-colors cursor-pointer">
                   {isSaving("Banner") ? "saving..." : banner ? "change" : "upload"}
@@ -1802,12 +1802,12 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
               </div>
             </div>
 
-            <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.02] border border-white/[0.06]">
-              <div className="flex items-center gap-3">
+            <div className="flex items-center justify-between gap-2 p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] min-w-0">
+              <div className="flex items-center gap-3 min-w-0">
                 {assetPreview("Custom Cursor") || assetIcon("Custom Cursor")}
-                <span className="text-sm text-white/60">Custom Cursor</span>
+                <span className="text-sm text-white/60 truncate">Custom Cursor</span>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 shrink-0">
                 <input ref={cursorRef} type="file" accept="image/*" className="hidden" onChange={() => handleAsset("Custom Cursor")} />
                 <button onClick={() => cursorRef.current?.click()} disabled={isSaving("Custom Cursor")} className="text-xs text-blue-400 hover:text-blue-300 disabled:opacity-40 transition-colors cursor-pointer">
                   {isSaving("Custom Cursor") ? "saving..." : customCursor ? "change" : "upload"}
@@ -1820,10 +1820,10 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
               </div>
             </div>
 
-            <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.02] border border-white/[0.06]">
-              <div className="flex items-center gap-3">
-                <Image size={16} className="text-white/30" />
-                <span className="text-sm text-white/60">Banner Enabled</span>
+            <div className="flex items-center justify-between gap-2 p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] min-w-0">
+              <div className="flex items-center gap-3 min-w-0">
+                <Image size={16} className="text-white/30 shrink-0" />
+                <span className="text-sm text-white/60 truncate">Banner Enabled</span>
               </div>
               <button
                 onClick={async () => {
