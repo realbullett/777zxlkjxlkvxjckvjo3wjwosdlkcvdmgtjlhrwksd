@@ -726,7 +726,7 @@ export default function Biolink() {
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: 4 }}
                             transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                            className="absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-[#222] px-2.5 py-1 text-xs font-semibold text-white/90 shadow-lg pointer-events-none capitalize"
+                            className="absolute -top-9 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-[#222] px-2.5 py-1 text-xs font-semibold text-white/90 shadow-lg pointer-events-none capitalize z-20"
                           >
                             {BADGE_LABELS[b] || b}
                           </motion.div>
