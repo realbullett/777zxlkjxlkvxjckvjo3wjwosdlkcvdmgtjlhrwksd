@@ -80,7 +80,7 @@ export default function DiscordRPC({ discordId, wide = false }: { discordId: str
   const decoUrl = data.avatar_decoration ? `https://cdn.discordapp.com/avatar-decoration-presets/${data.avatar_decoration}.png` : "";
 
   return (
-    <div className="w-fit max-w-full">
+    <div className="mx-auto w-fit max-w-full">
       <div className="flex items-center gap-3 rounded-[22px] bg-black/45 border border-white/10 px-4 py-2.5 backdrop-blur-md">
         <div className="relative flex-shrink-0">
           <img src={avatarUrl} alt={data.username || ""} className="h-14 w-14 rounded-full" />

@@ -118,7 +118,7 @@ export default async function handler(req, res) {
         return;
       }
       const Had = (UidRs[1].rows || []).find((R) => Number(R.user_id) === Number(Uid))?.vote;
-      if (!Number.isInteger(Dwell) || Dwell < 5000) {
+      if (!Number.isInteger(Dwell) || Dwell < 3000) {
         const C = await VoteCounts(Db, Uid);
         res.status(200).json({ likes: C.likes, dislikes: C.dislikes, mine: Number(Had || 0), counted: false });
         return;
