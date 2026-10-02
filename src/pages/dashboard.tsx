@@ -2889,12 +2889,13 @@ function Preview({ user, desc, background, audio, profileAvatar, customCursor, d
 }) {
   const BADGE_FILES: Record<string, string> = {
     verified: "verified.png",
-    premium: "premium.png",
+    premium: "premium.webp",
     og: "og.png",
-    booster: "booster.png",
-    staff: "staff.png",
+    booster: "booster.webp",
+    staff: "staff.webp",
     bug: "bug.png",
     corrupt: "corrupt.png",
+    owner: "owner.webp",
   };
   const BADGE_LABELS: Record<string, string> = {
     bug: "bug hunter",
@@ -3187,17 +3188,18 @@ function Preview({ user, desc, background, audio, profileAvatar, customCursor, d
 
 const BADGE_LIST = [
   { id: "verified", file: "verified.png" },
-  { id: "premium", file: "premium.png" },
+  { id: "premium", file: "premium.webp" },
   { id: "og", file: "og.png" },
-  { id: "booster", file: "booster.png" },
-  { id: "staff", file: "staff.png" },
+  { id: "booster", file: "booster.webp" },
+  { id: "staff", file: "staff.webp" },
   { id: "bug", file: "bug.png", label: "bug hunter" },
   { id: "corrupt", file: "corrupt.png" },
+  { id: "owner", file: "owner.webp" },
 ];
 
 const SELF_BADGE_LIST = [
   { id: "og", file: "og.png", claimable: true, desc: "secured this badge in the early days of sire.lol" },
-  { id: "premium", file: "premium.png", claimable: false, desc: "exclusive badge for premium supporters" },
+  { id: "premium", file: "premium.webp", claimable: false, desc: "exclusive badge for premium supporters" },
 ];
 
 function UserBadges({ user }: { user: User | null }) {
@@ -4738,7 +4740,7 @@ function Premium({ user }: { user: User | null }) {
           <div className="absolute inset-0 rounded-2xl bg-[radial-gradient(ellipse_60%_40%_at_50%_0%,rgba(255,255,255,0.1),transparent_70%)] pointer-events-none" />
           {loaded && premium ? (
             <>
-              <img src="/emojis/premium.png" alt="premium" className="relative h-14 w-14 object-contain drop-shadow-[0_0_15px_rgba(37,99,235,0.5)]" />
+              <img src="/emojis/premium.webp" alt="premium" className="relative h-14 w-14 object-contain drop-shadow-[0_0_15px_rgba(37,99,235,0.5)]" />
               <p className="relative text-gradient-blue font-bold text-lg">you have premium</p>
               <p className="relative text-sm text-white/50">thanks for supporting sire.lol.</p>
             </>

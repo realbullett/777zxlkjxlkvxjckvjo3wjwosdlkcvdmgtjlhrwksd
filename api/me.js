@@ -60,7 +60,7 @@ const TEMPLATE_FIELDS = new Set([
 ]);
 
 const ASSET_TYPES = new Set(["background", "audio", "audio_1", "audio_2", "profile_avatar", "custom_cursor", "video_background", "banner"]);
-const BADGES = new Set(["og", "premium", "verified", "booster", "staff", "bug", "corrupt"]);
+const BADGES = new Set(["og", "premium", "verified", "booster", "staff", "bug", "corrupt", "owner"]);
 const ADMIN_DELETE_TABLES = ["badges", "links", "page_views", "templates", "songs", "template_installs"];
 
 const HOST_MAX_BYTES = 10 * 1024 * 1024;

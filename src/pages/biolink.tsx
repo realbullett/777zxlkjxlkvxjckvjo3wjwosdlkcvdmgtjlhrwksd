@@ -17,12 +17,13 @@ import { normalizeWidgets } from "../lib/widgets";
 
 const BADGE_FILES: Record<string, string> = {
   verified: "verified.png",
-  premium: "premium.png",
+  premium: "premium.webp",
   og: "og.png",
-  booster: "booster.png",
-  staff: "staff.png",
+  booster: "booster.webp",
+  staff: "staff.webp",
   bug: "bug.png",
   corrupt: "corrupt.png",
+  owner: "owner.webp",
 };
 
 const BADGE_LABELS: Record<string, string> = {
