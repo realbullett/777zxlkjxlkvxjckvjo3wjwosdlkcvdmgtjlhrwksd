@@ -138,9 +138,11 @@ export default function RobloxCard({ config, instant = false }: { config: Roblox
                   {info.displayName}
                 </p>
               </a>
-              <p className="mt-0.5 truncate text-xs" style={{ color: "var(--text-color, #ffffff)", opacity: 0.55 }}>
-                <PersonIcon /> {Compact(info.friends)} friends <span className="mx-1">•</span> <PinIcon /> {Compact(info.followers)} followers
-              </p>
+              <div className="mt-0.5 flex items-center gap-1 overflow-hidden whitespace-nowrap text-xs" style={{ color: "var(--text-color, #ffffff)", opacity: 0.55 }}>
+                <span className="flex shrink-0 items-center gap-1"><PersonIcon /> {Compact(info.friends)} friends</span>
+                <span className="mx-1 shrink-0">•</span>
+                <span className="flex shrink-0 items-center gap-1"><PinIcon /> {Compact(info.followers)} followers</span>
+              </div>
             </div>
           </div>
         </div>
