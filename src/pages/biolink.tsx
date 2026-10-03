@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence, LayoutGroup, type Variants } from "motion/react";
 import { Eye, Link as LinkIcon, ThumbsUp, ThumbsDown, Calendar, CheckCircle2, X, ChevronDown, ChevronUp } from "lucide-react";
 import { PLATFORMS } from "../lib/platforms";
-import { FONTS, CUSTOM_FONT_FAMILY, ResolveFontFamily } from "../lib/fonts";
+import { FONTS, CUSTOM_FONT_FAMILY, ResolveFontFamily, CustomFontFace } from "../lib/fonts";
 import { SparkleText } from "../components/SparkleText";
 import { RainEffect, SnowEffect, AuroraEffect, TvStaticEffect, ParticlesEffect, GalaxyEffect, MatrixEffect, SpotlightEffect } from "../components/BackgroundEffect";
 import SongPlayer from "../components/SongPlayer";
@@ -575,14 +575,15 @@ export default function Biolink() {
     isPremium || !PREMIUM_BG_EFFECTS.has(user.bg_effect || "")
       ? user.bg_effect
       : "none";
-  const customFontUrl = getAsset("custom_font") || "";
+  const customFontAsset = assets.find((a) => a.type === "custom_font");
+  const customFontUrl = customFontAsset?.url || "";
   const hasCustomFont = user.font === "Custom" && !!customFontUrl;
   const customFontAll = hasCustomFont && (user.custom_font_scope || "all") === "all";
 
   return (
     <>
       {hasCustomFont ? (
-        <style>{`@font-face { font-family: 'SireCustomFont'; src: url('${customFontUrl}'); font-display: swap; }`}</style>
+        <style>{CustomFontFace(customFontUrl, (customFontAsset as any)?.filename)}</style>
       ) : null}
       <SEO
         title={user.seo_title || `${user.display_name || user.username} — sire.lol`}

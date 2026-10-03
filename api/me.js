@@ -475,7 +475,8 @@ async function hostServe(req, res) {
   res.status(200)
     .setHeader("Content-Type", row.content_type || "application/octet-stream")
     .setHeader("Content-Length", buffer.byteLength)
-    .setHeader("Cache-Control", "public, max-age=31536000, immutable");
+    .setHeader("Cache-Control", "public, max-age=31536000, immutable")
+    .setHeader("Access-Control-Allow-Origin", "*");
   if (row.kind === "file") {
     res.setHeader("Content-Disposition", `inline; filename="${String(row.filename || "file")}"`);
   }
@@ -510,7 +511,8 @@ async function assetServe(req, res) {
   res.status(200)
     .setHeader("Content-Type", row.content_type || "application/octet-stream")
     .setHeader("Content-Length", buffer.byteLength)
-    .setHeader("Cache-Control", "public, max-age=31536000, immutable");
+    .setHeader("Cache-Control", "public, max-age=31536000, immutable")
+    .setHeader("Access-Control-Allow-Origin", "*");
   if (row.kind === "file") {
     res.setHeader("Content-Disposition", `inline; filename="${String(row.filename || "file")}"`);
   }

@@ -15,6 +15,19 @@ export const FONTS = [
 export const CUSTOM_FONT_NAME = "Custom";
 export const CUSTOM_FONT_FAMILY = "'SireCustomFont', sans-serif";
 
+export function FontFormatFor(filename: string | undefined | null): string | null {
+  const ext = String(filename || "").trim().toLowerCase().split(".").pop() || "";
+  if (ext === "ttf") return "truetype";
+  if (ext === "otf") return "opentype";
+  if (ext === "woff") return "woff";
+  if (ext === "woff2") return "woff2";
+  return null;
+}
+
+export function CustomFontFace(url: string, filename: string | undefined | null): string {
+  const fmt = FontFormatFor(filename);
+  return `@font-face { font-family: 'SireCustomFont'; src: url('${url}')${fmt ? ` format('${fmt}')` : ""}; font-display: swap; }`;
+}
 export function ResolveFontFamily(name: string | undefined | null, hasCustom: boolean) {
   if (name === CUSTOM_FONT_NAME && hasCustom) return CUSTOM_FONT_FAMILY;
   return FONTS.find(f => f.name === (name || "Inter"))?.family || "'Inter', sans-serif";
