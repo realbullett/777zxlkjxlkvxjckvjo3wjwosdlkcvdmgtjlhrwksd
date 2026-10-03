@@ -762,10 +762,8 @@ export default async function handler(req, res) {
         data.font = String(data.font).slice(0, 64);
       }
       if (data.widgets !== undefined) {
-        if (!(await isPremiumUser(uid))) {
-          res.status(403).json({ error: "This is a premium feature." });
-          return;
-        }
+        const canFullWidgets = await isPremiumUser(uid);
+        const maxPages = canFullWidgets ? 4 : 2;
         let w = data.widgets;
         if (typeof w === "string") {
           try {
@@ -779,7 +777,7 @@ export default async function handler(req, res) {
           res.status(400).json({ error: "Invalid widgets" });
           return;
         }
-        const pages = Math.max(1, Math.min(4, Math.round(Number(w.pages) || 1)));
+        const pages = Math.max(1, Math.min(maxPages, Math.round(Number(w.pages) || 1)));
         const a = w.about && typeof w.about === "object" && !Array.isArray(w.about) ? w.about : {};
         const clock = a.clock && typeof a.clock === "object" && !Array.isArray(a.clock) ? a.clock : null;
         const s = w.song && typeof w.song === "object" && !Array.isArray(w.song) ? w.song : {};

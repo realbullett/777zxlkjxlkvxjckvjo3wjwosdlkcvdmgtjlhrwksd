@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useNavigate, useSearchParams, Link as RouterLink, Link } from "react-router-dom";
 import { motion, AnimatePresence, LayoutGroup, useMotionValue } from "motion/react";
-import { User, Paintbrush, Link as LucideLink, Image, Crown, Layout, Shield, Home, AtSign, Hash, Eye, User as UserIcon, Volume2, X, Music, Play, Pause, Trash2, Upload, LogOut, Check, Database, Award, Copy, Lock, HardDrive, Layers, Type, Star, Clock, Search, TrendingUp, RefreshCw, Trophy } from "lucide-react";
+import { User, Paintbrush, Link as LucideLink, Image, Crown, Layout, Shield, Home, AtSign, Hash, Eye, User as UserIcon, Volume2, X, Music, Play, Pause, Trash2, Upload, LogOut, Check, Database, Award, Copy, HardDrive, Layers, Type, Star, Clock, Search, TrendingUp, RefreshCw, Trophy } from "lucide-react";
 import { PLATFORMS } from "../lib/platforms";
 import { FONTS, CUSTOM_FONT_FAMILY, CUSTOM_FONT_NAME, ResolveFontFamily, CustomFontFace, ToSameOriginUrl } from "../lib/fonts";
 import { SparkleText } from "../components/SparkleText";
@@ -323,21 +323,24 @@ return (
             <div className="flex flex-col gap-0.5 px-3">
               {tabs.filter((t) => t.id !== "admin" || user?.id === 1 || user?.is_admin === 1).map((t) => {
                 const Icon = t.icon;
-                const isPremiumTab = t.id === "widgets" || t.id === "premium" || t.id === "imagehost" || t.id === "filehost";
+                const isPremiumTab = t.id === "premium" || t.id === "imagehost" || t.id === "filehost";
+                const isWidgetsTab = t.id === "widgets";
                 return (
                   <button
                     key={t.id}
                     onClick={() => { if (t.id === "leaderboard") { navigate("/leaderboard"); return; } setActiveTab(t.id); }}
                     className={`relative flex items-center gap-2.5 px-2.5 py-2.5 rounded-xl text-[13px] font-medium transition-all ${
-                      isPremiumTab
-                        ? "shimmer text-blue-300 border border-blue-500/30 bg-blue-600/15 shadow-[0_0_25px_rgba(37,99,235,0.35)]"
-                        : activeTab === t.id
-                          ? "bg-blue-600/20 text-blue-300"
-                          : "text-white/30 hover:text-white/60 hover:bg-white/[0.03]"
+                      isWidgetsTab
+                        ? "shimmer text-emerald-300 border border-emerald-500/30 bg-emerald-600/15 shadow-[0_0_25px_rgba(16,185,129,0.35)]"
+                        : isPremiumTab
+                          ? "shimmer text-blue-300 border border-blue-500/30 bg-blue-600/15 shadow-[0_0_25px_rgba(37,99,235,0.35)]"
+                          : activeTab === t.id
+                            ? "bg-blue-600/20 text-blue-300"
+                            : "text-white/30 hover:text-white/60 hover:bg-white/[0.03]"
                     }`}
                   >
-                    <Icon size={16} className={isPremiumTab ? "text-blue-400" : undefined} />
-                    <span className={`whitespace-nowrap ${isPremiumTab ? "text-gradient-blue font-bold" : undefined}`}>{t.label}</span>
+                    <Icon size={16} className={isWidgetsTab ? "text-emerald-400" : isPremiumTab ? "text-blue-400" : undefined} />
+                    <span className={`whitespace-nowrap ${isWidgetsTab ? "text-emerald-300 font-bold" : isPremiumTab ? "text-gradient-blue font-bold" : undefined}`}>{t.label}</span>
                     {isPremiumTab && (
                       <Crown size={12} className="text-blue-300 absolute right-3 top-1/2 -translate-y-1/2 animate-pulse" />
                     )}
@@ -4979,7 +4982,7 @@ function Premium({ user }: { user: User | null }) {
                 <Crown size={22} className="text-blue-300" />
               </div>
               <p className="relative text-gradient-blue font-bold text-lg">you're on the free plan</p>
-              <p className="relative text-sm text-white/50 max-w-sm">premium unlocks exclusive widgets, effects, the premium badge, and more.</p>
+              <p className="relative text-sm text-white/50 max-w-sm">premium unlocks 4 widget pages, exclusive effects, the premium badge, and more.</p>
             </>
           )}
         </div>
@@ -5322,7 +5325,6 @@ function FileHost({ user }: { user: User | null }) {
 
 function Widgets({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (u: User) => void }) {
   const [premium, setPremium] = useState(false);
-  const [loaded, setLoaded] = useState(false);
   const [widgets, setWidgets] = useState<WidgetsConfig>(emptyWidgets);
   const [pinHint, setPinHint] = useState("");  const [tagInput, setTagInput] = useState("");
   const [saving, setSaving] = useState(false);
@@ -5334,8 +5336,7 @@ function Widgets({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (u:
     if (!user) return;
     FetchProfile(user.username).then((J) => {
       setPremium(Array.isArray(J?.badges) && J.badges.includes("premium"));
-      setLoaded(true);
-    }).catch(() => setLoaded(true));
+    }).catch(() => {});
   }, [user]);
 
   useEffect(() => {
@@ -5356,10 +5357,11 @@ function Widgets({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (u:
 
   const setPages = (n: number) =>
     setWidgets((prev) => {
-      const next = { ...prev, pages: n };
-      if (n >= 2 && !next.about) next.about = defaultAboutPage();
-      if (n >= 3 && !next.song) next.song = defaultSongPage();
-      if (n >= 4 && !next.projects) next.projects = defaultProjectsPage();
+      const capped = premium ? n : Math.min(n, 2);
+      const next = { ...prev, pages: capped };
+      if (capped >= 2 && !next.about) next.about = defaultAboutPage();
+      if (capped >= 3 && !next.song) next.song = defaultSongPage();
+      if (capped >= 4 && !next.projects) next.projects = defaultProjectsPage();
       return next;
     });
 
@@ -5435,41 +5437,21 @@ function Widgets({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (u:
 
   const clock = widgets.about?.clock ?? null;
 
-  if (loaded && !premium) {
-    return (
-      <div className="relative">
-        <div className="absolute inset-0 pointer-events-none -z-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_0%,rgba(37,99,235,0.12),transparent_70%)]" />
-        <div className="relative z-10">
-          <div className="flex items-center gap-3 mb-8">
-            <h1 className="text-lg font-semibold text-gradient-blue lowercase">widgets</h1>
-            <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-blue-300 bg-blue-600/15 border border-blue-500/30 rounded-full px-2.5 py-1 shadow-[0_0_15px_rgba(37,99,235,0.25)]">
-              <Crown size={10} /> premium
-            </span>
-          </div>
-          <div className="relative shine-effect rounded-2xl p-12 flex flex-col items-center justify-center gap-4 text-center border border-blue-500/30 bg-gradient-to-br from-blue-600/15 via-blue-500/5 to-white/5 glow-blue">
-            <div className="absolute inset-0 rounded-2xl bg-[radial-gradient(ellipse_60%_40%_at_50%_0%,rgba(255,255,255,0.1),transparent_70%)] pointer-events-none" />
-            <div className="relative h-14 w-14 rounded-2xl bg-blue-600/20 border border-blue-400/40 flex items-center justify-center shadow-[0_0_25px_rgba(37,99,235,0.4)]">
-              <Lock size={22} className="text-blue-300" />
-            </div>
-            <div className="relative">
-              <p className="text-gradient-blue font-bold text-lg">premium feature</p>
-              <p className="text-sm text-white/50 mt-1 max-w-sm">widgets let you embed live widgets like a clock on your biolink. only premium users can use it.</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="relative">
       <div className="absolute inset-0 pointer-events-none -z-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_0%,rgba(37,99,235,0.12),transparent_70%)]" />
       <div className="relative z-10">
         <div className="flex items-center gap-3 mb-8">
           <h1 className="text-lg font-semibold text-gradient-blue lowercase">widgets</h1>
-          <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-blue-300 bg-blue-600/15 border border-blue-500/30 rounded-full px-2.5 py-1 shadow-[0_0_15px_rgba(37,99,235,0.25)]">
-            <Crown size={10} /> premium
-          </span>
+          {premium ? (
+            <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-blue-300 bg-blue-600/15 border border-blue-500/30 rounded-full px-2.5 py-1 shadow-[0_0_15px_rgba(37,99,235,0.25)]">
+              <Crown size={10} /> premium
+            </span>
+          ) : (
+            <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-300 bg-emerald-600/15 border border-emerald-500/30 rounded-full px-2.5 py-1">
+              free · up to 2 pages
+            </span>
+          )}
         </div>
 
         <div className="flex items-center gap-3 mb-6">
@@ -5484,18 +5466,22 @@ function Widgets({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (u:
         </div>
 
         <div className="glass-card rounded-2xl p-6 mb-6 border-blue-500/10">
-          <p className="text-[11px] text-white/40 mb-3">number of pages on your biolink</p>
+          <p className="text-[11px] text-white/40 mb-3">number of pages on your biolink{premium ? "" : " · premium unlocks pages 3–4"}</p>
           <div className="flex gap-2">
-            {[1, 2, 3, 4].map((n) => (
-              <button
-                key={n}
-                onClick={() => setPages(n)}
-                className={`h-10 w-10 rounded-xl text-sm font-bold transition-all cursor-pointer border ${widgets.pages === n ? "bg-gradient-to-br from-blue-600 to-blue-500 text-white border-blue-400 shadow-[0_0_15px_rgba(37,99,235,0.4)]" : "bg-white/[0.03] text-white/50 border-white/10 hover:border-blue-500/40 hover:text-white/80"}`}
-                title={`${n} page${n > 1 ? "s" : ""}`}
-              >
-                {n}
-              </button>
-            ))}
+            {[1, 2, 3, 4].map((n) => {
+              const locked = !premium && n > 2;
+              return (
+                <button
+                  key={n}
+                  onClick={() => { if (!locked) setPages(n); }}
+                  disabled={locked}
+                  className={`h-10 w-10 rounded-xl text-sm font-bold transition-all border ${widgets.pages === n ? "bg-gradient-to-br from-blue-600 to-blue-500 text-white border-blue-400 shadow-[0_0_15px_rgba(37,99,235,0.4)]" : locked ? "bg-white/[0.02] text-white/20 border-white/5 cursor-not-allowed" : "bg-white/[0.03] text-white/50 border-white/10 hover:border-blue-500/40 hover:text-white/80 cursor-pointer"}`}
+                  title={locked ? "premium unlocks pages 3–4" : `${n} page${n > 1 ? "s" : ""}`}
+                >
+                  {n}
+                </button>
+              );
+            })}
           </div>
           <p className="text-[10px] text-white/30 mt-3">
             {widgets.pages === 1

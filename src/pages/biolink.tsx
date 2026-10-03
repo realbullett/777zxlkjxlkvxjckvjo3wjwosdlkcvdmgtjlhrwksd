@@ -572,7 +572,7 @@ export default function Biolink() {
 
   const isPremium = badges.includes("premium");
   const widgetCfg = normalizeWidgets(user.widgets);
-  const pageCount = widgetCfg.pages;
+  const pageCount = isPremium ? widgetCfg.pages : Math.min(widgetCfg.pages, 2);
   const hasSongPage = pageCount >= 3 && !!widgetCfg.song;
   const displayEffect =
     isPremium || !PREMIUM_DISPLAY_EFFECTS.has(user.display_effect || "")
@@ -594,7 +594,7 @@ export default function Biolink() {
     if (k === "roblox") return !!widgetCfg.about?.roblox;
     return false;
   }).slice(0, 3);
-  const hasSide = isPremium && sideKeys.length > 0;
+  const hasSide = sideKeys.length > 0;
   const featFm = sideKeys.length === 3 && sideKeys.includes("lastfm");
 
   return (
@@ -990,7 +990,7 @@ export default function Biolink() {
             </div>
           </div>
         </motion.div>
-          {isPremium && pageCount >= 2 && widgetCfg.about ? (
+          {pageCount >= 2 && widgetCfg.about ? (
             <motion.div
               id="bio-page-2"
               initial={{ opacity: 0 }}
@@ -1001,7 +1001,7 @@ export default function Biolink() {
               <AboutPage config={widgetCfg.about} discordId={user.discord_id} discordEnabled={user.discord_rpc_enabled} />
             </motion.div>
           ) : null}
-          {isPremium && pageCount >= 3 && widgetCfg.song ? (
+          {pageCount >= 3 && widgetCfg.song ? (
             <motion.div
               id="bio-page-3"
               initial={{ opacity: 0 }}
@@ -1012,7 +1012,7 @@ export default function Biolink() {
               <SongPage url={widgetCfg.song.url} autoPlay={entered} bgImage={bg} />
             </motion.div>
           ) : null}
-          {isPremium && pageCount >= 4 && widgetCfg.projects ? (
+          {pageCount >= 4 && widgetCfg.projects ? (
             <motion.div
               id="bio-page-4"
               initial={{ opacity: 0 }}
@@ -1023,7 +1023,7 @@ export default function Biolink() {
               <ProjectsPage config={widgetCfg.projects} />
             </motion.div>
           ) : null}
-          {isPremium && pageCount > 1 ? (
+          {pageCount > 1 ? (
             <div
               className="fixed right-6 top-1/2 z-[5] flex -translate-y-1/2 flex-col items-center gap-2 rounded-full border border-white/10 bg-black/40 px-2 py-3 backdrop-blur-md transition-all hover:border-white/30"
               aria-label="page navigation"
