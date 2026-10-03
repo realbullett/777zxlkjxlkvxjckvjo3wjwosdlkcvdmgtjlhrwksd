@@ -35,10 +35,9 @@ export default function AboutPage({
   const showServer = !!config.discordServer?.inviteCode;
   const showLastfm = !!config.lastfm?.username;
   const showRoblox = !!config.roblox?.username;
-  const leftHas = showDiscord || showLastfm;
-  const rightHas = !!config.clock;
-  const rowHas = showServer || showRoblox;
-  const hasWidgets = leftHas || rightHas || rowHas;
+  const showRpc = showDiscord;
+  const showClock = !!config.clock;
+  const hasWidgets = showRpc || showLastfm || showClock || showServer || showRoblox;
   const scrollAnim = instant ? {} : { whileInView: "show" as const, viewport: dropInView };
   return (
     <motion.div
@@ -63,40 +62,32 @@ export default function AboutPage({
         </motion.div>
       ) : null}
       {hasWidgets && (
-        <motion.div variants={dropContainer} className="w-full">
-          <div className={`grid w-full grid-cols-1 items-start gap-5 ${leftHas && rightHas ? "sm:grid-cols-2" : ""}`}>
-            {leftHas && (
-              <div className="flex w-full flex-col gap-5">
-                {showDiscord && (
-                  <motion.div variants={dropItem} className="w-full">
-                    <DiscordRPC discordId={discordId!} wide />
-                  </motion.div>
-                )}
-                {showLastfm && (
-                  <motion.div variants={dropItem} className="w-full">
-                    <LastfmCard config={config.lastfm!} instant={instant} />
-                  </motion.div>
-                )}
-              </div>
-            )}
-            {rightHas && (
-              <div className="flex w-full flex-col gap-5">
-                {config.clock && (
-                  <motion.div variants={dropItem} className="w-full">
-                    <ClockWidget widget={config.clock} />
-                  </motion.div>
-                )}
-              </div>
-            )}
-          </div>
-        </motion.div>
-      )}
-      {rowHas && (
-        <motion.div variants={dropItem} className="w-full">
-          <div className={`grid w-full grid-cols-1 items-start gap-5 ${showServer && showRoblox ? "sm:grid-cols-2" : ""}`}>
-            {showServer && <DiscordServerCard config={config.discordServer!} instant={instant} />}
-            {showRoblox && <RobloxCard config={config.roblox!} instant={instant} />}
-          </div>
+        <motion.div variants={dropContainer} className="w-full columns-1 gap-5 sm:columns-2">
+          {showRpc && (
+            <motion.div variants={dropItem} className="mb-5 break-inside-avoid">
+              <DiscordRPC discordId={discordId!} wide />
+            </motion.div>
+          )}
+          {showLastfm && (
+            <motion.div variants={dropItem} className="mb-5 break-inside-avoid">
+              <LastfmCard config={config.lastfm!} instant={instant} />
+            </motion.div>
+          )}
+          {showClock && (
+            <motion.div variants={dropItem} className="mb-5 break-inside-avoid">
+              <ClockWidget widget={config.clock!} />
+            </motion.div>
+          )}
+          {showServer && (
+            <motion.div variants={dropItem} className="mb-5 break-inside-avoid">
+              <DiscordServerCard config={config.discordServer!} instant={instant} />
+            </motion.div>
+          )}
+          {showRoblox && (
+            <motion.div variants={dropItem} className="mb-5 break-inside-avoid">
+              <RobloxCard config={config.roblox!} instant={instant} />
+            </motion.div>
+          )}
         </motion.div>
       )}
       {showTags && (

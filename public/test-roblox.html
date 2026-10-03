@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Roblox card test</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0a0a0a; color: #fff; font-family: Inter, system-ui, sans-serif; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; padding: 24px; }
+  .card { width: 300px; max-width: 100%; background: rgba(10,10,10,.6); backdrop-filter: blur(8px); border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+  .top { display: flex; align-items: center; gap: 6px; }
+  .row { display: flex; gap: 12px; align-items: center; }
+  .ava { width: 44px; height: 44px; border-radius: 8px; background: #1e1e1e; object-fit: cover; flex-shrink: 0; }
+  .who { flex: 1; min-width: 0; }
+  .handle { font-size: 11px; color: rgba(255,255,255,.55); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .name { font-size: 20px; font-weight: 800; letter-spacing: -0.01em; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sub { display: flex; align-items: center; gap: 5px; font-size: 12px; color: rgba(255,255,255,.55); margin-top: 3px; white-space: nowrap; overflow: hidden; }
+  .sub .stat { display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; }
+  .sub .ic { width: 11px; height: 11px; vertical-align: -1px; opacity: .7; }
+  .top a, .who a { color: inherit; text-decoration: none; }
+  .top a:hover .handle, .who a:hover .name { text-decoration: underline; }
+  .msg { font-size: 14px; color: rgba(255,255,255,.5); }
+  .err { font-size: 14px; color: #f87171; max-width: 380px; text-align: center; }
+</style>
+</head>
+<body>
+  <div id="out"><p class="msg">loading linkmon99…</p></div>
+<script>
+const $ = (s) => document.querySelector(s);
+const out = $('#out');
+const compact = (n) => n == null ? '—' : n >= 1e6 ? (n/1e6).toFixed(1).replace(/\.0$/,'') + 'M' : n >= 1e3 ? (n/1e3).toFixed(1).replace(/\.0$/,'') + 'K' : String(n);
+const joinedFmt = (iso) => { const d = new Date(iso); return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }); };
+function avErr(el) {
+  const fb = el.getAttribute('data-fb');
+  if (fb) { el.removeAttribute('data-fb'); el.src = fb; }
+  else { const d = document.createElement('div'); d.className = 'ava'; el.replaceWith(d); }
+}
+async function tf(url, opts, ms) {
+  const c = new AbortController();
+  const t = setTimeout(() => c.abort(), ms || 12000);
+  try {
+    return await fetch(url, Object.assign({}, opts || {}, { signal: c.signal }));
+  } finally {
+    clearTimeout(t);
+  }
+}
+async function rproxyFast(url) {
+  const jobs = [
+    tf(url, undefined, 8000).then(async (r) => { if (!r.ok) throw new Error('bad ' + r.status); return r.json(); }),
+    tf('https://corsproxy.io/?url=' + encodeURIComponent(url), undefined, 10000).then((r) => r.json()),
+    tf('https://api.allorigins.win/raw?url=' + encodeURIComponent(url), undefined, 12000).then((r) => r.json())
+  ];
+  return Promise.any(jobs);
+}
+
+async function load(username) {
+  out.innerHTML = '<p class="msg">loading ' + username + '…</p>';
+  try {
+    out.innerHTML = '<p class="msg">resolving ' + username + '…</p>';
+    const ures = await tf('https://users.roproxy.com/v1/usernames/users', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ usernames: [username], excludeBannedUsers: true })
+    }, 10000);
+    const ujson = await ures.json();
+    if (!ujson.data || !ujson.data.length) throw new Error('user not found: ' + username);
+    const id = ujson.data[0].id;
+    out.innerHTML = '<p class="msg">fetching stats…</p>';
+    const [detail, friends, followers, thumb] = await Promise.all([
+      tf('https://users.roproxy.com/v1/users/' + id).then(r => r.json()),
+      tf('https://friends.roproxy.com/v1/users/' + id + '/friends/count').then(r => r.json()).catch(() => ({})),
+      tf('https://friends.roproxy.com/v1/users/' + id + '/followers/count').then(r => r.json()).catch(() => ({})),
+      tf('https://thumbnails.roproxy.com/v1/users/avatar-headshot?userIds=' + id + '&size=180x180&format=Png&isCircular=false').then(r => r.json()).catch(() => ({}))
+    ]);
+    const thumbUrl = (thumb.data && thumb.data[0] && thumb.data[0].imageUrl) || '';
+    const fbUrl = 'https://www.roblox.com/headshot/thumb?userId=' + id + '&x=180&y=180&format=png';
+    const avHtml = thumbUrl
+      ? '<img class="ava" src="' + thumbUrl + '" data-fb="' + fbUrl + '" onerror="avErr(this)" alt="" />'
+      : '<img class="ava" src="' + fbUrl + '" onerror="avErr(this)" alt="" />';
+    const esc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const RBX = '<svg width="15" height="15" viewBox="0 0 24 24"><mask id="rh"><rect width="24" height="24" fill="#fff"/><rect x="9" y="9" width="6" height="6" fill="#000"/></mask><g transform="rotate(12 12 12)"><rect x="4" y="4" width="16" height="16" rx="3.5" fill="#fff" mask="url(#rh)"/></g></svg>';
+    const PPL = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20c1-3.8 3.8-5.5 7.5-5.5s6.5 1.7 7.5 5.5"/></svg>';
+    const PIN = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 21s-6.5-5.6-6.5-10.5a6.5 6.5 0 0113 0C18.5 15.4 12 21 12 21z"/><circle cx="12" cy="10.3" r="2.2"/></svg>';
+    const profUrl = 'https://www.roblox.com/users/' + id + '/profile';
+    out.innerHTML =
+      '<div class="card">' +
+      '<div class="top">' + RBX + '<a href="' + profUrl + '" target="_blank" rel="noreferrer"><div class="handle">@' + esc(detail.name) + '</div></a></div>' +
+      '<div class="row">' + avHtml +
+      '<div class="who"><a href="' + profUrl + '" target="_blank" rel="noreferrer"><div class="name">' + esc(detail.displayName) + '</div></a>' +
+      '<div class="sub"><span class="stat">' + PPL + ' ' + compact(friends.count) + ' friends</span><span>•</span><span class="stat">' + PIN + ' ' + compact(followers.count) + ' followers</span></div></div>' +
+      '</div></div>';
+  } catch (e) {
+    out.innerHTML = '<p class="err">couldn\'t load this roblox user — ' + (e.message || 'check the username') + '</p>';
+  }
+}
+load('linkmon99');
+</script>
+</body>
+</html>

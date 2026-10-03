@@ -14,6 +14,7 @@ import AboutPage from "../components/AboutPage";
 import SongPage from "../components/SongPage";
 import ProjectsPage from "../components/ProjectsPage";
 import { normalizeWidgets } from "../lib/widgets";
+import { VerifiedIcon } from "../components/VerifiedIcon";
 
 const BADGE_FILES: Record<string, string> = {
   verified: "verified.png",
@@ -54,6 +55,8 @@ type User = {
   views_blacklisted: boolean;
   created_at: string | null;
   show_joindate: boolean | null;
+  show_views: boolean | null;
+  show_votes: boolean | null;
   custom_font_scope: string | null;
   description: string | null;
   accent_color: string | null;
@@ -129,7 +132,7 @@ export default function Biolink() {
   const [badges, setBadges] = useState<string[]>([]);
   const [badgePrefs, setBadgePrefs] = useState<Record<string, { hidden: boolean; byName: boolean }>>({});
   const visibleBadges = badges.filter((b) => !badgePrefs[b]?.hidden);
-  const showVerifiedByName = badges.includes("verified") && !!badgePrefs.verified?.byName && !badgePrefs.verified?.hidden;
+  const showVerifiedByName = badges.includes("verified") && !!badgePrefs.verified?.byName;
   const [links, setLinks] = useState<Record<string, string>>({});
   const [hoveredBadge, setHoveredBadge] = useState<string | null>(null);
   const [hoveredUid, setHoveredUid] = useState(false);
@@ -741,7 +744,7 @@ export default function Biolink() {
                     user.display_name || user.username
                   )}
                   {showVerifiedByName && (
-                    <img src="/emojis/verified.png" alt="verified" className="inline-block h-[1em] w-[1em] ml-2 -mt-1 brightness-150" />
+                    <VerifiedIcon className="inline-block h-[1em] w-[1em] ml-2 -mt-1" />
                   )}
                 </h1>
                 </motion.div>
@@ -771,6 +774,37 @@ export default function Biolink() {
                         style={{ width: `${visibleBadges.length * 32 + 20}px` }}
                       >
                         {visibleBadges.map((b) => {
+                          if (b === "verified") {
+                            return (
+                              <motion.div
+                                key={b}
+                                layout
+                                variants={dropItem}
+                                onMouseEnter={() => setHoveredBadge(b)}
+                                className="relative flex items-center justify-center"
+                              >
+                                <motion.span
+                                  className={`flex h-7 w-7 items-center justify-center text-white ${user?.monochrome_badges ? "opacity-70" : ""}`}
+                                  whileHover={{ scale: 1.15 }}
+                                  transition={{ type: "spring", stiffness: 300, damping: 15 }}
+                                >
+                                  <VerifiedIcon className="h-7 w-7" />
+                                </motion.span>
+                                {hoveredBadge === b && (
+                                  <motion.div
+                                    layoutId="tooltip"
+                                    initial={{ opacity: 0, y: 4 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: 4 }}
+                                    transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                                    className="absolute -top-9 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-[#222] px-2.5 py-1 text-xs font-semibold text-white/90 shadow-lg pointer-events-none capitalize z-20"
+                                  >
+                                    {BADGE_LABELS[b] || b}
+                                  </motion.div>
+                                )}
+                              </motion.div>
+                            );
+                          }
                           const src = BADGE_FILES[b] ? `/emojis/${BADGE_FILES[b]}` : null;
                           if (!src) return null;
                           return (
@@ -875,6 +909,7 @@ export default function Biolink() {
               )}
             </motion.div>
             <motion.div initial={{ opacity: 0 }} animate={entered ? { opacity: 1 } : {}} transition={{ duration: 0.4, delay: 0.5 }}>
+              {user.show_views !== false ? (
               <div className="group absolute bottom-4 left-4 flex items-center gap-2 rounded-xl bg-white/10 px-3 py-1.5 backdrop-blur-sm cursor-default">
                 <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-black/80 px-2 py-1 text-[11px] font-medium text-white/80 opacity-0 transition-opacity group-hover:opacity-100">views</span>
                 <Eye size={16} className="text-white shrink-0" />
@@ -890,7 +925,8 @@ export default function Biolink() {
                     </>
                   ) : null}
               </div>
-              {!user.views_blacklisted && (
+              ) : null}
+              {!user.views_blacklisted && user.show_votes !== false && (
                 <div className="absolute bottom-4 right-4 flex items-center gap-1 rounded-xl bg-white/10 px-2 py-1.5 backdrop-blur-sm">
                   <button onClick={() => castVote(1)} aria-label="like profile" className="flex items-center gap-1 rounded-lg px-1.5 py-0.5 transition-all hover:scale-110">
                     <ThumbsUp size={16} className={myVote === 1 ? "text-green-400" : "text-white"} fill={myVote === 1 ? "currentColor" : "none"} />

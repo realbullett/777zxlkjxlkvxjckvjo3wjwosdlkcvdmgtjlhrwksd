@@ -33,6 +33,8 @@ async function EnsureUserColumns(Db) {
   if (UserColsEnsured) return;
   UserColsEnsured = true;
   try { await Db.execute("ALTER TABLE users ADD COLUMN sparkle_intensity INTEGER NOT NULL DEFAULT 14"); } catch {}
+  try { await Db.execute("ALTER TABLE users ADD COLUMN show_views INTEGER NOT NULL DEFAULT 1"); } catch {}
+  try { await Db.execute("ALTER TABLE users ADD COLUMN show_votes INTEGER NOT NULL DEFAULT 1"); } catch {}
 }
 async function EnsureVotes(Db) {
   if (VotesEnsured) return;
@@ -186,7 +188,7 @@ export default async function handler(req, res) {
     }
     Match.widgets = ParseJson(Match.widgets, Match.widgets ?? []);
     Match.desc_lines = ParseJson(Match.desc_lines, Match.desc_lines ?? null);
-    for (const K of ["show_username", "show_joindate", "video_audio", "monochrome_icons", "monochrome_badges", "banner_enabled", "panel_mouse_follow", "audio_autoplay", "audio_loop", "audio_shuffle", "panel_hidden", "discord_rpc_enabled", "views_blacklisted"]) {
+    for (const K of ["show_username", "show_joindate", "show_views", "show_votes", "video_audio", "monochrome_icons", "monochrome_badges", "banner_enabled", "panel_mouse_follow", "audio_autoplay", "audio_loop", "audio_shuffle", "panel_hidden", "discord_rpc_enabled", "views_blacklisted"]) {
       if (Match[K] !== undefined && Match[K] !== null && typeof Match[K] === "number") Match[K] = !!Match[K];
     }
     const [CountRs, BadgeRs, LinkRs, AssetRs, HostedRs, VoteRs] = await Promise.all([

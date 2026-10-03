@@ -32,7 +32,7 @@ const USER_FIELDS = new Set([
   "desc_offset_x", "desc_offset_y", "song_offset_x", "song_offset_y",
   "discord_rpc_offset_x", "discord_rpc_offset_y",
   "panel_opacity", "panel_hidden", "discord_rpc_enabled",
-  "widgets", "onboarding_done", "use_case", "show_joindate", "custom_font_scope",
+  "widgets", "onboarding_done", "use_case", "show_joindate", "show_views", "show_votes", "custom_font_scope",
 ]);
 
 const PREMIUM_VALUES = {
@@ -153,7 +153,7 @@ const BOOL_COLS = new Set([
   "show_username", "video_audio", "monochrome_icons", "monochrome_badges",
   "banner_enabled", "panel_mouse_follow", "audio_autoplay", "audio_loop",
   "audio_shuffle", "panel_hidden", "discord_rpc_enabled", "views_blacklisted",
-  "onboarding_done", "show_joindate",
+  "onboarding_done", "show_joindate", "show_views", "show_votes",
 ]);
 
 function NormalizeUser(Row) {
@@ -208,6 +208,8 @@ async function EnsureSchema() {
     D.execute("ALTER TABLE users ADD COLUMN hidden INTEGER NOT NULL DEFAULT 0"),
     D.execute("ALTER TABLE users ADD COLUMN signup_ip TEXT"),
     D.execute("ALTER TABLE users ADD COLUMN show_joindate INTEGER NOT NULL DEFAULT 1"),
+    D.execute("ALTER TABLE users ADD COLUMN show_views INTEGER NOT NULL DEFAULT 1"),
+    D.execute("ALTER TABLE users ADD COLUMN show_votes INTEGER NOT NULL DEFAULT 1"),
     D.execute("ALTER TABLE users ADD COLUMN sparkle_intensity INTEGER NOT NULL DEFAULT 14"),
     D.execute("ALTER TABLE users ADD COLUMN custom_font_scope TEXT DEFAULT 'all'"),
     D.execute("CREATE TABLE IF NOT EXISTS admin_log (id INTEGER PRIMARY KEY AUTOINCREMENT, admin_id INTEGER NOT NULL, action TEXT NOT NULL, target_uid INTEGER, detail TEXT, created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')))"),

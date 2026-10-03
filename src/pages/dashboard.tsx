@@ -5,6 +5,7 @@ import { User, Paintbrush, Link as LucideLink, Image, Crown, Layout, Shield, Hom
 import { PLATFORMS } from "../lib/platforms";
 import { FONTS, CUSTOM_FONT_FAMILY, CUSTOM_FONT_NAME, ResolveFontFamily, CustomFontFace, ToSameOriginUrl } from "../lib/fonts";
 import { SparkleText } from "../components/SparkleText";
+import { VerifiedIcon } from "../components/VerifiedIcon";
 import { RainEffect, SnowEffect, AuroraEffect, TvStaticEffect, ParticlesEffect, GalaxyEffect, MatrixEffect, SpotlightEffect } from "../components/BackgroundEffect";
 import { parseSongUrl } from "../lib/song";
 import SongPlayer from "../components/SongPlayer";
@@ -53,6 +54,8 @@ type User = {
   banner_enabled: boolean;
   show_username: boolean;
   show_joindate: boolean;
+  show_views: boolean;
+  show_votes: boolean;
   custom_font_scope: string | null;
   video_audio: boolean;
   seo_title: string | null;
@@ -1255,6 +1258,8 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
   const [discordRpcEnabled, setDiscordRpcEnabled] = useState(user?.discord_rpc_enabled || false);
   const [showUsername, setShowUsername] = useState(user?.show_username !== false);
   const [showJoindate, setShowJoindate] = useState(user?.show_joindate !== false);
+  const [showViews, setShowViews] = useState(user?.show_views !== false);
+  const [showVotes, setShowVotes] = useState(user?.show_votes !== false);
   const linkedDiscordId = user?.discord_id || (user?.provider === "discord" ? user?.provider_id : null) || null;
   const [savedMsg, setSavedMsg] = useState<string | null>(null);
   const showSaved = (msg: string, delayNote = true) => {
@@ -1355,6 +1360,8 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
     setPanelHidden(!!user.panel_hidden);
     setShowUsername(user.show_username !== false);
     setShowJoindate(user.show_joindate !== false);
+    setShowViews(user.show_views !== false);
+    setShowVotes(user.show_votes !== false);
     setDiscordRpcEnabled(!!user.discord_rpc_enabled);
     if (user.song_platform) setSongPlatform(user.song_platform);
     if (user.song_id) setSongId(user.song_id);
@@ -1662,6 +1669,36 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
                 const { error } = await apiCall("update", { data: { show_joindate: v } });
                 if (error) console.error("saveShowJoindate error:", error);
                 else showSaved(v ? "showing join date!" : "join date hidden!");
+              }}
+            />
+          </div>
+          <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/[0.04]">
+            <div>
+              <p className="text-xs text-white/50 font-semibold uppercase tracking-wider">Show views</p>
+              <p className="text-[10px] text-white/30">Hide the views counter on your profile</p>
+            </div>
+            <Toggle
+              checked={showViews}
+              onChange={async (v) => {
+                setShowViews(v);
+                const { error } = await apiCall("update", { data: { show_views: v } });
+                if (error) console.error("saveShowViews error:", error);
+                else showSaved(v ? "showing views!" : "views hidden!");
+              }}
+            />
+          </div>
+          <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/[0.04]">
+            <div>
+              <p className="text-xs text-white/50 font-semibold uppercase tracking-wider">Show likes / dislikes</p>
+              <p className="text-[10px] text-white/30">Hide the like / dislike buttons on your profile</p>
+            </div>
+            <Toggle
+              checked={showVotes}
+              onChange={async (v) => {
+                setShowVotes(v);
+                const { error } = await apiCall("update", { data: { show_votes: v } });
+                if (error) console.error("saveShowVotes error:", error);
+                else showSaved(v ? "showing likes / dislikes!" : "likes / dislikes hidden!");
               }}
             />
           </div>
@@ -3285,6 +3322,13 @@ function Preview({ user, desc, background, audio, profileAvatar, customCursor, d
                     <LayoutGroup>
                       <motion.div layout className="flex items-center justify-center gap-2 h-11 rounded-xl bg-white/[0.06] px-4" style={{ width: `${(badges?.length || 0) * 32 + 20}px` }}>
                       {(badges || []).map((b) => {
+                        if (b === "verified") {
+                          return (
+                            <motion.span key={b} layout className="flex h-7 w-7 items-center justify-center text-white" whileHover={{ scale: 1.15 }} transition={{ type: "spring", stiffness: 300, damping: 15 }}>
+                              <VerifiedIcon className="h-7 w-7" />
+                            </motion.span>
+                          );
+                        }
                         const src = BADGE_FILES[b] ? `/emojis/${BADGE_FILES[b]}` : null;
                         if (!src) return null;
                         return (
@@ -3410,7 +3454,11 @@ function BadgeRow({ id, file, desc, action }: { key?: any; id: string; file: str
       transition={{ type: "spring", stiffness: 260, damping: 24 }}
       className="flex items-center gap-4 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4"
     >
-      <img src={`/emojis/${file}`} alt={id} className="h-9 w-9 shrink-0 object-contain" />
+      {id === "verified" ? (
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center text-white"><VerifiedIcon className="h-9 w-9" /></span>
+      ) : (
+        <img src={`/emojis/${file}`} alt={id} className="h-9 w-9 shrink-0 object-contain" />
+      )}
       <div className="flex-1 min-w-0">
         <p className="text-[15px] font-bold text-white leading-tight">{BadgeLabel(id)}</p>
         <p className="text-xs text-white/40 mt-0.5 leading-relaxed">{desc}</p>
