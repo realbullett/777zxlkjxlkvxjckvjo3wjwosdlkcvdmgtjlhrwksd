@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence, LayoutGroup, type Variants } from "motion/react";
 import { Eye, Link as LinkIcon, ThumbsUp, ThumbsDown, Calendar, CheckCircle2, X, ChevronDown, ChevronUp } from "lucide-react";
 import { PLATFORMS } from "../lib/platforms";
-import { CUSTOM_FONT_FAMILY, ResolveFontFamily, CustomFontFace } from "../lib/fonts";
+import { CUSTOM_FONT_FAMILY, ResolveFontFamily, CustomFontFace, ToSameOriginUrl } from "../lib/fonts";
 import { SparkleText } from "../components/SparkleText";
 import { RainEffect, SnowEffect, AuroraEffect, TvStaticEffect, ParticlesEffect, GalaxyEffect, MatrixEffect, SpotlightEffect } from "../components/BackgroundEffect";
 import SongPlayer from "../components/SongPlayer";
@@ -362,7 +362,6 @@ export default function Biolink() {
   useEffect(() => {
     if (!cursor) return;
     const img = new Image();
-    img.crossOrigin = "anonymous";
     img.onload = () => {
       const c = document.createElement("canvas");
       c.width = 32; c.height = 32;
@@ -371,7 +370,7 @@ export default function Biolink() {
       setCursorDataUrl(c.toDataURL());
     };
     img.onerror = () => console.error("Cursor image failed to load:", cursor);
-    img.src = cursor;
+    img.src = ToSameOriginUrl(cursor);
   }, [cursor]);
 
   useEffect(() => {

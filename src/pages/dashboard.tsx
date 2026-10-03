@@ -3134,7 +3134,7 @@ function Preview({ user, desc, background, audio, profileAvatar, customCursor, d
         <style>{CustomFontFace(customFontUrl, customFontName)}</style>
       ) : null}
       <h3 className="text-sm font-semibold text-white/80 mb-4">Live Preview (depends on screen resolution)</h3>
-      <div className="glass-card rounded-3xl backdrop-blur-2xl shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] flex-1 flex flex-col min-h-0 relative" style={{ backgroundColor: backgroundColor || "#080808", cursor: customCursor ? `url("${customCursor}"), auto` : undefined }}>
+      <div className="glass-card rounded-3xl backdrop-blur-2xl shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] flex-1 flex flex-col min-h-0 relative" style={{ backgroundColor: backgroundColor || "#080808", cursor: customCursor ? `url("${ToSameOriginUrl(customCursor)}"), auto` : undefined }}>
         {videoBg ? (
           <video src={videoBg} autoPlay loop muted playsInline className="absolute inset-0 h-full w-full object-cover" />
         ) : background ? (
