@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import SEO from "../components/SEO";
+import Logo from "../components/Logo";
 
 export default function TermsPage() {
   const navigate = useNavigate();
@@ -10,7 +11,7 @@ export default function TermsPage() {
       <div className="relative px-6 py-12 max-w-3xl mx-auto">
         <div className="flex items-center justify-between mb-10">
           <button onClick={() => navigate("/")} className="hover:opacity-70 transition-opacity">
-            <img src="/logo.png" alt="sire.lol" className="h-7 w-auto" />
+            <Logo ClassName="h-7 w-7" />
           </button>
           <button onClick={() => navigate(-1)} className="text-sm text-white/40 hover:text-white/70 transition-colors">
             go back
