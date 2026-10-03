@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS users (
   show_joindate INTEGER NOT NULL DEFAULT 1,
   custom_font_scope TEXT DEFAULT 'all',
   display_effect TEXT DEFAULT 'none',
+  sparkle_intensity INTEGER NOT NULL DEFAULT 14,
   font TEXT DEFAULT 'Inter',
   video_audio INTEGER DEFAULT 0,
   bg_effect TEXT DEFAULT 'none',

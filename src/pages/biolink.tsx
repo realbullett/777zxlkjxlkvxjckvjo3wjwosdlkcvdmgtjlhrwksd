@@ -65,6 +65,7 @@ type User = {
   secondary_color: string | null;
   show_username: boolean | null;
   display_effect: string | null;
+  sparkle_intensity: number | null;
   font: string | null;
   video_audio: boolean | null;
   bg_effect: string | null;
@@ -736,7 +737,7 @@ export default function Biolink() {
                   style={{ color: "var(--text-color, #ffffff)", fontFamily: ResolveFontFamily(user.font, hasCustomFont) }}
                 >
                   {displayEffect === "sparkle" ? (
-                    <SparkleText text={user.display_name || user.username} />
+                    <SparkleText text={user.display_name || user.username} count={user.sparkle_intensity ?? 14} />
                   ) : (
                     user.display_name || user.username
                   )}

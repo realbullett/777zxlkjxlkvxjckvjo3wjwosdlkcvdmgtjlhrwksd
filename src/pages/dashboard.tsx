@@ -36,6 +36,7 @@ type User = {
   primary_color: string | null;
   secondary_color: string | null;
   display_effect: string | null;
+  sparkle_intensity?: number | null;
   font: string | null;
   bg_effect: string | null;
   song_platform: string | null;
@@ -1202,6 +1203,7 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
   const [secondaryColor, setSecondaryColor] = useState(user?.secondary_color || "rgba(255, 255, 255, 0.15)");
   const [savingColors, setSavingColors] = useState(false);
   const [displayEffect, setDisplayEffect] = useState(user?.display_effect || "none");
+  const [sparkleIntensity, setSparkleIntensity] = useState(user?.sparkle_intensity ?? 14);
   const [font, setFont] = useState(user?.font || "Inter");
   const [fontScope, setFontScope] = useState("all");
   const [customFontUrl, setCustomFontUrl] = useState("");
@@ -1320,6 +1322,7 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
     setPrimaryColor(user.primary_color || "rgba(255, 255, 255, 0.1)");
     setSecondaryColor(user.secondary_color || "rgba(255, 255, 255, 0.15)");
     setDisplayEffect(user.display_effect || "none");
+    setSparkleIntensity(user.sparkle_intensity ?? 14);
     setFont(user.font || "Inter");
     setFontScope(user.custom_font_scope === "name" ? "name" : "all");
     setBgEffect(user.bg_effect || "none");
@@ -2026,7 +2029,7 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
     </div>
 
     <div className="lg:w-[55%] flex-1 space-y-6">
-      <Preview user={user} desc={desc} descEffect={descEffect} descSpeed={descSpeed} descLines={descLines} background={background} audio={audio1 || audio2} profileAvatar={profileAvatar} customCursor={customCursor} displayEffect={displayEffect} font={font} customFontUrl={customFontUrl} customFontName={customFontName} fontScope={fontScope} videoBg={videoBg} videoAudio={videoAudio} bgEffect={bgEffect} avatarShape={avatarShape} avatarSize={avatarSize} avatarOffsetX={avatarOffsetX} avatarOffsetY={avatarOffsetY} onAvatarOffsetChange={(x, y) => { setAvatarOffsetX(Math.round(x)); setAvatarOffsetY(Math.round(y)); }} banner={banner} bannerEnabled={bannerEnabled} entryText={entryText} entryFont={entryFont} entryColor={entryColor} entryEffect={entryEffect} songPlatform={songPlatform} songId={songId} showUsername={showUsername} primaryColor={primaryColor} secondaryColor={secondaryColor} accentColor={accentColor} textColor={textColor} backgroundColor={backgroundColor} iconColor={iconColor} bgEffectColor={bgEffectColor} panelMouseFollow={panelMouseFollow} cursorEffect={cursorEffect} nameOffsetX={nameOffsetX} nameOffsetY={nameOffsetY} onNameOffsetChange={(x, y) => { setNameOffsetX(Math.round(x)); setNameOffsetY(Math.round(y)); }} badgeOffsetX={badgeOffsetX} badgeOffsetY={badgeOffsetY} onBadgeOffsetChange={(x, y) => { setBadgeOffsetX(Math.round(x)); setBadgeOffsetY(Math.round(y)); }} descOffsetX={descOffsetX} descOffsetY={descOffsetY} onDescOffsetChange={(x, y) => { setDescOffsetX(Math.round(x)); setDescOffsetY(Math.round(y)); }} songOffsetX={songOffsetX} songOffsetY={songOffsetY} onSongOffsetChange={(x, y) => { setSongOffsetX(Math.round(x)); setSongOffsetY(Math.round(y)); }} rpcOffsetX={rpcOffsetX} rpcOffsetY={rpcOffsetY} onRpcOffsetChange={(x, y) => { setRpcOffsetX(Math.round(x)); setRpcOffsetY(Math.round(y)); }} badges={myBadges} panelOpacity={panelOpacity} panelHidden={panelHidden} discordId={linkedDiscordId} discordRpcEnabled={discordRpcEnabled} />
+      <Preview user={user} desc={desc} descEffect={descEffect} descSpeed={descSpeed} descLines={descLines} background={background} audio={audio1 || audio2} profileAvatar={profileAvatar} customCursor={customCursor} displayEffect={displayEffect} sparkleIntensity={sparkleIntensity} font={font} customFontUrl={customFontUrl} customFontName={customFontName} fontScope={fontScope} videoBg={videoBg} videoAudio={videoAudio} bgEffect={bgEffect} avatarShape={avatarShape} avatarSize={avatarSize} avatarOffsetX={avatarOffsetX} avatarOffsetY={avatarOffsetY} onAvatarOffsetChange={(x, y) => { setAvatarOffsetX(Math.round(x)); setAvatarOffsetY(Math.round(y)); }} banner={banner} bannerEnabled={bannerEnabled} entryText={entryText} entryFont={entryFont} entryColor={entryColor} entryEffect={entryEffect} songPlatform={songPlatform} songId={songId} showUsername={showUsername} primaryColor={primaryColor} secondaryColor={secondaryColor} accentColor={accentColor} textColor={textColor} backgroundColor={backgroundColor} iconColor={iconColor} bgEffectColor={bgEffectColor} panelMouseFollow={panelMouseFollow} cursorEffect={cursorEffect} nameOffsetX={nameOffsetX} nameOffsetY={nameOffsetY} onNameOffsetChange={(x, y) => { setNameOffsetX(Math.round(x)); setNameOffsetY(Math.round(y)); }} badgeOffsetX={badgeOffsetX} badgeOffsetY={badgeOffsetY} onBadgeOffsetChange={(x, y) => { setBadgeOffsetX(Math.round(x)); setBadgeOffsetY(Math.round(y)); }} descOffsetX={descOffsetX} descOffsetY={descOffsetY} onDescOffsetChange={(x, y) => { setDescOffsetX(Math.round(x)); setDescOffsetY(Math.round(y)); }} songOffsetX={songOffsetX} songOffsetY={songOffsetY} onSongOffsetChange={(x, y) => { setSongOffsetX(Math.round(x)); setSongOffsetY(Math.round(y)); }} rpcOffsetX={rpcOffsetX} rpcOffsetY={rpcOffsetY} onRpcOffsetChange={(x, y) => { setRpcOffsetX(Math.round(x)); setRpcOffsetY(Math.round(y)); }} badges={myBadges} panelOpacity={panelOpacity} panelHidden={panelHidden} discordId={linkedDiscordId} discordRpcEnabled={discordRpcEnabled} />
 
       <div className="glass-card rounded-2xl p-5 space-y-4">
         <div className="flex items-center justify-between">
@@ -2243,17 +2246,24 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
         <div className="mb-4 p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] flex items-center justify-center min-h-[48px]">
           <span className={`text-lg font-black tracking-tight ${displayEffect !== "sparkle" && displayEffect !== "none" ? `display-effect-${displayEffect}` : ""}`}>
             {displayEffect === "sparkle" ? (
-              <SparkleText text={user?.display_name || user?.username || "preview"} />
+              <SparkleText text={user?.display_name || user?.username || "preview"} count={sparkleIntensity} />
             ) : (
               user?.display_name || user?.username || "preview"
             )}
           </span>
         </div>
+        {displayEffect === "sparkle" ? (
+          <div className="flex items-center gap-3 mb-4">
+            <span className="text-xs text-white/60 whitespace-nowrap">Intensity</span>
+            <input type="range" min="4" max="40" value={sparkleIntensity} onChange={(e) => setSparkleIntensity(Number(e.target.value))} className="flex-1 h-1 accent-blue-500 cursor-pointer" />
+            <span className="text-xs text-white/60 font-mono w-6 text-right">{sparkleIntensity}</span>
+          </div>
+        ) : null}
         <div className="flex justify-end">
           <button
             onClick={async () => {
               if (!user) return;
-              await apiCall("update", { data: { display_effect: displayEffect } });
+              await apiCall("update", { data: { display_effect: displayEffect, sparkle_intensity: sparkleIntensity } });
               showSaved("effect saved!");
             }}
             className="text-xs bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-white font-semibold transition-all cursor-pointer"
@@ -2979,7 +2989,7 @@ function Toggle({ checked, onChange, className = "" }: { checked: boolean; onCha
   );
 }
 
-function Preview({ user, desc, background, audio, profileAvatar, customCursor, displayEffect, font, customFontUrl, customFontName, fontScope, videoBg, videoAudio, bgEffect, descEffect, descSpeed, descLines, avatarShape, avatarSize, avatarOffsetX, avatarOffsetY, onAvatarOffsetChange, banner, bannerEnabled, entryText, entryFont, entryColor, entryEffect, songPlatform, songId, showUsername, primaryColor, secondaryColor, accentColor, textColor, backgroundColor, iconColor, bgEffectColor, panelMouseFollow, cursorEffect: cursorEffectType, nameOffsetX, nameOffsetY, onNameOffsetChange, badgeOffsetX, badgeOffsetY, onBadgeOffsetChange, descOffsetX, descOffsetY, onDescOffsetChange, songOffsetX, songOffsetY, onSongOffsetChange, rpcOffsetX, rpcOffsetY, onRpcOffsetChange, badges, panelOpacity, panelHidden, discordId, discordRpcEnabled }: { 
+function Preview({ user, desc, background, audio, profileAvatar, customCursor, displayEffect, sparkleIntensity, font, customFontUrl, customFontName, fontScope, videoBg, videoAudio, bgEffect, descEffect, descSpeed, descLines, avatarShape, avatarSize, avatarOffsetX, avatarOffsetY, onAvatarOffsetChange, banner, bannerEnabled, entryText, entryFont, entryColor, entryEffect, songPlatform, songId, showUsername, primaryColor, secondaryColor, accentColor, textColor, backgroundColor, iconColor, bgEffectColor, panelMouseFollow, cursorEffect: cursorEffectType, nameOffsetX, nameOffsetY, onNameOffsetChange, badgeOffsetX, badgeOffsetY, onBadgeOffsetChange, descOffsetX, descOffsetY, onDescOffsetChange, songOffsetX, songOffsetY, onSongOffsetChange, rpcOffsetX, rpcOffsetY, onRpcOffsetChange, badges, panelOpacity, panelHidden, discordId, discordRpcEnabled }: { 
   user: User | null; 
   desc?: string;
   background: string | null; 
@@ -2987,6 +2997,7 @@ function Preview({ user, desc, background, audio, profileAvatar, customCursor, d
   profileAvatar: string | null; 
   customCursor: string | null; 
   displayEffect?: string;
+  sparkleIntensity?: number;
   font?: string;
   customFontUrl?: string | null;
   customFontName?: string | null;
@@ -3252,7 +3263,7 @@ function Preview({ user, desc, background, audio, profileAvatar, customCursor, d
                     style={{ color: textColor || "#ffffff", fontFamily: ResolveFontFamily(font, !!customFontUrl) }}
                   >
                     {displayEffect === "sparkle" ? (
-                      <SparkleText text={user?.display_name || user?.username || "Your Name"} />
+                      <SparkleText text={user?.display_name || user?.username || "Your Name"} count={sparkleIntensity ?? 14} />
                     ) : (
                       user?.display_name || user?.username || "Your Name"
                     )}
@@ -4243,6 +4254,7 @@ type Template = {
   primary_color: string | null;
   secondary_color: string | null;
   display_effect: string | null;
+  sparkle_intensity?: number | null;
   font: string | null;
   bg_effect: string | null;
   entry_text: string | null;

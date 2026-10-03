@@ -22,7 +22,7 @@ function unsignToken(token) {
 const USER_FIELDS = new Set([
   "username", "alias", "display_name", "description", "accent_color", "text_color", "background_color",
   "icon_color", "bg_effect_color", "primary_color", "secondary_color", "show_username",
-  "display_effect", "font", "video_audio", "bg_effect", "song_platform", "song_id",
+  "display_effect", "sparkle_intensity", "font", "video_audio", "bg_effect", "song_platform", "song_id",
   "entry_text", "entry_font", "entry_color", "entry_effect", "desc_effect",
   "desc_effect_speed", "desc_lines", "monochrome_icons", "monochrome_badges",
   "banner_enabled", "seo_title", "seo_description", "seo_image", "seo_favicon",
@@ -45,7 +45,7 @@ const INT_FIELDS = new Set([
   "name_offset_x", "name_offset_y", "badge_offset_x", "badge_offset_y",
   "desc_offset_x", "desc_offset_y", "song_offset_x", "song_offset_y",
   "discord_rpc_offset_x", "discord_rpc_offset_y",
-  "panel_opacity", "desc_effect_speed", "audio_volume",
+  "panel_opacity", "desc_effect_speed", "audio_volume", "sparkle_intensity",
 ]);
 
 const TEMPLATE_FIELDS = new Set([
@@ -208,6 +208,7 @@ async function EnsureSchema() {
     D.execute("ALTER TABLE users ADD COLUMN hidden INTEGER NOT NULL DEFAULT 0"),
     D.execute("ALTER TABLE users ADD COLUMN signup_ip TEXT"),
     D.execute("ALTER TABLE users ADD COLUMN show_joindate INTEGER NOT NULL DEFAULT 1"),
+    D.execute("ALTER TABLE users ADD COLUMN sparkle_intensity INTEGER NOT NULL DEFAULT 14"),
     D.execute("ALTER TABLE users ADD COLUMN custom_font_scope TEXT DEFAULT 'all'"),
     D.execute("CREATE TABLE IF NOT EXISTS admin_log (id INTEGER PRIMARY KEY AUTOINCREMENT, admin_id INTEGER NOT NULL, action TEXT NOT NULL, target_uid INTEGER, detail TEXT, created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')))"),
     D.execute("CREATE INDEX IF NOT EXISTS idx_admin_log_time ON admin_log (created_at DESC)"),
@@ -700,6 +701,9 @@ export default async function handler(req, res) {
         if (data[k] !== undefined && data[k] !== null && !Number.isNaN(Number(data[k]))) {
           data[k] = Math.round(Number(data[k]));
         }
+      }
+      if (data.sparkle_intensity !== undefined && data.sparkle_intensity !== null) {
+        data.sparkle_intensity = Math.max(1, Math.min(60, data.sparkle_intensity));
       }
       if (data.custom_font_scope !== undefined) {
         data.custom_font_scope = String(data.custom_font_scope) === "name" ? "name" : "all";
