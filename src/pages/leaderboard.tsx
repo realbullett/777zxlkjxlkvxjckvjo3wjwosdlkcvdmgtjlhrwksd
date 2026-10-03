@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, ChevronDown, Crown, Eye, TrendingUp, Trophy } from "lucide-react";
+import { ChevronDown, Crown, Eye, TrendingUp, Trophy } from "lucide-react";
 import SEO from "../components/SEO";
+import { Navbar } from "../components/Navbar";
 import { VerifiedIcon } from "../components/VerifiedIcon";
 // fuhhh profile reads go via /api now cuhhh :broken_heart:
 
@@ -161,6 +162,7 @@ export default function LeaderboardPage() {
   return (
     <div className="relative min-h-screen bg-black overflow-hidden" style={{ background: "#0a0a0a" }}>
       <SEO title="sire.lol — leaderboard" description="top profiles on sire.lol ranked by views." path="/leaderboard" />
+      <Navbar />
       <div className="lb-bgfx">
         <div className="lb-orb lb-o1" />
         <div className="lb-orb lb-o2" />
@@ -171,11 +173,6 @@ export default function LeaderboardPage() {
       </div>
 
       <div className="lb-wrap">
-        <Link to="/" className="lb-back">
-          <ArrowLeft size={14} />
-          back
-        </Link>
-
         <div className="lb-hero">
           <div style={{ position: "relative", zIndex: 1 }}>
             <div className="lb-hero-title">

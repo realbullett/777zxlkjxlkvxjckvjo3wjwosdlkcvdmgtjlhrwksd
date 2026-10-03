@@ -416,9 +416,7 @@
   @keyframes lb-drift { from { transform: translate(0, 0) scale(1); } to { transform: translate(60px, 40px) scale(1.12); } }
   .lb-bgfx .lb-star { position: absolute; border-radius: 9999px; background: #fff; opacity: 0.15; animation: lb-twk 3s ease-in-out infinite; }
   @keyframes lb-twk { 0%, 100% { opacity: 0.08; transform: scale(0.8); } 50% { opacity: 0.5; transform: scale(1.2); } }
-  .lb-wrap { max-width: 672px; margin: 0 auto; padding: 64px 16px 40px; position: relative; z-index: 1; }
-  .lb-back { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: rgba(255,255,255,0.3); text-decoration: none; margin-bottom: 32px; }
-  .lb-back:hover { color: rgba(255,255,255,0.6); }
+  .lb-wrap { max-width: 672px; margin: 0 auto; padding: 128px 16px 40px; position: relative; z-index: 1; }
   .lb-hero {
     position: relative; overflow: hidden; border-radius: 24px; margin-bottom: 32px;
     border: 1px solid rgba(96,165,250,0.3);

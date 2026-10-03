@@ -744,7 +744,7 @@ export default function Biolink() {
 );
                 })()}
               </motion.div>
-              <div className="relative w-fit mx-auto xl:mx-0" style={{ transform: `translate(${user.name_offset_x || 0}px, ${user.name_offset_y || 0}px)` }}>
+              <div className={`relative w-fit ${hasSide ? "mx-auto xl:mx-0" : "mx-auto"}`} style={{ transform: `translate(${user.name_offset_x || 0}px, ${user.name_offset_y || 0}px)` }}>
                 <motion.div variants={dropItem}>
                 <h1
                   onMouseEnter={() => setHoveredUid(true)}

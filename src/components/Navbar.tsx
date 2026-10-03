@@ -1,14 +1,22 @@
+import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { Link } from "react-router-dom";
 import { Trophy } from "lucide-react";
 import Logo from "./Logo";
 
 export const Navbar = () => {
+  const [shrunk, setShrunk] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setShrunk(window.scrollY > 60);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
   return (
     <div className="fixed top-0 left-0 z-50 w-full px-4 py-4">
       <motion.nav
         initial={{ y: -20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
+        animate={{ y: 0, opacity: 1, maxWidth: shrunk ? "48rem" : "64rem" }}
         transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
         className="mx-auto flex h-12 max-w-5xl items-center justify-between glass-card rounded-full px-5 glow-blue"
       >
