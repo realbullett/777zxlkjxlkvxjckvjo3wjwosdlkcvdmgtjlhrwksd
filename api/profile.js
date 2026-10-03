@@ -60,6 +60,28 @@ async function VoteCounts(Db, Uid) {
   return { likes: Number(Rs.rows?.[0]?.likes || 0), dislikes: Number(Rs.rows?.[0]?.dislikes || 0) };
 }
 
+// Anti-cheat: likes and dislikes can never exceed views — you can't get more
+// votes than visitors. Trims newest-first (burst/botted votes land last) and
+// returns the healed counts plus the view count (the cap).
+async function EnforceVoteCap(Db, Uid) {
+  const ViewRs = await Db.execute({ sql: "SELECT COUNT(*) AS c FROM page_views WHERE user_id = ?", args: [Uid] });
+  const views = Number(ViewRs.rows?.[0]?.c || 0);
+  const C = await VoteCounts(Db, Uid);
+  let likes = C.likes, dislikes = C.dislikes;
+  for (const side of [1, -1]) {
+    const count = side === 1 ? likes : dislikes;
+    const excess = count - views;
+    if (excess > 0) {
+      await Db.execute({
+        sql: "DELETE FROM profile_votes WHERE rowid IN (SELECT rowid FROM profile_votes WHERE user_id = ? AND vote = ? ORDER BY rowid DESC LIMIT ?)",
+        args: [Uid, side, excess]
+      });
+      if (side === 1) likes -= excess; else dislikes -= excess;
+    }
+  }
+  return { views, likes, dislikes };
+}
+
 function CleanVoter(V) {
   const S = String(V || "").trim().slice(0, 64);
   if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(S)) return null;
@@ -125,20 +147,25 @@ export default async function handler(req, res) {
         return;
       }
       const Had = (UidRs[1].rows || []).find((R) => Number(R.user_id) === Number(Uid))?.vote;
-      if (!Number.isInteger(Dwell) || Dwell < 5000) {
+      if (!Number.isInteger(Dwell) || Dwell < 3000) {
         const C = await VoteCounts(Db, Uid);
         res.status(200).json({ likes: C.likes, dislikes: C.dislikes, mine: Number(Had || 0), counted: false });
         return;
       }
       let Mine = 0;
+      const Cap = await EnforceVoteCap(Db, Uid);
       if (Number(Had) === Vote) {
         await Db.execute({ sql: "DELETE FROM profile_votes WHERE user_id = ? AND ip_hash = ?", args: [Uid, IpHash] });
+        const C = await VoteCounts(Db, Uid);
+        res.status(200).json({ likes: C.likes, dislikes: C.dislikes, mine: Mine, counted: true });
+      } else if ((Vote === 1 ? Cap.likes : Cap.dislikes) >= Cap.views) {
+        res.status(200).json({ likes: Cap.likes, dislikes: Cap.dislikes, mine: Number(Had || 0), counted: false, capped: true });
       } else {
         await Db.execute({ sql: "INSERT INTO profile_votes (user_id, voter_key, vote, ip_hash) VALUES (?, ?, ?, ?) ON CONFLICT (user_id, ip_hash) DO UPDATE SET vote = excluded.vote, voter_key = excluded.voter_key", args: [Uid, Voter, Vote, IpHash] });
         Mine = Vote;
+        const C = await VoteCounts(Db, Uid);
+        res.status(200).json({ likes: C.likes, dislikes: C.dislikes, mine: Mine, counted: true });
       }
-      const C = await VoteCounts(Db, Uid);
-      res.status(200).json({ likes: C.likes, dislikes: C.dislikes, mine: Mine, counted: true });
       return;
     }
   const Name = String(req.query.username || req.query.u || "").trim().toLowerCase();
@@ -188,10 +215,18 @@ export default async function handler(req, res) {
       const PrefRs = await Db.execute({ sql: "SELECT badge, hidden, by_name FROM badge_prefs WHERE user_id = ?", args: [Uid] });
       Prefs = Object.fromEntries((PrefRs.rows || []).map((R) => [R.badge, { hidden: Number(R.hidden || 0) === 1, byName: Number(R.by_name || 0) === 1 }]));
     } catch { /* table may not exist yet on cold start */ }
+    const viewCount = Number(CountRs.rows?.[0]?.c || 0);
+    let likeCount = Number(VoteRs.rows?.[0]?.likes || 0);
+    let dislikeCount = Number(VoteRs.rows?.[0]?.dislikes || 0);
+    if (likeCount > viewCount || dislikeCount > viewCount) {
+      const healed = await EnforceVoteCap(Db, Uid);
+      likeCount = healed.likes;
+      dislikeCount = healed.dislikes;
+    }
     res.status(200).json({
       source: "turso",
       user: Match,
-      views: Number(CountRs.rows?.[0]?.c || 0),
+      views: viewCount,
       badges: (BadgeRs.rows || []).map((R) => R.badge),
       badgePrefs: Prefs,
       links: Object.fromEntries((LinkRs.rows || []).map((R) => [R.platform, R.url])),
@@ -206,8 +241,8 @@ export default async function handler(req, res) {
           return H ? { ...A, filename: H.filename, size: H.size } : A;
         });
       })(),
-      likes: Number(VoteRs.rows?.[0]?.likes || 0),
-      dislikes: Number(VoteRs.rows?.[0]?.dislikes || 0),
+      likes: likeCount,
+      dislikes: dislikeCount,
       mine: Mine
     });
   } catch (Err) {
