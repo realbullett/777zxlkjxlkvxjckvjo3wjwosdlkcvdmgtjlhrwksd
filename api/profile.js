@@ -28,6 +28,12 @@ function ParseJson(V, Fallback) {
 }
 
 let VotesEnsured = false;
+let UserColsEnsured = false;
+async function EnsureUserColumns(Db) {
+  if (UserColsEnsured) return;
+  UserColsEnsured = true;
+  try { await Db.execute("ALTER TABLE users ADD COLUMN sparkle_intensity INTEGER NOT NULL DEFAULT 14"); } catch {}
+}
 async function EnsureVotes(Db) {
   if (VotesEnsured) return;
   VotesEnsured = true;
@@ -79,6 +85,7 @@ export default async function handler(req, res) {
   try {
     const Db = GetTurso();
     await EnsureVotes(Db);
+    await EnsureUserColumns(Db);
     if (req.method === "POST") {
       const Body = req.body || {};
       const Name = String(Body.username || "").trim().toLowerCase();

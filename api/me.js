@@ -541,7 +541,14 @@ async function ogLoadFont() {
 
 async function ogAvatarDataUrl(url) {
   try {
-    const res = await fetch(url);
+    const Ctrl = new AbortController();
+    const Timer = setTimeout(() => Ctrl.abort(), 8000);
+    let res;
+    try {
+      res = await fetch(url, { signal: Ctrl.signal });
+    } finally {
+      clearTimeout(Timer);
+    }
     if (!res.ok) return null;
     const buf = await res.arrayBuffer();
     const type = (res.headers.get("content-type") || "image/png").split(";")[0];
@@ -560,18 +567,34 @@ async function ogImage(req, res) {
     return;
   }
 
-  let user = await One("SELECT username, display_name, avatar_url FROM users WHERE username = ? LIMIT 1", [username]);
-  if (!user) user = await One("SELECT username, display_name, avatar_url FROM users WHERE alias = ? LIMIT 1", [username]);
+  let user = await One("SELECT id, username, display_name, avatar_url, background_color FROM users WHERE username = ? LIMIT 1", [username]);
+  if (!user) user = await One("SELECT id, username, display_name, avatar_url, background_color FROM users WHERE alias = ? LIMIT 1", [username]);
   if (!user) {
     res.status(404).json({ error: "not found" });
     return;
   }
 
+  const baseUrl = (process.env.APP_URL || "https://sire.lol").replace(/\/+$/, "");
+  const toAbs = (u) => {
+    const s = String(u || "");
+    if (!s) return null;
+    if (/^https?:\/\//i.test(s)) return s;
+    if (s.startsWith("/")) return baseUrl + s;
+    return null;
+  };
+  let bgUrl = null;
+  try {
+    const bgRow = await One("SELECT url FROM assets WHERE user_id = ? AND type = 'background' LIMIT 1", [user.id]);
+    bgUrl = toAbs(bgRow?.url);
+  } catch {}
+
   const displayName = user.display_name || user.username;
   const handle = user.username;
-  const [font, avatar] = await Promise.all([
+  const baseBg = typeof user.background_color === "string" && user.background_color.trim() ? user.background_color.trim().slice(0, 32) : "#080808";
+  const [font, avatar, bg] = await Promise.all([
     ogLoadFont(),
-    user.avatar_url ? ogAvatarDataUrl(user.avatar_url) : null,
+    user.avatar_url ? ogAvatarDataUrl(toAbs(user.avatar_url)) : null,
+    bgUrl ? ogAvatarDataUrl(bgUrl) : null,
   ]);
   const initials = (displayName || "?").trim().charAt(0).toUpperCase();
   const textStyle = { fontFamily: "Bricolage Grotesque", fontWeight: 800, color: "#ffffff" };
@@ -583,37 +606,61 @@ async function ogImage(req, res) {
         width: "100%",
         height: "100%",
         display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: "#080808",
+        position: "relative",
+        overflow: "hidden",
+        backgroundColor: baseBg,
       },
     },
-    avatar
+    bg
       ? El("img", {
-          src: avatar,
-          width: 200,
-          height: 200,
-          style: { borderRadius: 9999, objectFit: "cover", border: "2px solid rgba(255,255,255,0.1)" },
+          src: bg,
+          style: { position: "absolute", top: 0, left: 0, width: "100%", height: "100%", objectFit: "cover" },
         })
-      : El(
-          "div",
-          {
-            style: {
-              width: 200,
-              height: 200,
-              borderRadius: 9999,
-              backgroundColor: "rgba(255,255,255,0.08)",
-              border: "2px solid rgba(255,255,255,0.1)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
+      : null,
+    bg
+      ? El("div", {
+          style: { position: "absolute", top: 0, left: 0, width: "100%", height: "100%", backgroundColor: "rgba(0,0,0,0.55)" },
+        })
+      : null,
+    El(
+      "div",
+      {
+        style: {
+          position: "relative",
+          width: "100%",
+          height: "100%",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+        },
+      },
+      avatar
+        ? El("img", {
+            src: avatar,
+            width: 200,
+            height: 200,
+            style: { borderRadius: 9999, objectFit: "cover", border: "2px solid rgba(255,255,255,0.1)" },
+          })
+        : El(
+            "div",
+            {
+              style: {
+                width: 200,
+                height: 200,
+                borderRadius: 9999,
+                backgroundColor: "rgba(255,255,255,0.08)",
+                border: "2px solid rgba(255,255,255,0.1)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              },
             },
-          },
-          El("span", { style: { ...textStyle, fontSize: 80 } }, initials)
-        ),
-    El("div", { style: { ...textStyle, marginTop: 36, fontSize: 60, textAlign: "center" } }, displayName),
-    El("div", { style: { ...textStyle, fontWeight: 400, marginTop: 14, fontSize: 28, color: "rgba(255,255,255,0.4)", textAlign: "center" } }, `sire.lol/${handle}`)
+            El("span", { style: { ...textStyle, fontSize: 80 } }, initials)
+          ),
+      El("div", { style: { ...textStyle, marginTop: 36, fontSize: 60, textAlign: "center" } }, displayName),
+      El("div", { style: { ...textStyle, fontWeight: 400, marginTop: 14, fontSize: 28, color: "rgba(255,255,255,0.4)", textAlign: "center" } }, `sire.lol/${handle}`)
+    )
   );
 
   const imageResponse = new ImageResponse(tree, {
