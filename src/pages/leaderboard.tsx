@@ -237,13 +237,13 @@ export default function LeaderboardPage() {
                     if (!p.e) return null;
                     const e = p.e;
                     return (
-                      <div key={e.rank} className={`lb-pod lb-${p.cls}`}>
+                      <Link key={e.rank} to={`/${e.username}`} className={`lb-pod lb-${p.cls}`}>
                         <div className="lb-crown-float">
                           <Crown size={CROWN_SIZE[p.cls]} fill={CROWN_FILL[p.cls]} color={CROWN_FILL[p.cls]} strokeWidth={1} />
                         </div>
                         {avatarEl(e, "lb-av")}
                         <div className="lb-uname">
-                          <Link to={`/${e.username}`} className="lb-plink">{e.username}</Link>
+                          <span className="lb-plink">{e.username}</span>
                           {badgeEls(e.badges, 2, 18)}
                         </div>
                         <span className="lb-vpill">
@@ -251,7 +251,7 @@ export default function LeaderboardPage() {
                           <CountUp value={e.views} format={(n) => String(n)} delay={p.delay} duration={1400} />
                         </span>
                         <div className="lb-ped">{p.rank}</div>
-                      </div>
+                      </Link>
                     );
                   })}
                 </div>
@@ -274,7 +274,9 @@ export default function LeaderboardPage() {
                         <span className="lb-rmeta">
                           <span className="lb-rname">
                             <span className="lb-plink">{e.username}</span>
-                            {badgeEls(e.badges, null, 14)}
+                            {e.badges.length > 0 && (
+                              <span className="lb-bbar">{badgeEls(e.badges, null, 14)}</span>
+                            )}
                           </span>
                           <span className="lb-rhandle">@{e.username}</span>
                         </span>
