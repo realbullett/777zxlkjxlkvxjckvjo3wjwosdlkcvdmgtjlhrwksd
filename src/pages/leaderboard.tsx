@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Crown, Eye, Medal, TrendingUp, Trophy, ChevronRight } from "lucide-react";
-import { motion } from "motion/react";
+import { ArrowLeft, ChevronDown, Crown, Eye, TrendingUp, Trophy } from "lucide-react";
 import SEO from "../components/SEO";
+import { VerifiedIcon } from "../components/VerifiedIcon";
 // fuhhh profile reads go via /api now cuhhh :broken_heart:
 
 type Entry = {
@@ -11,6 +11,7 @@ type Entry = {
   username: string;
   avatar_url: string | null;
   views: number;
+  badges: string[];
 };
 
 type Period = "all" | "month";
@@ -18,40 +19,64 @@ type Period = "all" | "month";
 const compact = (n: number) => {
   if (n >= 1000000) return (n / 1000000).toFixed(1).replace(/\.0$/, "") + "M";
   if (n >= 1000) return (n / 1000).toFixed(1).replace(/\.0$/, "") + "k";
-  return n.toLocaleString();
+  return String(n);
 };
 
-const podium = [
-  {
-    rank: 2,
-    height: "h-20",
-    grad: "from-gray-500/80 to-gray-400/40",
-    ring: "ring-gray-300",
-    text: "text-gray-200",
-    medal: "bg-gray-300",
-  },
-  {
-    rank: 1,
-    height: "h-28",
-    grad: "from-yellow-400/80 to-amber-500/30",
-    ring: "ring-yellow-400",
-    text: "text-yellow-300",
-    medal: "bg-yellow-400",
-  },
-  {
-    rank: 3,
-    height: "h-16",
-    grad: "from-amber-700/70 to-amber-600/25",
-    ring: "ring-amber-600",
-    text: "text-amber-400",
-    medal: "bg-amber-600",
-  },
-];
+const REDUCED = typeof window !== "undefined" && !!window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+function CountUp({ value, format, delay = 0, duration = 1100 }: { value: number; format: (n: number) => string; delay?: number; duration?: number }) {
+  const [text, setText] = useState(() => (REDUCED ? format(value) : format(0)));
+  useEffect(() => {
+    if (REDUCED) { setText(format(value)); return; }
+    let raf = 0;
+    const timer = setTimeout(() => {
+      let t0: number | null = null;
+      const step = (t: number) => {
+        if (t0 === null) t0 = t;
+        const k = Math.min(1, (t - t0) / duration);
+        const e = k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
+        setText(format(Math.round(value * e)));
+        if (k < 1) raf = requestAnimationFrame(step);
+      };
+      raf = requestAnimationFrame(step);
+    }, delay);
+    return () => { clearTimeout(timer); cancelAnimationFrame(raf); };
+  }, [value]);
+  return <>{text}</>;
+}
+
+const BADGE_FILES: Record<string, string> = {
+  og: "og.png",
+  premium: "premium.webp",
+  booster: "booster.webp",
+  staff: "staff.webp",
+  bug: "bug.png",
+  corrupt: "corrupt.png",
+  owner: "owner.webp",
+};
+
+const BADGE_INFO: Record<string, [string, string]> = {
+  og: ["OG", "secured this badge in the early days of sire.lol"],
+  premium: ["Premium", "exclusive badge for premium supporters"],
+  verified: ["Verified", "officially verified account on sire.lol"],
+  booster: ["Booster", "thank you for boosting the discord server"],
+  staff: ["Staff", "member of the sire.lol staff team"],
+  bug: ["bug hunter", "reported bugs that made sire.lol better"],
+  corrupt: ["Corrupt", "corrupted... don't ask questions"],
+  owner: ["Owner", "the owner of sire.lol"],
+};
+
+type Tip = { x: number; top: number; name: string; desc: string } | null;
+
+const CROWN_FILL: Record<string, string> = { p1: "#facc15", p2: "#d1d5db", p3: "#b45309" };
+const CROWN_SIZE: Record<string, number> = { p1: 36, p2: 30, p3: 30 };
 
 export default function LeaderboardPage() {
   const [period, setPeriod] = useState<Period>("all");
   const [data, setData] = useState<Entry[]>([]);
   const [loading, setLoading] = useState(false);
+  const [openSel, setOpenSel] = useState<null | "metric" | "period">(null);
+  const [tip, setTip] = useState<Tip>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -64,64 +89,135 @@ export default function LeaderboardPage() {
         username: e.username || "unknown",
         avatar_url: e.avatar_url,
         views: Number(e.views || 0),
+        badges: Array.isArray(e.badges) ? e.badges.map((b: any) => String(b)) : [],
       })));
       setLoading(false);
     }).catch(() => setLoading(false));
   }, [period]);
 
+  useEffect(() => {
+    const close = (e: MouseEvent) => {
+      if (!(e.target as HTMLElement)?.closest?.(".lb-sel")) setOpenSel(null);
+    };
+    const hide = () => setTip(null);
+    document.addEventListener("click", close);
+    document.addEventListener("scroll", hide, true);
+    return () => { document.removeEventListener("click", close); document.removeEventListener("scroll", hide, true); };
+  }, []);
+
+  const showTip = (el: HTMLElement, id: string) => {
+    const r = el.getBoundingClientRect();
+    const info = BADGE_INFO[id] || [id, "exclusive sire.lol badge"];
+    const h = 52;
+    const x = Math.max(110, Math.min(window.innerWidth - 110, r.left + r.width / 2));
+    const above = r.top - h - 12 > 8;
+    setTip({ x, top: above ? r.top - h - 10 : r.bottom + 10, name: info[0], desc: info[1] });
+  };
+
+  const badgeEls = (badges: string[], limit: number | null, size: number) => {
+    const list = limit ? badges.slice(0, limit) : badges;
+    return list.map((b) => (
+      <span
+        key={b}
+        className="lb-badge"
+        onMouseEnter={(e) => showTip(e.currentTarget, b)}
+        onMouseLeave={() => setTip(null)}
+      >
+        {b === "verified" ? (
+          <VerifiedIcon className="lb-bdg" />
+        ) : BADGE_FILES[b] ? (
+          <img className="lb-bdg" src={`/emojis/${BADGE_FILES[b]}`} alt="" style={size !== 18 ? { width: size, height: size } : undefined} />
+        ) : null}
+      </span>
+    ));
+  };
+
+  const avatarEl = (e: Entry, cls: string) => (
+    <div className={cls}>
+      {e.avatar_url ? (
+        <img src={e.avatar_url} alt="" />
+      ) : (
+        <div className="lb-init">{e.username.charAt(0).toUpperCase()}</div>
+      )}
+    </div>
+  );
+
   const top3 = data.slice(0, 3);
   const rest = data.slice(3);
   const totalViews = data.reduce((a, b) => a + b.views, 0);
+  const stars = useRef(Array.from({ length: 28 }, (_, i) => ({
+    x: (i * 37 + 11) % 100,
+    y: (i * 53 + 7) % 100,
+    s: 1 + (i % 3),
+    d: (i * 0.23).toFixed(2),
+  })));
+
+  const pods = [
+    { e: top3.find((x) => x.rank === 2), cls: "p2", rank: 2, delay: 1200 },
+    { e: top3.find((x) => x.rank === 1), cls: "p1", rank: 1, delay: 350 },
+    { e: top3.find((x) => x.rank === 3), cls: "p3", rank: 3, delay: 2100 },
+  ];
 
   return (
-    <div className="relative min-h-screen bg-black overflow-hidden">
+    <div className="relative min-h-screen bg-black overflow-hidden" style={{ background: "#0a0a0a" }}>
       <SEO title="sire.lol — leaderboard" description="top profiles on sire.lol ranked by views." path="/leaderboard" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(37,99,235,0.08),transparent_70%)] pointer-events-none" />
-      <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="lb-bgfx">
+        <div className="lb-orb lb-o1" />
+        <div className="lb-orb lb-o2" />
+        <div className="lb-orb lb-o3" />
+        {stars.current.map((s, i) => (
+          <span key={i} className="lb-star" style={{ left: `${s.x}%`, top: `${s.y}%`, width: s.s, height: s.s, animationDelay: `${s.d}s` }} />
+        ))}
+      </div>
 
-      <div className="relative max-w-2xl mx-auto px-4 py-16">
-        <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-white/30 hover:text-white/60 transition-colors mb-8">
-          <ArrowLeft size={16} />
+      <div className="lb-wrap">
+        <Link to="/" className="lb-back">
+          <ArrowLeft size={14} />
           back
         </Link>
 
-        <div className="relative mb-8 overflow-hidden rounded-3xl border border-blue-500/20 bg-gradient-to-br from-blue-600 via-blue-500 to-white p-8 glow-blue">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.35),transparent_60%)] pointer-events-none" />
-          <div className="absolute -top-12 -right-12 w-44 h-44 bg-white/10 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-blue-300/20 rounded-full blur-2xl pointer-events-none" />
-          <div className="relative z-[1] flex items-center justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <Trophy size={20} className="text-yellow-300" />
-                <h1 className="font-display text-3xl font-black text-white tracking-tighter lowercase">leaderboard</h1>
-              </div>
-              <p className="text-sm text-white/80">the most viewed profiles, ranked.</p>
+        <div className="lb-hero">
+          <div style={{ position: "relative", zIndex: 1 }}>
+            <div className="lb-hero-title">
+              <Trophy size={22} color="#fde047" />
+              leaderboard
             </div>
-            {totalViews > 0 && (
-              <div className="flex flex-col items-end gap-1">
-                <span className="text-2xl font-black text-white tabular-nums">{compact(totalViews)}</span>
-                <span className="flex items-center gap-1 text-[11px] font-semibold text-white/70">
-                  <TrendingUp size={12} /> total views
-                </span>
-              </div>
-            )}
+            <p className="lb-hero-sub">the most viewed profiles, ranked.</p>
+          </div>
+          <div className="lb-hero-total">
+            <b><CountUp key={period} value={totalViews} format={compact} /></b>
+            <span><TrendingUp size={12} /> total views</span>
           </div>
         </div>
 
-        <div className="flex gap-2 mb-8">
-          {(["all", "month"] as Period[]).map((p) => (
-            <button
-              key={p}
-              onClick={() => setPeriod(p)}
-              className={`text-xs px-4 py-2 rounded-xl border font-bold transition-all cursor-pointer ${
-                period === p
-                  ? "bg-blue-600 border-blue-400/60 text-white shadow-[0_0_20px_rgba(37,99,235,0.4)]"
-                  : "bg-white/[0.03] border-white/10 text-white/40 hover:text-white/60"
-              }`}
-            >
-              {p === "all" ? "All Time" : "This Month"}
-            </button>
-          ))}
+        <div className="lb-selects-row">
+          <div className="lb-selects">
+            <div className={`lb-sel${openSel === "metric" ? " lb-open" : ""}`}>
+              <button onClick={() => setOpenSel(openSel === "metric" ? null : "metric")}>
+                <span className="lb-lbl">
+                  <Eye size={15} fill="currentColor" opacity={0.6} />
+                  Views
+                </span>
+                <ChevronDown size={12} className="lb-chev" strokeWidth={2.5} />
+              </button>
+              <div className="lb-menu">
+                <button className="lb-on" onClick={() => setOpenSel(null)}>Views</button>
+              </div>
+            </div>
+            <div className={`lb-sel${openSel === "period" ? " lb-open" : ""}`}>
+              <button onClick={() => setOpenSel(openSel === "period" ? null : "period")}>
+                <span className="lb-lbl">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" style={{ opacity: 0.6 }}><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z" /></svg>
+                  {period === "all" ? "All time" : "This month"}
+                </span>
+                <ChevronDown size={12} className="lb-chev" strokeWidth={2.5} />
+              </button>
+              <div className="lb-menu">
+                <button className={period === "all" ? "lb-on" : ""} onClick={() => { setPeriod("all"); setOpenSel(null); }}>All time</button>
+                <button className={period === "month" ? "lb-on" : ""} onClick={() => { setPeriod("month"); setOpenSel(null); }}>This month</button>
+              </div>
+            </div>
+          </div>
         </div>
 
         {loading ? (
@@ -135,96 +231,80 @@ export default function LeaderboardPage() {
         ) : (
           <>
             {top3.length > 0 && (
-              <motion.div
-                initial="hidden"
-                animate="show"
-                variants={{ show: { transition: { staggerChildren: 0.1 } } }}
-                className="flex items-end justify-center gap-3 sm:gap-4 mb-6"
-              >
-                {podium.map((p) => {
-                  const entry = top3.find((e) => e.rank === p.rank)!;
-                  if (!entry) return null;
-                  return (
-                    <motion.div
-                      key={entry.rank}
-                      variants={{ hidden: { opacity: 0, y: 24 }, show: { opacity: 1, y: 0 } }}
-                    >
-                      <Link to={`/${entry.username}`} className="flex flex-col items-center w-24 sm:w-28 group">
-                        <div className="relative mb-2">
-                          <div className={`w-16 h-16 rounded-full overflow-hidden bg-white/[0.06] ring-2 ${p.ring} shadow-[0_0_24px_rgba(37,99,235,0.15)] group-hover:scale-105 transition-transform`}>
-                            {entry.avatar_url ? (
-                              <img src={entry.avatar_url} alt="" className="w-full h-full object-cover" />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-lg font-black text-white/20">
-                                {entry.username.charAt(0).toUpperCase()}
-                              </div>
-                            )}
-                          </div>
-                          <span className={`absolute -top-1 -right-1 w-6 h-6 rounded-full ${p.medal} flex items-center justify-center shadow-lg`}>
-                            <Crown size={13} className="text-black" />
-                          </span>
+              <div className="lb-stage" key={`stage-${period}`}>
+                <div className="lb-podium">
+                  {pods.map((p) => {
+                    if (!p.e) return null;
+                    const e = p.e;
+                    return (
+                      <div key={e.rank} className={`lb-pod lb-${p.cls}`}>
+                        <div className="lb-crown-float">
+                          <Crown size={CROWN_SIZE[p.cls]} fill={CROWN_FILL[p.cls]} color={CROWN_FILL[p.cls]} strokeWidth={1} />
                         </div>
-                        <span className="text-sm font-black text-white/90 group-hover:text-white truncate max-w-full transition-colors">
-                          @{entry.username}
-                        </span>
-                        <span className="flex items-center gap-1 text-[11px] font-bold text-white/40 mb-3">
-                          <Eye size={11} /> {compact(entry.views)}
-                        </span>
-                        <div className={`w-full ${p.height} rounded-t-2xl bg-gradient-to-b ${p.grad} flex items-start justify-center pt-2 border border-white/10 border-b-0`}>
-                          <span className={`text-xl font-black ${p.text}`}>{entry.rank}</span>
+                        {avatarEl(e, "lb-av")}
+                        <div className="lb-uname">
+                          <Link to={`/${e.username}`} className="lb-plink">{e.username}</Link>
+                          {badgeEls(e.badges, 2, 18)}
                         </div>
-                      </Link>
-                    </motion.div>
-                  );
-                })}
-              </motion.div>
+                        <span className="lb-vpill">
+                          <Eye size={12} />
+                          <CountUp value={e.views} format={(n) => String(n)} delay={p.delay} duration={1400} />
+                        </span>
+                        <div className="lb-ped">{p.rank}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             )}
 
             {rest.length > 0 && (
-              <motion.div
-                initial="hidden"
-                animate="show"
-                variants={{ show: { transition: { staggerChildren: 0.05 } } }}
-                className="glass-card rounded-3xl p-4"
-              >
-                <div className="space-y-1">
-                  {rest.map((e) => (
-                    <motion.div
-                      key={e.rank}
-                      variants={{ hidden: { opacity: 0, x: -12 }, show: { opacity: 1, x: 0 } }}
-                    >
-                      <Link
-                        to={`/${e.username}`}
-                        className="flex items-center gap-3 px-3 py-3 rounded-2xl hover:bg-blue-600/[0.06] border border-transparent hover:border-blue-500/20 transition-all group"
-                      >
-                        <span className="w-7 h-7 rounded-lg bg-white/[0.04] border border-white/10 flex items-center justify-center text-xs font-black text-white/50 flex-shrink-0">
-                          {e.rank}
-                        </span>
-                        <div className="w-9 h-9 rounded-full bg-white/[0.06] overflow-hidden flex-shrink-0 border border-white/[0.06]">
-                          {e.avatar_url ? (
-                            <img src={e.avatar_url} alt="" className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-sm text-white/20 font-bold">
-                              {e.username.charAt(0).toUpperCase()}
-                            </div>
-                          )}
-                        </div>
-                        <span className="flex-1 text-sm font-semibold text-white/70 group-hover:text-white transition-colors truncate">
-                          @{e.username}
-                        </span>
-                        <span className="flex items-center gap-1 text-xs font-bold text-white/35 tabular-nums">
-                          <Eye size={12} /> {e.views.toLocaleString()}
-                        </span>
-                        <ChevronRight size={15} className="text-white/20 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
-                      </Link>
-                    </motion.div>
-                  ))}
+              <div className="lb-panel">
+                <div className="lb-thead">
+                  <span className="lb-c-rank">Rank</span>
+                  <span className="lb-c-user">User</span>
+                  <span className="lb-c-score">Score</span>
                 </div>
-              </motion.div>
+                {rest.map((e) => (
+                  <Link key={e.rank} to={`/${e.username}`} className="lb-row">
+                    <span className="lb-c-rank">#{e.rank}</span>
+                    <span className="lb-c-user">
+                      <span className="lb-who">
+                        {avatarEl(e, "lb-rav")}
+                        <span className="lb-rmeta">
+                          <span className="lb-rname">
+                            <span className="lb-plink">{e.username}</span>
+                            {badgeEls(e.badges, null, 14)}
+                          </span>
+                          <span className="lb-rhandle">@{e.username}</span>
+                        </span>
+                      </span>
+                    </span>
+                    <span className="lb-c-score">
+                      <CountUp key={period} value={e.views} format={(n) => n.toLocaleString()} />
+                    </span>
+                  </Link>
+                ))}
+              </div>
             )}
           </>
         )}
       </div>
+
+      {tip && (
+        <div
+          className="lb-tip-show"
+          style={{
+            position: "fixed", zIndex: 9999, pointerEvents: "none",
+            left: tip.x, top: tip.top, transform: "translate(-50%, 0)",
+            background: "#000", border: "1px solid rgba(255,255,255,.12)", borderRadius: 10,
+            padding: "8px 11px", whiteSpace: "nowrap", boxShadow: "0 8px 24px rgba(0,0,0,.6)", textAlign: "left",
+          }}
+        >
+          <b style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#fff" }}>{tip.name}</b>
+          <span style={{ display: "block", fontSize: 11, color: "rgba(255,255,255,.55)", marginTop: 2 }}>{tip.desc}</span>
+        </div>
+      )}
     </div>
   );
 }

@@ -12,8 +12,26 @@ export default async function handler(req, res) {
         GROUP BY pv.user_id ORDER BY views DESC LIMIT 100`,
       args: []
     });
+    const rows = Rs.rows || [];
+    let badgeMap = {};
+    try {
+      const ids = rows.map((r) => r.user_id);
+      if (ids.length) {
+        const placeholders = ids.map(() => "?").join(",");
+        const [bRs, pRs] = await Promise.all([
+          Db.execute({ sql: `SELECT user_id, badge FROM badges WHERE user_id IN (${placeholders})`, args: ids }),
+          Db.execute({ sql: `SELECT user_id, badge FROM badge_prefs WHERE user_id IN (${placeholders}) AND hidden = 1`, args: ids }),
+        ]);
+        const hidden = new Set((pRs.rows || []).map((r) => `${r.user_id}:${r.badge}`));
+        for (const r of (bRs.rows || [])) {
+          if (hidden.has(`${r.user_id}:${r.badge}`)) continue;
+          (badgeMap[r.user_id] = badgeMap[r.user_id] || []).push(r.badge);
+        }
+      }
+    } catch {}
+    const entries = rows.map((r) => ({ ...r, badges: badgeMap[r.user_id] || [] }));
     res.setHeader("Cache-Control", "public, max-age=60, s-maxage=120, stale-while-revalidate=600");
-    res.status(200).json({ source: "turso", entries: Rs.rows || [] });
+    res.status(200).json({ source: "turso", entries });
   } catch (Err) {
     console.error("leaderboard turso fail:", Err);
     res.status(500).json({ error: "Leaderboard failed" });
