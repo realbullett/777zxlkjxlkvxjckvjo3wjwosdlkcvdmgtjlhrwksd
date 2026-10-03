@@ -1205,6 +1205,7 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
   const [font, setFont] = useState(user?.font || "Inter");
   const [fontScope, setFontScope] = useState("all");
   const [customFontUrl, setCustomFontUrl] = useState("");
+  const [customFontName, setCustomFontName] = useState("");
   const [bgEffect, setBgEffect] = useState(user?.bg_effect || "none");
   const [entryText, setEntryText] = useState(user?.entry_text || "click anywhere to enter");
   const [entryFont, setEntryFont] = useState(user?.entry_font || "Inter");
@@ -1381,7 +1382,7 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
         if (a.type === "custom_cursor") setCustomCursor(a.url);
         if (a.type === "video_background") setVideoBg(a.url);
         if (a.type === "banner") setBanner(a.url);
-        if (a.type === "custom_font") setCustomFontUrl(String(a.url || "").split("?")[0]);
+        if (a.type === "custom_font") { setCustomFontUrl(String(a.url || "")); if ((a as any).filename) setCustomFontName(String((a as any).filename)); }
       }
       if (Array.isArray(J.badges)) setMyBadges(J.badges);
     }).catch(() => {});
@@ -1511,7 +1512,7 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
     if (type === "custom_cursor") setCustomCursor(busted);
     if (type === "video_background") setVideoBg(busted);
     if (type === "banner") setBanner(busted);
-    if (type === "custom_font") { setCustomFontUrl(hd.url.split("?")[0]); setFont("Custom"); }
+    if (type === "custom_font") { setCustomFontUrl(busted); setCustomFontName(file.name); setFont("Custom"); }
     setSaving(null);
   };
 
@@ -2262,7 +2263,7 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
         {customFontUrl ? (
           <style>{`@font-face { font-family: 'SireCustomFont'; src: url('${customFontUrl}'); font-display: swap; }`}</style>
         ) : null}
-        <h3 className="text-sm font-semibold text-white/80 mb-4">Font</h3>
+        <h3 className="text-sm font-semibold text-white/80 mb-4">Font{font === CUSTOM_FONT_NAME ? <span className="ml-2 text-[10px] px-2 py-0.5 rounded-full bg-blue-600/20 border border-blue-500/40 text-blue-300 align-middle">custom equipped</span> : null}</h3>
         <div className="flex flex-wrap gap-2 mb-4">
           {FONTS.map((f) => (
             <button
@@ -2286,28 +2287,49 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
                 : "bg-white/[0.03] border-white/10 text-white/40 hover:text-white/60"
             }`}
             style={customFontUrl ? { fontFamily: CUSTOM_FONT_FAMILY } : undefined}
+            title={customFontUrl ? "custom font file stored" : "no font file uploaded yet"}
           >
-            Custom{customFontUrl ? "" : "*"}
+            Custom{customFontUrl ? (font === CUSTOM_FONT_NAME ? " ✓" : "") : "*"}
           </button>
         </div>
-        {font === CUSTOM_FONT_NAME ? (
+        {font === CUSTOM_FONT_NAME || customFontUrl ? (
           <div className="mb-4 p-4 rounded-xl bg-white/[0.02] border border-white/[0.06]">
-            <p className="text-[11px] text-white/40 mb-3">Upload your own font (.ttf or .otf, max 10MB). It styles your biolink page only.</p>
-            <label className="inline-block text-xs bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 px-4 py-2 rounded-lg text-white/70 font-semibold transition-all cursor-pointer mb-3">
-              {customFontUrl ? "replace font file" : "upload font file"}
-              <input
-                type="file"
-                accept=".ttf,.otf,.woff,.woff2"
-                className="hidden"
-                onChange={async (e) => {
-                  const file = e.target.files?.[0];
-                  e.target.value = "";
-                  if (file) await uploadAsset("custom_font", file);
-                }}
-              />
-            </label>
+            <p className="text-[11px] text-white/40 mb-3">Upload your own font (.ttf, .otf, .woff, .woff2, max 10MB). It styles your biolink page only.</p>
+            <div className="flex items-center gap-3 mb-3">
+              <label className="inline-block text-xs bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 px-4 py-2 rounded-lg text-white/70 font-semibold transition-all cursor-pointer">
+                {customFontUrl ? "replace font file" : "upload font file"}
+                <input
+                  type="file"
+                  accept=".ttf,.otf,.woff,.woff2"
+                  className="hidden"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    e.target.value = "";
+                    if (file) await uploadAsset("custom_font", file);
+                  }}
+                />
+              </label>
+              {customFontUrl ? (
+                <button
+                  onClick={async () => {
+                    await apiCall("asset_delete", { type: "custom_font" });
+                    setCustomFontUrl("");
+                    setCustomFontName("");
+                    if (font === CUSTOM_FONT_NAME) setFont("Inter");
+                    showSaved("custom font removed");
+                  }}
+                  className="text-xs text-red-400 hover:text-red-300 transition-colors cursor-pointer"
+                >
+                  remove
+                </button>
+              ) : null}
+            </div>
             {customFontUrl ? (
-              <p className="text-[11px] text-emerald-400/80 mb-3">custom font uploaded ✓</p>
+              <div className="mb-3 p-3 rounded-xl bg-emerald-500/[0.06] border border-emerald-500/20">
+                <p className="text-[11px] text-white/60">Uploaded file:</p>
+                <p className="text-xs text-white font-semibold truncate" style={customFontUrl ? { fontFamily: CUSTOM_FONT_FAMILY } : undefined}>{customFontName || "custom font file"}</p>
+                <p className="text-[11px] mt-1">{font === CUSTOM_FONT_NAME ? <span className="text-emerald-400/90">currently using this font ✓</span> : <span className="text-amber-400/90">stored but not equipped — click Custom above + save to use it</span>}</p>
+              </div>
             ) : (
               <p className="text-[11px] text-amber-400/80 mb-3">* upload a font file first, then save</p>
             )}
@@ -3045,6 +3067,9 @@ function Preview({ user, desc, background, audio, profileAvatar, customCursor, d
   const rpcStart = useRef({ x: 0, y: 0 });
   return (
       <div className="glass-card rounded-3xl p-3 backdrop-blur-2xl shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] flex flex-col max-h-[calc(100vh-140px)]">
+      {customFontUrl ? (
+        <style>{`@font-face { font-family: 'SireCustomFont'; src: url('${customFontUrl}'); font-display: swap; }`}</style>
+      ) : null}
       <h3 className="text-sm font-semibold text-white/80 mb-4">Live Preview (depends on screen resolution)</h3>
       <div className="glass-card rounded-3xl backdrop-blur-2xl shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] flex-1 flex flex-col min-h-0 relative" style={{ backgroundColor: backgroundColor || "#080808", cursor: customCursor ? `url("${customCursor}"), auto` : undefined }}>
         {videoBg ? (

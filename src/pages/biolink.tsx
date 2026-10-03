@@ -575,7 +575,7 @@ export default function Biolink() {
     isPremium || !PREMIUM_BG_EFFECTS.has(user.bg_effect || "")
       ? user.bg_effect
       : "none";
-  const customFontUrl = (getAsset("custom_font") || "").split("?")[0];
+  const customFontUrl = getAsset("custom_font") || "";
   const hasCustomFont = user.font === "Custom" && !!customFontUrl;
   const customFontAll = hasCustomFont && (user.custom_font_scope || "all") === "all";
 

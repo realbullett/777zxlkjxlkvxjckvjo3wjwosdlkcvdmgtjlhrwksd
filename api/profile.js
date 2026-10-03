@@ -155,11 +155,12 @@ export default async function handler(req, res) {
     for (const K of ["show_username", "show_joindate", "video_audio", "monochrome_icons", "monochrome_badges", "banner_enabled", "panel_mouse_follow", "audio_autoplay", "audio_loop", "audio_shuffle", "panel_hidden", "discord_rpc_enabled", "views_blacklisted"]) {
       if (Match[K] !== undefined && Match[K] !== null && typeof Match[K] === "number") Match[K] = !!Match[K];
     }
-    const [CountRs, BadgeRs, LinkRs, AssetRs, VoteRs] = await Promise.all([
+    const [CountRs, BadgeRs, LinkRs, AssetRs, HostedRs, VoteRs] = await Promise.all([
       Db.execute({ sql: "SELECT COUNT(*) AS c FROM page_views WHERE user_id = ?", args: [Uid] }),
       Db.execute({ sql: "SELECT badge FROM badges WHERE user_id = ?", args: [Uid] }),
       Db.execute({ sql: "SELECT platform, url FROM links WHERE user_id = ?", args: [Uid] }),
       Db.execute({ sql: "SELECT type, url FROM assets WHERE user_id = ?", args: [Uid] }),
+      Db.execute({ sql: "SELECT id, filename, size FROM hosted_files WHERE user_id = ? AND kind = 'asset'", args: [Uid] }).catch(() => ({ rows: [] })),
       Db.execute({
         sql: "SELECT SUM(CASE WHEN vote = 1 THEN 1 ELSE 0 END) AS likes, SUM(CASE WHEN vote = -1 THEN 1 ELSE 0 END) AS dislikes FROM profile_votes WHERE user_id = ?",
         args: [Uid]
@@ -187,7 +188,17 @@ export default async function handler(req, res) {
       badges: (BadgeRs.rows || []).map((R) => R.badge),
       badgePrefs: Prefs,
       links: Object.fromEntries((LinkRs.rows || []).map((R) => [R.platform, R.url])),
-      assets: AssetRs.rows || [],
+      assets: (() => {
+        const byType = {};
+        for (const R of HostedRs.rows || []) {
+          const suffix = String(R.id || "").replace(new RegExp(`^u${Uid}-`), "");
+          if (suffix) byType[suffix] = R;
+        }
+        return (AssetRs.rows || []).map((A) => {
+          const H = byType[A.type];
+          return H ? { ...A, filename: H.filename, size: H.size } : A;
+        });
+      })(),
       likes: Number(VoteRs.rows?.[0]?.likes || 0),
       dislikes: Number(VoteRs.rows?.[0]?.dislikes || 0),
       mine: Mine
