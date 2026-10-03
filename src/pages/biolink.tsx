@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence, LayoutGroup, type Variants } from "motion/react";
 import { Eye, Link as LinkIcon, ThumbsUp, ThumbsDown, Calendar, CheckCircle2, X, ChevronDown, ChevronUp } from "lucide-react";
 import { PLATFORMS } from "../lib/platforms";
-import { FONTS, CUSTOM_FONT_FAMILY, ResolveFontFamily, CustomFontFace } from "../lib/fonts";
+import { CUSTOM_FONT_FAMILY, ResolveFontFamily, CustomFontFace } from "../lib/fonts";
 import { SparkleText } from "../components/SparkleText";
 import { RainEffect, SnowEffect, AuroraEffect, TvStaticEffect, ParticlesEffect, GalaxyEffect, MatrixEffect, SpotlightEffect } from "../components/BackgroundEffect";
 import SongPlayer from "../components/SongPlayer";
@@ -628,7 +628,7 @@ export default function Biolink() {
         entered={entered}
         handleEnter={handleEnter}
         text={user.entry_text || "click anywhere to enter"}
-        fontFamily={FONTS.find(f => f.name === (user.entry_font || "Inter"))?.family || "'Inter', sans-serif"}
+        fontFamily={ResolveFontFamily(user.entry_font, hasCustomFont)}
         color={user.entry_color || "rgba(255,255,255,0.5)"}
         effect={user.entry_effect || "none"}
       />

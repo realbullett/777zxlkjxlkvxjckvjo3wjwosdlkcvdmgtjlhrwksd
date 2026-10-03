@@ -2399,7 +2399,23 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
               {f.name}
             </button>
           ))}
+          {customFontUrl ? (
+            <button
+              onClick={() => setEntryFont(CUSTOM_FONT_NAME)}
+              className={`text-xs px-3 py-1.5 rounded-lg border transition-colors cursor-pointer ${
+                entryFont === CUSTOM_FONT_NAME
+                  ? "bg-blue-600/20 border-blue-500/40 text-blue-300"
+                  : "bg-white/[0.03] border-white/10 text-white/40 hover:text-white/60"
+              }`}
+              style={{ fontFamily: CUSTOM_FONT_FAMILY }}
+            >
+              Custom
+            </button>
+          ) : null}
         </div>
+        {!customFontUrl ? (
+          <p className="text-[11px] text-white/30 mb-3">upload a custom font above to unlock it here</p>
+        ) : null}
         <div className="flex items-center gap-3 mb-3">
           <span className="text-xs text-white/60">Color</span>
           <input
@@ -2431,7 +2447,7 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
           ))}
         </div>
         <div className="mb-4 p-4 rounded-xl bg-black/40 border border-white/10 flex items-center justify-center min-h-[48px]">
-          <p className="text-lg lowercase" style={{ fontFamily: FONTS.find(f => f.name === entryFont)?.family || "'Inter', sans-serif", color: entryColor }}>
+          <p className="text-lg lowercase" style={{ fontFamily: ResolveFontFamily(entryFont, !!customFontUrl), color: entryColor }}>
             {entryPreview || ""}<span className="animate-pulse">|</span>
           </p>
         </div>
@@ -3138,7 +3154,7 @@ function Preview({ user, desc, background, audio, profileAvatar, customCursor, d
               <motion.p
                 animate={{ opacity: [0.4, 1, 0.4] }}
                 transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
-                className="text-lg lowercase" style={{ fontFamily: FONTS.find(f => f.name === (entryFont || "Inter"))?.family || "'Inter', sans-serif", color: entryColor || "rgba(255,255,255,0.5)" }}
+                className="text-lg lowercase" style={{ fontFamily: ResolveFontFamily(entryFont, !!customFontUrl), color: entryColor || "rgba(255,255,255,0.5)" }}
               >
                 {entryDisplay}
               </motion.p>
