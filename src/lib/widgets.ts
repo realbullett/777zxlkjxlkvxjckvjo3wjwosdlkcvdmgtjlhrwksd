@@ -8,6 +8,20 @@ export type ClockWidgetConfig = {
 
 export type WidgetConfig = ClockWidgetConfig;
 
+export type SideWidgetKey = "rpc" | "lastfm" | "clock" | "server" | "roblox";
+
+export const SIDE_WIDGET_KEYS: SideWidgetKey[] = ["rpc", "lastfm", "clock", "server", "roblox"];
+
+export const SIDE_WIDGET_LABELS: Record<SideWidgetKey, string> = {
+  rpc: "Discord status",
+  lastfm: "Last.fm",
+  clock: "Clock",
+  server: "Discord server",
+  roblox: "Roblox",
+};
+
+export const MAX_SIDE_WIDGETS = 3;
+
 export type AboutPageConfig = {
   title: string;
   description: string;
@@ -16,6 +30,7 @@ export type AboutPageConfig = {
   discordServer: DiscordServerConfig | null;
   lastfm: LastfmConfig | null;
   roblox: RobloxConfig | null;
+  side: SideWidgetKey[];
 };
 
 export type DiscordServerConfig = {
@@ -100,6 +115,7 @@ export const defaultAboutPage = (): AboutPageConfig => {
     discordServer: null,
     lastfm: null,
     roblox: null,
+    side: [],
   };
 };
 
@@ -132,7 +148,7 @@ export function normalizeWidgets(raw: unknown): WidgetsConfig {
     if (!clock) return emptyWidgets();
     return {
       pages: 2,
-      about: { title: "About me", description: "", clock, tags: [], discordServer: null, lastfm: null, roblox: null },
+      about: { title: "About me", description: "", clock, tags: [], discordServer: null, lastfm: null, roblox: null, side: [] },
       song: null,
       projects: null,
     };
@@ -153,6 +169,11 @@ export function normalizeWidgets(raw: unknown): WidgetsConfig {
   const lastfmUser = String(lf?.username || "").trim().slice(0, 64);
   const rbx = a?.roblox && typeof a.roblox === "object" ? (a.roblox as Partial<RobloxConfig>) : null;
   const robloxUser = String(rbx?.username || "").trim().replace(/^@/, "").slice(0, 32);
+  const side = Array.isArray(a?.side)
+    ? [...new Set((a.side as unknown[]).map((k) => String(k || "").trim()))]
+        .filter((k): k is SideWidgetKey => (SIDE_WIDGET_KEYS as string[]).includes(k))
+        .slice(0, MAX_SIDE_WIDGETS)
+    : [];
   return {
     pages,
     about: pages >= 2 ? {
@@ -163,6 +184,7 @@ export function normalizeWidgets(raw: unknown): WidgetsConfig {
       discordServer: inviteCode ? { inviteCode } : null,
       lastfm: lastfmUser ? { username: lastfmUser } : null,
       roblox: robloxUser ? { username: robloxUser } : null,
+      side,
     } : null,
     song: pages >= 3 ? { url: String(s?.url || "") } : null,
     projects: pages >= 4 ? normalizeProjects(p) : null,

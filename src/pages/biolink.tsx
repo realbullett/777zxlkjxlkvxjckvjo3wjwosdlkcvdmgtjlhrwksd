@@ -8,6 +8,10 @@ import { SparkleText } from "../components/SparkleText";
 import { RainEffect, SnowEffect, AuroraEffect, TvStaticEffect, ParticlesEffect, GalaxyEffect, MatrixEffect, SpotlightEffect } from "../components/BackgroundEffect";
 import SongPlayer from "../components/SongPlayer";
 import DiscordRPC from "../components/DiscordRPC";
+import DiscordServerCard from "../components/DiscordServerCard";
+import RobloxCard from "../components/RobloxCard";
+import LastfmCard from "../components/LastfmCard";
+import ClockWidget from "../components/ClockWidget";
 import SEO from "../components/SEO";
 import { CursorEffect } from "../components/CursorEffect";
 import AboutPage from "../components/AboutPage";
@@ -582,6 +586,16 @@ export default function Biolink() {
   const customFontUrl = customFontAsset?.url || "";
   const hasCustomFont = user.font === "Custom" && !!customFontUrl;
   const customFontAll = hasCustomFont && (user.custom_font_scope || "all") === "all";
+  const sideKeys = ((widgetCfg.about?.side || []) as string[]).filter((k) => {
+    if (k === "rpc") return !!(user.discord_rpc_enabled && user.discord_id);
+    if (k === "clock") return !!widgetCfg.about?.clock;
+    if (k === "server") return !!widgetCfg.about?.discordServer;
+    if (k === "lastfm") return !!widgetCfg.about?.lastfm;
+    if (k === "roblox") return !!widgetCfg.about?.roblox;
+    return false;
+  }).slice(0, 3);
+  const hasSide = isPremium && sideKeys.length > 0;
+  const featFm = sideKeys.length === 3 && sideKeys.includes("lastfm");
 
   return (
     <>
@@ -664,7 +678,8 @@ export default function Biolink() {
         transition={{ duration: 0.5 }}
         className="relative z-0 flex min-h-screen snap-page"
       >
-        <div className="m-auto text-center w-full max-w-2xl px-8">
+        <div className={`m-auto text-center w-full px-8 ${hasSide ? (featFm ? "max-w-5xl" : "max-w-4xl") : "max-w-2xl"}`}>
+          <div className={hasSide ? (featFm ? "grid gap-6 lg:grid-cols-[minmax(0,1fr)_480px] items-start" : "grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px] items-start") : ""}>
           <div
             ref={cardRef}
             onMouseMove={(e) => {
@@ -744,7 +759,7 @@ export default function Biolink() {
                     user.display_name || user.username
                   )}
                   {showVerifiedByName && (
-                    <VerifiedIcon className="inline-block h-[1em] w-[1em] ml-2 -mt-1" />
+                    <VerifiedIcon className={`inline-block h-[1em] w-[1em] ml-2 -mt-1 ${user?.monochrome_icons ? "" : "text-[#1d9bf0]"}`} />
                   )}
                 </h1>
                 </motion.div>
@@ -941,6 +956,40 @@ export default function Biolink() {
             </motion.div>
             </motion.div>
 </div>
+          {hasSide ? (
+            <div className="min-w-0 text-left">
+              {featFm ? (
+                <div className="grid gap-5 min-w-0 items-start lg:grid-cols-[minmax(0,1fr)_240px]">
+                  <div className="min-w-0">
+                    {widgetCfg.about?.lastfm ? <LastfmCard config={widgetCfg.about.lastfm} instant /> : null}
+                  </div>
+                  <div className="flex flex-col gap-5 min-w-0">
+                    {sideKeys.filter((k) => k !== "lastfm").map((k) => (
+                      <div key={k} className="min-w-0">
+                        {k === "rpc" && user.discord_id ? <DiscordRPC discordId={user.discord_id} wide /> : null}
+                        {k === "clock" && widgetCfg.about?.clock ? <ClockWidget widget={widgetCfg.about.clock} /> : null}
+                        {k === "server" && widgetCfg.about?.discordServer ? <DiscordServerCard config={widgetCfg.about.discordServer} instant /> : null}
+                        {k === "roblox" && widgetCfg.about?.roblox ? <RobloxCard config={widgetCfg.about.roblox} instant /> : null}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-5 min-w-0">
+                  {sideKeys.map((k) => (
+                    <div key={k}>
+                      {k === "rpc" && user.discord_id ? <DiscordRPC discordId={user.discord_id} wide /> : null}
+                      {k === "clock" && widgetCfg.about?.clock ? <ClockWidget widget={widgetCfg.about.clock} /> : null}
+                      {k === "server" && widgetCfg.about?.discordServer ? <DiscordServerCard config={widgetCfg.about.discordServer} instant /> : null}
+                      {k === "lastfm" && widgetCfg.about?.lastfm ? <LastfmCard config={widgetCfg.about.lastfm} instant /> : null}
+                      {k === "roblox" && widgetCfg.about?.roblox ? <RobloxCard config={widgetCfg.about.roblox} instant /> : null}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : null}
+          </div>
           </div>
         </motion.div>
           {isPremium && pageCount >= 2 && widgetCfg.about ? (

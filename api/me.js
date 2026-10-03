@@ -798,6 +798,10 @@ export default async function handler(req, res) {
         const cleanLastfm = String(dlm?.username || "").trim().slice(0, 64);
         const drbx = a.roblox && typeof a.roblox === "object" && !Array.isArray(a.roblox) ? a.roblox : null;
         const cleanRoblox = String(drbx?.username || "").trim().replace(/^@/, "").slice(0, 32);
+        const SIDE_KEYS = new Set(["rpc", "lastfm", "clock", "server", "roblox"]);
+        const cleanSide = Array.isArray(a.side)
+          ? [...new Set(a.side.map((k) => String(k || "").trim()))].filter((k) => SIDE_KEYS.has(k)).slice(0, 3)
+          : [];
         const projectList = Array.isArray(p.projects)
           ? p.projects
               .filter((x) => x && typeof x === "object" && !Array.isArray(x))
@@ -828,6 +832,7 @@ export default async function handler(req, res) {
             discordServer: cleanInvite ? { inviteCode: cleanInvite } : null,
             lastfm: cleanLastfm ? { username: cleanLastfm } : null,
             roblox: cleanRoblox ? { username: cleanRoblox } : null,
+            side: cleanSide,
           },
           song: { url: String(s.url || "").slice(0, 500) },
           projects: { projects: projectList },

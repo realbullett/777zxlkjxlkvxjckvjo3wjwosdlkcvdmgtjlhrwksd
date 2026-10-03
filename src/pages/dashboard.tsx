@@ -14,7 +14,7 @@ import { CursorEffect } from "../components/CursorEffect";
 import AboutPage from "../components/AboutPage";
 import SongPage from "../components/SongPage";
 import ProjectsPage from "../components/ProjectsPage";
-import { TIMEZONE_PRESETS, MAX_PROJECTS, MAX_TAGS, LANGUAGE_TAGS, defaultLabel, defaultAboutPage, defaultProjectsPage, defaultSongPage, emptyProject, emptyWidgets, findMyTimeZone, normalizeWidgets, parseInviteCode, tzOffsetHours, type AboutPageConfig, type ClockWidgetConfig, type ProjectItem, type SongPageConfig, type WidgetsConfig } from "../lib/widgets";
+import { TIMEZONE_PRESETS, MAX_PROJECTS, MAX_TAGS, LANGUAGE_TAGS, SIDE_WIDGET_KEYS, SIDE_WIDGET_LABELS, MAX_SIDE_WIDGETS, defaultLabel, defaultAboutPage, defaultProjectsPage, defaultSongPage, emptyProject, emptyWidgets, findMyTimeZone, normalizeWidgets, parseInviteCode, tzOffsetHours, type AboutPageConfig, type ClockWidgetConfig, type ProjectItem, type SideWidgetKey, type SongPageConfig, type WidgetsConfig } from "../lib/widgets";
 import TagIcon from "../components/TagIcon";
 
 type User = {
@@ -5306,7 +5306,7 @@ function Widgets({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (u:
   const [premium, setPremium] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [widgets, setWidgets] = useState<WidgetsConfig>(emptyWidgets);
-  const [tagInput, setTagInput] = useState("");
+  const [pinHint, setPinHint] = useState("");  const [tagInput, setTagInput] = useState("");
   const [saving, setSaving] = useState(false);
   const [locating, setLocating] = useState(false);
   const [savedMsg, setSavedMsg] = useState("");
@@ -5651,6 +5651,65 @@ function Widgets({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (u:
                     className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none placeholder:text-white/10 focus:border-blue-500/50 transition-colors"
                   />
                   <p className="text-[10px] text-white/30 mt-1">shows avatar, display name, friends + follower counts</p>
+                </div>
+                <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4">
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-[11px] font-semibold text-white/60">pin to main panel</label>
+                    <span className="text-[10px] font-mono text-white/40">{(widgets.about.side || []).length}/{MAX_SIDE_WIDGETS}</span>
+                  </div>
+                  <p className="text-[10px] text-white/30 mb-3 leading-relaxed">pick up to 2 widgets to dock on the right side of your main page, next to your info. off by default — pinned widgets stay on your about page too. hit save below when done.</p>
+                  <div className="flex gap-1.5 mb-3">
+                    <div className="flex-1 rounded-lg border border-white/10 bg-white/[0.03] px-2 py-2 text-center text-[10px] text-white/50">profile info</div>
+                    {(widgets.about.side || []).map((k) => (
+                      <div key={k} className="flex-1 truncate rounded-lg border border-blue-500/40 bg-blue-600/20 px-2 py-2 text-center text-[10px] text-blue-300">{SIDE_WIDGET_LABELS[k]}</div>
+                    ))}
+                    {Array.from({ length: Math.max(0, MAX_SIDE_WIDGETS - (widgets.about.side || []).length) }).map((_, i) => (
+                      <div key={`empty-${i}`} className="flex-1 rounded-lg border border-dashed border-white/10 px-2 py-2 text-center text-[10px] text-white/20">empty</div>
+                    ))}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {SIDE_WIDGET_KEYS.map((k) => {
+                      const side = widgets.about.side || [];
+                      const selected = side.includes(k);
+                      const full = !selected && side.length >= MAX_SIDE_WIDGETS;
+                      const ready = k === "rpc"
+                        ? !!(user?.discord_id && user?.discord_rpc_enabled)
+                        : k === "clock"
+                          ? !!widgets.about.clock
+                          : k === "server"
+                            ? !!widgets.about.discordServer
+                            : k === "lastfm"
+                              ? !!widgets.about.lastfm
+                              : !!widgets.about.roblox;
+                      return (
+                        <button
+                          key={k}
+                          onClick={() => {
+                            if (selected) {
+                              patchAbout({ side: side.filter((x) => x !== k) });
+                              setPinHint("");
+                              return;
+                            }
+                            if (full) { setPinHint("max 3 — unpin one first"); return; }
+                            if (!ready) { setPinHint(`set up your ${SIDE_WIDGET_LABELS[k].toLowerCase()} above first`); return; }
+                            patchAbout({ side: [...side, k] });
+                            setPinHint("");
+                          }}
+                          className={`flex items-center gap-1.5 text-[11px] px-3 py-1.5 rounded-lg border transition-colors cursor-pointer ${
+                            selected
+                              ? "bg-blue-600/20 border-blue-500/40 text-blue-300"
+                              : full || !ready
+                                ? "bg-white/[0.03] border-white/10 text-white/25"
+                                : "bg-white/[0.03] border-white/10 text-white/40 hover:text-white/60"
+                          }`}
+                        >
+                          {selected ? `${side.indexOf(k) + 1} · ` : null}{SIDE_WIDGET_LABELS[k]}
+                          {!ready && !selected ? <span className="text-white/20">· off</span> : null}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {pinHint ? <p className="text-[10px] text-amber-300/80 mt-2">{pinHint}</p> : null}
                 </div>
               </div>
               <div className="flex items-center justify-center rounded-2xl border border-white/[0.06] bg-black/20 p-6">
