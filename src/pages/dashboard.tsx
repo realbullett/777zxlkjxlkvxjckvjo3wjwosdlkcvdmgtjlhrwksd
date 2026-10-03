@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams, Link as RouterLink, Link } from "react-ro
 import { motion, AnimatePresence, LayoutGroup, useMotionValue } from "motion/react";
 import { User, Paintbrush, Link as LucideLink, Image, Crown, Layout, Shield, Home, AtSign, Hash, Eye, User as UserIcon, Volume2, X, Music, Play, Pause, Trash2, Upload, LogOut, Check, Database, Award, Copy, Lock, HardDrive, Layers, Type, Star, Clock, Search, TrendingUp, RefreshCw } from "lucide-react";
 import { PLATFORMS } from "../lib/platforms";
-import { FONTS, CUSTOM_FONT_FAMILY, CUSTOM_FONT_NAME, ResolveFontFamily, CustomFontFace } from "../lib/fonts";
+import { FONTS, CUSTOM_FONT_FAMILY, CUSTOM_FONT_NAME, ResolveFontFamily, CustomFontFace, ToSameOriginUrl } from "../lib/fonts";
 import { SparkleText } from "../components/SparkleText";
 import { RainEffect, SnowEffect, AuroraEffect, TvStaticEffect, ParticlesEffect, GalaxyEffect, MatrixEffect, SpotlightEffect } from "../components/BackgroundEffect";
 import { parseSongUrl } from "../lib/song";
@@ -2929,7 +2929,7 @@ function FontLoadStatus({ url }: { url: string }) {
           await (document as any).fonts.load('16px SireCustomFont');
           await (document as any).fonts.ready?.catch(() => {});
         } else {
-          await fetch(url, { method: "HEAD" }).catch(() => null);
+          await fetch(ToSameOriginUrl(url), { method: "HEAD" }).catch(() => null);
         }
         if (!alive) return;
         const ok = typeof document !== "undefined" && (document as any).fonts?.check

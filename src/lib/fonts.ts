@@ -24,9 +24,16 @@ export function FontFormatFor(filename: string | undefined | null): string | nul
   return null;
 }
 
+export function ToSameOriginUrl(url: string): string {
+  const U = String(url || "");
+  const M = U.match(/^https?:\/\/(?:www\.)?sire\.lol(\/.*)$/i);
+  return M ? M[1] : U;
+}
+
 export function CustomFontFace(url: string, filename: string | undefined | null): string {
+  const Src = ToSameOriginUrl(url);
   const fmt = FontFormatFor(filename);
-  return `@font-face { font-family: 'SireCustomFont'; src: url('${url}')${fmt ? ` format('${fmt}')` : ""}; font-display: swap; }`;
+  return `@font-face { font-family: 'SireCustomFont'; src: url('${Src}')${fmt ? ` format('${fmt}')` : ""}; font-display: swap; }`;
 }
 export function ResolveFontFamily(name: string | undefined | null, hasCustom: boolean) {
   if (name === CUSTOM_FONT_NAME && hasCustom) return CUSTOM_FONT_FAMILY;
