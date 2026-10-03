@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useNavigate, useSearchParams, Link as RouterLink, Link } from "react-router-dom";
 import { motion, AnimatePresence, LayoutGroup, useMotionValue } from "motion/react";
-import { User, Paintbrush, Link as LucideLink, Image, Crown, Layout, Shield, Home, AtSign, Hash, Eye, User as UserIcon, Volume2, X, Music, Play, Pause, Trash2, Upload, LogOut, Check, Database, Award, Copy, Lock, HardDrive, Layers, Type, Star, Clock, Search, TrendingUp, RefreshCw } from "lucide-react";
+import { User, Paintbrush, Link as LucideLink, Image, Crown, Layout, Shield, Home, AtSign, Hash, Eye, User as UserIcon, Volume2, X, Music, Play, Pause, Trash2, Upload, LogOut, Check, Database, Award, Copy, Lock, HardDrive, Layers, Type, Star, Clock, Search, TrendingUp, RefreshCw, Trophy } from "lucide-react";
 import { PLATFORMS } from "../lib/platforms";
 import { FONTS, CUSTOM_FONT_FAMILY, CUSTOM_FONT_NAME, ResolveFontFamily, CustomFontFace, ToSameOriginUrl } from "../lib/fonts";
 import { SparkleText } from "../components/SparkleText";
@@ -101,6 +101,7 @@ const tabs = [
   { id: "imagehost", label: "media host", icon: Image },
   { id: "filehost", label: "file host", icon: HardDrive },
   { id: "widgets", label: "widgets", icon: Clock },
+  { id: "leaderboard", label: "leaderboard", icon: Trophy },
   { id: "admin", label: "admin", icon: Shield },
 ] as const;
 
@@ -326,7 +327,7 @@ return (
                 return (
                   <button
                     key={t.id}
-                    onClick={() => setActiveTab(t.id)}
+                    onClick={() => { if (t.id === "leaderboard") { navigate("/leaderboard"); return; } setActiveTab(t.id); }}
                     className={`relative flex items-center gap-2.5 px-2.5 py-2.5 rounded-xl text-[13px] font-medium transition-all ${
                       isPremiumTab
                         ? "shimmer text-blue-300 border border-blue-500/30 bg-blue-600/15 shadow-[0_0_25px_rgba(37,99,235,0.35)]"
@@ -4514,6 +4515,21 @@ function Templates({ user, onTab, onUpdateUser }: { user: User | null; onTab: (t
     });
   };
 
+  const refreshStats = () => {
+    const token = getSessionToken();
+    fetch(`/api/templates?sessionToken=${encodeURIComponent(token || "")}&_=${Date.now()}`).then(async (R) => {
+      const J = await R.json().catch(() => null);
+      if (J?.stats) {
+        const map: Record<number, { installs: number; stars: number; recent_installs: number }> = {};
+        for (const [K, V] of Object.entries(J.stats)) {
+          const S = V as { installs: number; stars: number; recent_installs: number };
+          map[Number(K)] = { installs: S.installs, stars: S.stars, recent_installs: S.recent_installs };
+        }
+        setStats(map);
+      }
+    }).catch(() => {});
+  };
+
   const toggleFavorite = (t: Template) => {
     if (!user || t.user_id === user.id) return;
     const faved = favorites.has(t.user_id);
@@ -4524,7 +4540,9 @@ function Templates({ user, onTab, onUpdateUser }: { user: User | null; onTab: (t
       if (res.error) {
         setFavorites((prevFav) => { const s = new Set(prevFav); if (faved) s.add(t.user_id); else s.delete(t.user_id); return s; });
         setStats((prevStats) => ({ ...prevStats, [t.user_id]: { ...(prevStats[t.user_id] || { installs: 0, stars: 0, recent_installs: 0 }), stars: Math.max(0, (prevStats[t.user_id]?.stars || 0) - bump) } }));
+        return;
       }
+      refreshStats();
     });
   };
 
