@@ -2,6 +2,7 @@ import { motion, type Variants } from "motion/react";
 import type { AboutPageConfig } from "../lib/widgets";
 import DiscordRPC from "./DiscordRPC";
 import DiscordServerCard from "./DiscordServerCard";
+import RobloxCard from "./RobloxCard";
 import LastfmCard from "./LastfmCard";
 import ClockWidget from "./ClockWidget";
 import TagIcon from "./TagIcon";
@@ -33,9 +34,11 @@ export default function AboutPage({
   const showTags = tags.length > 0;
   const showServer = !!config.discordServer?.inviteCode;
   const showLastfm = !!config.lastfm?.username;
+  const showRoblox = !!config.roblox?.username;
   const leftHas = showDiscord || showLastfm;
-  const rightHas = !!config.clock || showServer;
-  const hasWidgets = leftHas || rightHas;
+  const rightHas = !!config.clock;
+  const rowHas = showServer || showRoblox;
+  const hasWidgets = leftHas || rightHas || rowHas;
   const scrollAnim = instant ? {} : { whileInView: "show" as const, viewport: dropInView };
   return (
     <motion.div
@@ -83,13 +86,16 @@ export default function AboutPage({
                     <ClockWidget widget={config.clock} />
                   </motion.div>
                 )}
-                {showServer && (
-                  <motion.div variants={dropItem} className="w-full">
-                    <DiscordServerCard config={config.discordServer!} instant={instant} />
-                  </motion.div>
-                )}
               </div>
             )}
+          </div>
+        </motion.div>
+      )}
+      {rowHas && (
+        <motion.div variants={dropItem} className="w-full">
+          <div className={`grid w-full grid-cols-1 items-start gap-5 ${showServer && showRoblox ? "sm:grid-cols-2" : ""}`}>
+            {showServer && <DiscordServerCard config={config.discordServer!} instant={instant} />}
+            {showRoblox && <RobloxCard config={config.roblox!} instant={instant} />}
           </div>
         </motion.div>
       )}

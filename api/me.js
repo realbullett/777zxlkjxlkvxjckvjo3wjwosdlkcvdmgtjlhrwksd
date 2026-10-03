@@ -698,6 +698,7 @@ export default async function handler(req, res) {
     if (action === "asset") return assetServe(req, res);
     if (action === "track") return trackInfo(req, res);
     if (action === "lastfm") return lastfmInfo(req, res);
+    if (action === "roblox") return robloxInfo(req, res);
     const sessionToken = req.query.sessionToken || req.query.s;
     const uid = unsignToken(sessionToken);
     if (!uid) { res.status(401).json({ error: "Unauthorized" }); return; }
@@ -793,6 +794,8 @@ export default async function handler(req, res) {
           return (m ? m[1] : s).slice(0, 32);
         })();
         const cleanLastfm = String(dlm?.username || "").trim().slice(0, 64);
+        const drbx = a.roblox && typeof a.roblox === "object" && !Array.isArray(a.roblox) ? a.roblox : null;
+        const cleanRoblox = String(drbx?.username || "").trim().replace(/^@/, "").slice(0, 32);
         const projectList = Array.isArray(p.projects)
           ? p.projects
               .filter((x) => x && typeof x === "object" && !Array.isArray(x))
@@ -822,6 +825,7 @@ export default async function handler(req, res) {
             tags,
             discordServer: cleanInvite ? { inviteCode: cleanInvite } : null,
             lastfm: cleanLastfm ? { username: cleanLastfm } : null,
+            roblox: cleanRoblox ? { username: cleanRoblox } : null,
           },
           song: { url: String(s.url || "").slice(0, 500) },
           projects: { projects: projectList },
@@ -1428,6 +1432,52 @@ async function lastfmInfo(req, res) {
   } catch (e) {
     console.error("lastfm error:", e);
     res.status(502).json({ error: "Last.fm fetch failed" });
+  }
+}
+
+async function robloxInfo(req, res) {
+  const username = String(req.query.user || "").trim().replace(/^@/, "").slice(0, 32);
+  if (!username) { res.status(400).json({ error: "Missing user" }); return; }
+  const Ctrl = new AbortController();
+  const Timer = setTimeout(() => Ctrl.abort(), 12000);
+  const rj = async (url, init) => {
+    try {
+      const r = await fetch(url, { ...init, signal: Ctrl.signal });
+      if (!r.ok) return null;
+      return await r.json().catch(() => null);
+    } catch { return null; }
+  };
+  try {
+    const resolved = await rj("https://users.roblox.com/v1/usernames/users", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ usernames: [username], excludeBannedUsers: true }),
+    });
+    const match = resolved?.data?.[0];
+    if (!match?.id) { res.status(404).json({ error: "Roblox user not found" }); return; }
+    const uid = Number(match.id);
+    const [detail, friends, followers, thumb] = await Promise.all([
+      rj(`https://users.roblox.com/v1/users/${uid}`),
+      rj(`https://friends.roblox.com/v1/users/${uid}/friends/count`),
+      rj(`https://friends.roblox.com/v1/users/${uid}/followers/count`),
+      rj(`https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${uid}&size=180x180&format=Png&isCircular=false`),
+    ]);
+    if (!detail?.name) { res.status(404).json({ error: "Roblox user not found" }); return; }
+    res.setHeader("Cache-Control", "public, max-age=60, s-maxage=300, stale-while-revalidate=600");
+    res.status(200).json({
+      id: uid,
+      name: String(detail.name),
+      displayName: String(detail.displayName || detail.name),
+      created: String(detail.created || ""),
+      avatar: String(thumb?.data?.[0]?.imageUrl || ""),
+      friends: friends?.count === undefined || friends?.count === null ? null : Number(friends.count),
+      followers: followers?.count === undefined || followers?.count === null ? null : Number(followers.count),
+    });
+  } catch (e) {
+    console.error("roblox error:", e);
+    res.status(502).json({ error: "Roblox fetch failed" });
+  } finally {
+    clearTimeout(Timer);
   }
 }
 
