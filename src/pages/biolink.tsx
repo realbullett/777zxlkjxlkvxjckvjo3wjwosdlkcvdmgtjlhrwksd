@@ -679,7 +679,6 @@ export default function Biolink() {
         className="relative z-0 flex min-h-screen snap-page"
       >
         <div className={`m-auto text-center w-full px-8 ${hasSide ? (featFm ? "max-w-5xl" : "max-w-4xl") : "max-w-2xl"}`}>
-          <div className={hasSide ? (featFm ? "grid gap-6 lg:grid-cols-[minmax(0,1fr)_480px] items-start" : "grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px] items-start") : ""}>
           <div
             ref={cardRef}
             onMouseMove={(e) => {
@@ -702,7 +701,7 @@ export default function Biolink() {
                 cardRef.current.style.transform = "";
               }
             }}
-            className={`relative ${user?.panel_hidden ? "" : "glass-card rounded-3xl p-8 backdrop-blur-2xl shadow-[0_8px_32px_0_rgba(0,0,0,0.37)]"}`}
+            className={`relative ${user?.panel_hidden ? "" : "glass-card rounded-3xl p-8 backdrop-blur-2xl shadow-[0_8px_32px_0_rgba(0,0,0,0.37)]"} ${hasSide ? (featFm ? "xl:grid xl:grid-cols-[minmax(0,1fr)_460px] xl:gap-8 xl:text-left items-start" : "xl:grid xl:grid-cols-[minmax(0,1fr)_300px] xl:gap-8 xl:text-left items-start") : ""}`}
             style={{
               backgroundColor: (() => {
                 if (user?.panel_hidden) return "transparent";
@@ -724,7 +723,7 @@ export default function Biolink() {
               borderStyle: "solid",
               willChange: "transform",
             }}>
-            <motion.div variants={dropContainer} initial="hidden" animate={entered ? "show" : "hidden"}>
+            <motion.div variants={dropContainer} initial="hidden" animate={entered ? "show" : "hidden"} className="min-w-0">
             {user.banner_enabled && banner && (
               <div className="absolute top-0 left-0 right-0 h-32 overflow-hidden">
                 <img src={banner} className="w-full h-full object-cover" />
@@ -955,17 +954,16 @@ export default function Biolink() {
               )}
             </motion.div>
             </motion.div>
-</div>
           {hasSide ? (
-            <div className="min-w-0 text-left">
+            <div className="min-w-0 text-left w-full">
               {featFm ? (
-                <div className="grid gap-5 min-w-0 items-start lg:grid-cols-[minmax(0,1fr)_240px]">
-                  <div className="min-w-0">
+                <div className="grid gap-5 min-w-0 items-start sm:grid-cols-[minmax(0,1fr)_230px]">
+                  <div className="min-w-0 overflow-hidden">
                     {widgetCfg.about?.lastfm ? <LastfmCard config={widgetCfg.about.lastfm} instant /> : null}
                   </div>
                   <div className="flex flex-col gap-5 min-w-0">
                     {sideKeys.filter((k) => k !== "lastfm").map((k) => (
-                      <div key={k} className="min-w-0">
+                      <div key={k} className="min-w-0 overflow-hidden">
                         {k === "rpc" && user.discord_id ? <DiscordRPC discordId={user.discord_id} wide /> : null}
                         {k === "clock" && widgetCfg.about?.clock ? <ClockWidget widget={widgetCfg.about.clock} /> : null}
                         {k === "server" && widgetCfg.about?.discordServer ? <DiscordServerCard config={widgetCfg.about.discordServer} instant /> : null}
@@ -977,7 +975,7 @@ export default function Biolink() {
               ) : (
                 <div className="flex flex-col gap-5 min-w-0">
                   {sideKeys.map((k) => (
-                    <div key={k}>
+                    <div key={k} className="min-w-0 overflow-hidden">
                       {k === "rpc" && user.discord_id ? <DiscordRPC discordId={user.discord_id} wide /> : null}
                       {k === "clock" && widgetCfg.about?.clock ? <ClockWidget widget={widgetCfg.about.clock} /> : null}
                       {k === "server" && widgetCfg.about?.discordServer ? <DiscordServerCard config={widgetCfg.about.discordServer} instant /> : null}
@@ -989,7 +987,7 @@ export default function Biolink() {
               )}
             </div>
           ) : null}
-          </div>
+            </div>
           </div>
         </motion.div>
           {isPremium && pageCount >= 2 && widgetCfg.about ? (
