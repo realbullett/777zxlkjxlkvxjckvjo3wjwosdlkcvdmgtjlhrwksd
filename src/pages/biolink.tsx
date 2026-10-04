@@ -20,6 +20,8 @@ import ProjectsPage from "../components/ProjectsPage";
 import { normalizeWidgets } from "../lib/widgets";
 import { VerifiedIcon } from "../components/VerifiedIcon";
 
+const TurnstileSiteKey = (import.meta as any).env?.VITE_TURNSTILE_SITE_KEY || "";
+
 const BADGE_FILES: Record<string, string> = {
   verified: "verified.png",
   premium: "premium.webp",
@@ -462,6 +464,48 @@ export default function Biolink() {
     };
   }, []);
 
+  const voteTsId = useRef<string | null>(null);
+  const voteTsResolve = useRef<((t: string) => void) | null>(null);
+
+  useEffect(() => {
+    if (!TurnstileSiteKey) return;
+    let dead = false;
+    const doRender = () => {
+      if (dead) return;
+      const w = (window as any).turnstile;
+      const slot = document.getElementById("VoteTurnstileSlot");
+      if (!w || !slot) { setTimeout(doRender, 300); return; }
+      try {
+        if (!voteTsId.current) voteTsId.current = w.render(slot, {
+          sitekey: TurnstileSiteKey,
+          size: "invisible",
+          callback: (t: string) => voteTsResolve.current?.(t),
+          "expired-callback": () => voteTsResolve.current?.(""),
+          "error-callback": () => voteTsResolve.current?.(""),
+        });
+      } catch {}
+    };
+    if (!document.getElementById("TurnstileScript")) {
+      const s = document.createElement("script");
+      s.id = "TurnstileScript";
+      s.src = "https://challenges.cloudflare.com/turnstile/v0/api.js";
+      s.async = true;
+      s.defer = true;
+      s.onload = doRender;
+      document.body.appendChild(s);
+    } else doRender();
+    return () => { dead = true; };
+  }, []);
+
+  const getVoteToken = () => new Promise<string>((resolve) => {
+    const w = (window as any).turnstile;
+    if (!TurnstileSiteKey || !w || !voteTsId.current) { resolve(""); return; }
+    let done = false;
+    voteTsResolve.current = (t: string) => { if (!done) { done = true; voteTsResolve.current = null; resolve(t); } };
+    try { w.execute(voteTsId.current); } catch { if (!done) { done = true; voteTsResolve.current = null; resolve(""); } }
+    setTimeout(() => { if (!done) { done = true; voteTsResolve.current = null; resolve(""); } }, 8000);
+  });
+
   const castVote = async (vote: 1 | -1) => {
     if (!user) return;
     const prevVote = myVote, prevLikes = likes, prevDislikes = dislikes;
@@ -470,14 +514,20 @@ export default function Biolink() {
     setLikes(prevLikes + (next === 1 ? 1 : 0) - (prevVote === 1 ? 1 : 0));
     setDislikes(prevDislikes + (next === -1 ? 1 : 0) - (prevVote === -1 ? 1 : 0));
     try {
+      let turnstileToken = "";
+      if (next !== 0) {
+        turnstileToken = await getVoteToken();
+        try { (window as any).turnstile?.reset?.(voteTsId.current); } catch {}
+      }
       const r = await fetch("/api/profile", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: user.username, voter: getVisitorId(), vote, dwell_ms: Date.now() - enteredAtRef.current }),
+        body: JSON.stringify({ username: user.username, voter: getVisitorId(), vote, dwell_ms: Date.now() - enteredAtRef.current, turnstileToken }),
       });
       const J = await r.json().catch(() => null);
       if (!r.ok || J?.counted === false) {
         setMyVote(prevVote); setLikes(prevLikes); setDislikes(prevDislikes);
+        if (J?.captcha) showVoteToast("Couldn't verify you're human.", "The vote wasn't counted — try again.");
         return;
       }
       if (typeof J?.likes === "number") setLikes(J.likes);
@@ -541,7 +591,7 @@ export default function Biolink() {
         });
         const res = await r.json().catch(() => ({}));
         if (res.counted) setViewCount((prev) => (prev !== null ? prev + 1 : prev));
-      }, 5000);
+      }, 3000);
     }
     if (audioRef.current && !hasSongPage && (user?.audio_autoplay ?? true)) {
       audioRef.current.volume = (user?.audio_volume ?? 30) / 100;
@@ -952,6 +1002,7 @@ export default function Biolink() {
                   </button>
                 </div>
               )}
+              <div id="VoteTurnstileSlot" style={{ display: "none" }} />
             </motion.div>
             </motion.div>
           {hasSide ? (

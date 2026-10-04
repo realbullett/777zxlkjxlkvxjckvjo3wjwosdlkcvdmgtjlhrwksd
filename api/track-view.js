@@ -141,7 +141,7 @@ export default async function handler(req, res) {
     res.status(400).json({ error: "Missing fields" });
     return;
   }
-  if (!Number.isInteger(dwell_ms) || dwell_ms < 5000) {
+  if (!Number.isInteger(dwell_ms) || dwell_ms < 3000) {
     res.status(200).json({ counted: false });
     return;
   }
