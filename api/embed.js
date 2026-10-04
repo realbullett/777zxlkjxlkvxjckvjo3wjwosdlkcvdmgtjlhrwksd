@@ -68,7 +68,7 @@ function siteEmbed(req, res) {
   const components = [
     {
       type: 9,
-      components: [{ type: 10, content: "## sire.lol\ncreate your free biolink — drop your links, host your files, tell your story." }],
+      components: [{ type: 10, content: "## sire.lol\nClaim your handle — free forever. No invites, no wait." }],
       accessory: { type: 11, media: { url: `${APP_HOST}/api/embed?mode=thumb` } },
     },
     { type: 12, items: [{ media: { url: `${APP_HOST}/logo.png` } }] },

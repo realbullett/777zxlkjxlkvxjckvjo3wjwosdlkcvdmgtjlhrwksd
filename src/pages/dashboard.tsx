@@ -4961,7 +4961,7 @@ function Visibility({ user }: { user: User | null }) {
                       {seoDescription || user?.description || "your bio shows here"}
                     </p>
                   </div>
-                  <img src="/favicon.svg" alt="" className="h-16 w-16 rounded-lg shrink-0 object-cover" />
+                  <img src="/api/embed?mode=thumb" alt="" className="h-16 w-16 rounded-lg shrink-0 object-cover" />
                 </div>
                 <div className="mt-3 rounded-lg overflow-hidden">
                   <img
