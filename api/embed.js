@@ -23,7 +23,73 @@ function AccentInt(Color) {
   return 0x3b82f6;
 }
 
+function SendJson(res, obj, sMaxAge) {
+  res.status(200);
+  res.setHeader("Content-Type", "application/json");
+  res.setHeader("Cache-Control", `public, max-age=0, s-maxage=${sMaxAge}, stale-while-revalidate=3600`);
+  res.send(JSON.stringify(obj));
+}
+
+async function thumbImage(req, res) {
+  const [{ default: React }, { ImageResponse }] = await Promise.all([import("react"), import("@vercel/og")]);
+  const El = (type, props, ...children) => React.createElement(type, props || null, ...children);
+  const tree = El(
+    "div",
+    {
+      style: {
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      },
+    },
+    El(
+      "svg",
+      { viewBox: "0 0 24 24", width: 160, height: 160, style: { display: "flex" } },
+      El("path", {
+        d: "M18 6H8l-2 2v3l2 2h8l2 2v3l-2 2H6",
+        stroke: "#3b82f6",
+        strokeWidth: 3.2,
+        strokeLinecap: "square",
+        fill: "none",
+      })
+    )
+  );
+  const imageResponse = new ImageResponse(tree, { width: 256, height: 256 });
+  const buf = Buffer.from(await imageResponse.arrayBuffer());
+  res.status(200);
+  res.setHeader("Content-Type", "image/png");
+  res.setHeader("Cache-Control", "public, max-age=0, s-maxage=86400, stale-while-revalidate=2592000");
+  res.send(buf);
+}
+
+function siteEmbed(req, res) {
+  const components = [
+    {
+      type: 9,
+      components: [{ type: 10, content: "## sire.lol\ncreate your free biolink — drop your links, host your files, tell your story." }],
+      accessory: { type: 11, media: { url: `${APP_HOST}/api/embed?mode=thumb` } },
+    },
+    { type: 12, items: [{ media: { url: `${APP_HOST}/logo.png` } }] },
+    { type: 14, spacing: 1 },
+    {
+      type: 1,
+      components: [
+        { type: 2, style: 5, label: "Sign Up", url: `${APP_HOST}/auth` },
+        { type: 2, style: 5, label: "Leaderboard", url: `${APP_HOST}/leaderboard` },
+        { type: 2, style: 5, label: "Terms", url: `${APP_HOST}/terms` },
+        { type: 2, style: 5, label: "Privacy", url: `${APP_HOST}/privacy` },
+      ],
+    },
+  ];
+  SendJson(res, { component: { type: 17, accent_color: 0x3b82f6, components } }, 86400);
+}
+
 export default async function handler(req, res) {
+  const Mode = String(req.query.mode || "").trim().toLowerCase();
+  if (Mode === "thumb") return thumbImage(req, res);
+  if (Mode === "site") return siteEmbed(req, res);
   if (!HasTurso()) { res.status(500).json({ error: "No DB configured" }); return; }
   const Name = String(req.query.username || req.query.u || "").trim().toLowerCase();
   if (!Name) { res.status(400).json({ error: "Missing username" }); return; }
@@ -60,7 +126,7 @@ export default async function handler(req, res) {
       {
         type: 9,
         components: [{ type: 10, content: `## ${MdEsc(title)}\n${MdEsc(String(bio).replace(/\s+/g, " ").trim().slice(0, 300))}` }],
-        accessory: { type: 11, media: { url: `${APP_HOST}/api/embed-thumb` } },
+        accessory: { type: 11, media: { url: `${APP_HOST}/api/embed?mode=thumb` } },
       },
       { type: 12, items: [{ media: { url: bigImage } }] },
     ];
@@ -69,10 +135,7 @@ export default async function handler(req, res) {
       components.push({ type: 1, components: buttons });
     }
 
-    res.status(200);
-    res.setHeader("Content-Type", "application/json");
-    res.setHeader("Cache-Control", "public, max-age=0, s-maxage=300, stale-while-revalidate=3600");
-    res.send(JSON.stringify({ component: { type: 17, accent_color: AccentInt(User.accent_color), components } }));
+    SendJson(res, { component: { type: 17, accent_color: AccentInt(User.accent_color), components } }, 300);
   } catch (Err) {
     console.error("embed fail:", Err);
     res.status(500).json({ error: "Failed" });
