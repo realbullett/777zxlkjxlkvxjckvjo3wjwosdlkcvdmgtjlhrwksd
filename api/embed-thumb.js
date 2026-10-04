@@ -10,8 +10,6 @@ export default async function handler(req, res) {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: "#0a0a0a",
-        borderRadius: 56,
       },
     },
     El(
