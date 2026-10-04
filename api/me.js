@@ -33,6 +33,7 @@ const USER_FIELDS = new Set([
   "discord_rpc_offset_x", "discord_rpc_offset_y",
   "panel_opacity", "panel_hidden", "discord_rpc_enabled",
   "widgets", "onboarding_done", "use_case", "show_joindate", "show_views", "show_votes", "custom_font_scope",
+  "embed_buttons",
 ]);
 
 const PREMIUM_VALUES = {
@@ -162,6 +163,8 @@ function NormalizeUser(Row) {
   Out.widgets = ParseJson(Row.widgets, Row.widgets ?? []);
   Out.desc_lines = ParseJson(Row.desc_lines, Row.desc_lines ?? null);
   Out.reset_notices = ParseJson(Row.reset_notices, []);
+  Out.embed_buttons = ParseJson(Row.embed_buttons, []);
+  if (!Array.isArray(Out.embed_buttons)) Out.embed_buttons = [];
   for (const K of BOOL_COLS) {
     if (Out[K] !== undefined && Out[K] !== null && typeof Out[K] === "number") Out[K] = !!Out[K];
   }
@@ -212,6 +215,7 @@ async function EnsureSchema() {
     D.execute("ALTER TABLE users ADD COLUMN show_votes INTEGER NOT NULL DEFAULT 1"),
     D.execute("ALTER TABLE users ADD COLUMN sparkle_intensity INTEGER NOT NULL DEFAULT 14"),
     D.execute("ALTER TABLE users ADD COLUMN custom_font_scope TEXT DEFAULT 'all'"),
+    D.execute("ALTER TABLE users ADD COLUMN embed_buttons TEXT"),
     D.execute("CREATE TABLE IF NOT EXISTS admin_log (id INTEGER PRIMARY KEY AUTOINCREMENT, admin_id INTEGER NOT NULL, action TEXT NOT NULL, target_uid INTEGER, detail TEXT, created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')))"),
     D.execute("CREATE INDEX IF NOT EXISTS idx_admin_log_time ON admin_log (created_at DESC)"),
     D.execute("CREATE TABLE IF NOT EXISTS badge_prefs (user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, badge TEXT NOT NULL, hidden INTEGER NOT NULL DEFAULT 0, by_name INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (user_id, badge))"),
@@ -760,6 +764,26 @@ export default async function handler(req, res) {
       }
       if (data.font !== undefined) {
         data.font = String(data.font).slice(0, 64);
+      }
+      if (data.embed_buttons !== undefined) {
+        let eb = data.embed_buttons;
+        if (typeof eb === "string") {
+          try { eb = JSON.parse(eb); } catch { eb = []; }
+        }
+        if (!Array.isArray(eb)) eb = [];
+        data.embed_buttons = eb
+          .filter((b) => b && typeof b === "object" && !Array.isArray(b))
+          .map((b) => {
+            let url = String(b.url || "").trim();
+            if (url && !/^https?:\/\//i.test(url)) url = `https://${url}`;
+            let label = String(b.label || "").trim().slice(0, 80);
+            if (!label && url) {
+              try { label = new URL(url).hostname.replace(/^www\./, ""); } catch { label = url.slice(0, 80); }
+            }
+            return { label, url: url.slice(0, 2000) };
+          })
+          .filter((b) => b.url && /^https?:\/\//i.test(b.url))
+          .slice(0, 4);
       }
       if (data.widgets !== undefined) {
         const canFullWidgets = await isPremiumUser(uid);

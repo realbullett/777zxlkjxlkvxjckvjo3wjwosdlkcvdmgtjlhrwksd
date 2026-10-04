@@ -121,6 +121,7 @@ ${urls}
 <meta name="description" content="${esc(description)}" />
 <meta name="robots" content="index, follow" />
 <link rel="canonical" href="${esc(canonical)}" />
+<link rel="discord:component-embed" type="application/json" href="https://www.sire.lol/api/embed?username=${encodeURIComponent(data.username)}" />
 <link rel="icon" type="image/png" href="https://sire.lol/logo.png" />
 <meta property="og:type" content="website" />
 <meta property="og:site_name" content="sire.lol" />

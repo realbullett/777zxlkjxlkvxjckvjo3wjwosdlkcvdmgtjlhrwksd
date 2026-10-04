@@ -62,6 +62,7 @@ type User = {
   seo_description: string | null;
   seo_image: string | null;
   seo_favicon: string | null;
+  embed_buttons: { label: string; url: string }[] | string | null;
   panel_mouse_follow: boolean;
   audio_volume: number;
   audio_autoplay: boolean;
@@ -4828,6 +4829,17 @@ function Visibility({ user }: { user: User | null }) {
   const [seoDescription, setSeoDescription] = useState(user?.seo_description || "");
   const [seoImage, setSeoImage] = useState(user?.seo_image || "");
   const [seoFavicon, setSeoFavicon] = useState(user?.seo_favicon || "");
+  const [embedBtns, setEmbedBtns] = useState<{ label: string; url: string }[]>(() => {
+    let raw: unknown = user?.embed_buttons;
+    if (typeof raw === "string") {
+      try { raw = JSON.parse(raw); } catch { raw = []; }
+    }
+    const arr = Array.isArray(raw) ? raw : [];
+    return [0, 1, 2, 3].map((i) => ({
+      label: String(arr[i]?.label || ""),
+      url: String(arr[i]?.url || ""),
+    }));
+  });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -4840,6 +4852,7 @@ function Visibility({ user }: { user: User | null }) {
         seo_description: seoDescription || null,
         seo_image: seoImage || null,
         seo_favicon: seoFavicon || null,
+        embed_buttons: embedBtns.filter((b) => b.label.trim() || b.url.trim()),
       },
     });
     if (error) console.error("seo save error:", error);
@@ -4907,6 +4920,74 @@ function Visibility({ user }: { user: User | null }) {
               <span className="text-xs text-white/40">preview</span>
             </div>
           )}
+        </div>
+
+        <div>
+          <p className="text-sm font-semibold text-white/80 mb-1">Discord buttons</p>
+          <p className="text-[11px] text-white/30 mb-3">Up to 4 link buttons shown under your Discord embed. Empty rows are skipped.</p>
+          <div className="space-y-2">
+            {embedBtns.map((b, i) => (
+              <div key={i} className="flex gap-2">
+                <input
+                  value={b.label}
+                  onChange={(e) => setEmbedBtns(embedBtns.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))}
+                  placeholder={`Button ${i + 1} name`}
+                  maxLength={80}
+                  className="w-1/3 bg-white/[0.03] border border-white/[0.06] rounded-xl px-4 py-2.5 text-sm text-white outline-none placeholder:text-white/10 focus:border-blue-500/30 transition-colors"
+                />
+                <input
+                  value={b.url}
+                  onChange={(e) => setEmbedBtns(embedBtns.map((x, j) => (j === i ? { ...x, url: e.target.value } : x)))}
+                  placeholder="https://..."
+                  className="flex-1 bg-white/[0.03] border border-white/[0.06] rounded-xl px-4 py-2.5 text-sm text-white outline-none placeholder:text-white/10 focus:border-blue-500/30 transition-colors"
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <p className="text-sm font-semibold text-white/80 mb-1">Discord preview</p>
+          <p className="text-[11px] text-white/30 mb-3">Live preview of how your link looks when pasted in Discord.</p>
+          <div className="rounded-lg overflow-hidden" style={{ backgroundColor: "#2b2d31" }}>
+            <div className="flex" style={{ borderLeft: `3px solid #3b82f6` }}>
+              <div className="flex-1 min-w-0 px-4 py-3">
+                <div className="flex items-start gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13px] font-semibold text-white leading-snug">
+                      {seoTitle || user?.display_name || user?.username || "Your profile"}
+                    </p>
+                    <p className="text-[13px] mt-1 leading-snug" style={{ color: "#b5bac1" }}>
+                      {seoDescription || user?.description || "your bio shows here"}
+                    </p>
+                  </div>
+                  <img src="/favicon.svg" alt="" className="h-16 w-16 rounded-lg shrink-0 object-cover" />
+                </div>
+                <div className="mt-3 rounded-lg overflow-hidden">
+                  <img
+                    src={seoImage || (user?.username ? `/api/og?username=${encodeURIComponent(user.username)}` : "")}
+                    alt=""
+                    className="w-full max-h-56 object-cover"
+                    onError={(e) => (e.currentTarget.style.display = "none")}
+                  />
+                </div>
+                {embedBtns.some((x) => x.label.trim() || x.url.trim()) && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {embedBtns.filter((x) => x.label.trim() || x.url.trim()).map((x, j) => (
+                      <span
+                        key={j}
+                        className="inline-flex items-center gap-1.5 rounded px-3 py-1.5 text-[13px] font-medium text-white"
+                        style={{ backgroundColor: "#4e5058" }}
+                      >
+                        {x.label.trim() || (() => { try { return new URL(x.url).hostname.replace(/^www\./, ""); } catch { return "open"; } })()}
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M7 17L17 7" /><path d="M8 7h9v9" /></svg>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
 
         <div className="flex justify-end pt-2">

@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS users (
   show_views INTEGER NOT NULL DEFAULT 1,
   show_votes INTEGER NOT NULL DEFAULT 1,
   custom_font_scope TEXT DEFAULT 'all',
+  embed_buttons TEXT,
   display_effect TEXT DEFAULT 'none',
   sparkle_intensity INTEGER NOT NULL DEFAULT 14,
   font TEXT DEFAULT 'Inter',
