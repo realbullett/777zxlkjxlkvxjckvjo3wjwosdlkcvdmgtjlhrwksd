@@ -85,6 +85,7 @@ ${urls}
   let description = "create your free biolink on sire.lol — drop your links, host your files, tell your story. no templates, no bullshit.";
   let image = "https://sire.lol/logo.png";
   let canonical = `https://sire.lol/${username}`;
+  let embedUser = "";
   let found = false;
 
   try {
@@ -106,6 +107,7 @@ ${urls}
         image = `https://sire.lol/api/og?username=${data.username}`;
       // Use actual username for canonical URL
       canonical = `https://sire.lol/${data.username}`;
+      embedUser = data.username;
     }
   } catch {}
 
@@ -121,7 +123,7 @@ ${urls}
 <meta name="description" content="${esc(description)}" />
 <meta name="robots" content="index, follow" />
 <link rel="canonical" href="${esc(canonical)}" />
-<link rel="discord:component-embed" type="application/json" href="https://www.sire.lol/api/embed?username=${encodeURIComponent(data.username)}" />
+<link rel="discord:component-embed" type="application/json" href="https://www.sire.lol/api/embed?username=${encodeURIComponent(embedUser || username)}" />
 <link rel="icon" type="image/png" href="https://sire.lol/logo.png" />
 <meta property="og:type" content="website" />
 <meta property="og:site_name" content="sire.lol" />
