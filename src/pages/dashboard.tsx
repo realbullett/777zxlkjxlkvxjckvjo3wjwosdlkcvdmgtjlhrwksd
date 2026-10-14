@@ -3266,8 +3266,16 @@ function Preview({ user, desc, background, audio, profileAvatar, customCursor, d
               }}
             >
                 {bannerEnabled && banner && (
-                  <div className="absolute top-0 left-0 right-0 h-32 overflow-hidden">
-                    <img src={banner} className="w-full h-full object-cover" />
+                  <div className="pointer-events-none absolute inset-x-0 top-0 z-[1] h-32 overflow-hidden rounded-t-3xl">
+                    <img
+                      src={banner}
+                      className="h-full w-full object-cover"
+                      style={{
+                        maskImage: "linear-gradient(to bottom, #000 0%, #000 42%, transparent 100%)",
+                        WebkitMaskImage: "linear-gradient(to bottom, #000 0%, #000 42%, transparent 100%)",
+                      }}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/45" />
                   </div>
                 )}
                 <div className={bannerEnabled && banner ? "pt-24" : ""}>
