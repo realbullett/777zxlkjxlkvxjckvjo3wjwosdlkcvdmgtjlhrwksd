@@ -1617,26 +1617,6 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
     return "custom_cursor";
   };
 
-  const assetIcon = (name: string) => {
-    if (name === "Background") return <Image size={16} className="text-white/30" />;
-    if (name === "Video Background") return <span className="text-white/30 text-sm">▶</span>;
-    if (name === "Audio") return <span className="text-white/30 text-sm">♪</span>;
-    if (name === "Profile Avatar") return <User size={16} className="text-white/30" />;
-    if (name === "Banner") return <Image size={16} className="text-white/30" />;
-    return <span className="text-white/30 text-sm">↖</span>;
-  };
-
-  const assetPreview = (name: string) => {
-    const v = assetState(name);
-    if (name === "Background" && v) return <img src={v} className="h-8 w-12 rounded object-cover" />;
-    if (name === "Video Background" && v) return <video src={v} className="h-8 w-12 rounded object-cover" muted />;
-    if (name === "Audio" && v) return <audio src={v} controls className="h-8 w-32" />;
-    if (name === "Profile Avatar" && v) return <img src={v} className="h-8 w-8 rounded-full object-cover" />;
-    if (name === "Banner" && v) return <img src={v} className="h-8 w-12 rounded object-cover" />;
-    if (name === "Custom Cursor" && v) return <img src={v} className="h-6 w-6 object-contain" />;
-    return null;
-  };
-
   const assetRef = (name: string) => {
     if (name === "Background") return bgRef;
     if (name === "Video Background") return videoBgRef;
@@ -1699,6 +1679,86 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
         </div>
 
         <div className="glass-card rounded-2xl p-8 bg-blue-500/[0.04] border-blue-500/10 space-y-8">
+          <div>
+          <p className="text-sm font-semibold text-white/80 mb-4">Assets Uploader</p>
+          <div className="rounded-2xl bg-white/[0.02] border border-white/[0.06] p-5 space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <p className="text-sm text-white/70">Background</p>
+                <button onClick={() => setIsBgModalOpen(true)} className="relative w-full h-28 rounded-xl border border-white/[0.08] bg-white/[0.02] hover:border-blue-500/40 hover:bg-blue-600/5 transition-all flex flex-col items-center justify-center gap-2 text-white/45 hover:text-blue-300 overflow-hidden group cursor-pointer">
+                  {background || videoBg ? <img src={background || videoBg} className="absolute inset-0 h-full w-full object-cover opacity-20" /> : null}
+                  <span className="relative flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 group-hover:bg-blue-600/20 transition-colors"><Image size={18} className="text-white/70 group-hover:text-blue-300" /></span>
+                  <span className="relative text-xs">{background || videoBg ? "Click to change file" : "Click to upload a file"}</span>
+                </button>
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-sm text-white/70">Video Background</p>
+                <button onClick={() => assetRef("Video Background").current?.click()} disabled={isSaving("Video Background")} className="relative w-full h-28 rounded-xl border border-white/[0.08] bg-white/[0.02] hover:border-blue-500/40 hover:bg-blue-600/5 transition-all flex flex-col items-center justify-center gap-2 text-white/45 hover:text-blue-300 overflow-hidden group cursor-pointer disabled:opacity-50">
+                  {videoBg ? <img src={videoBg} className="absolute inset-0 h-full w-full object-cover opacity-25" /> : null}
+                  <span className="relative flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 group-hover:bg-blue-600/20 transition-colors"><Image size={18} className="text-white/70 group-hover:text-blue-300" /></span>
+                  <span className="relative text-xs">{isSaving("Video Background") ? "saving..." : videoBg ? "Click to change file" : "Click to upload a file"}</span>
+                </button>
+                <input ref={assetRef("Video Background")} type="file" accept="video/*" className="hidden" onChange={() => handleAsset("Video Background")} />
+                {videoBg && <button onClick={() => removeAsset("Video Background")} className="text-[11px] text-red-400/70 hover:text-red-300 transition-colors cursor-pointer self-start">remove</button>}
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-sm text-white/70">Audio</p>
+                <button onClick={() => setIsAudioModalOpen(true)} className="relative w-full h-28 rounded-xl border border-white/[0.08] bg-white/[0.02] hover:border-blue-500/40 hover:bg-blue-600/5 transition-all flex flex-col items-center justify-center gap-2 text-white/45 hover:text-blue-300 overflow-hidden group cursor-pointer">
+                  <span className="relative flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 group-hover:bg-blue-600/20 transition-colors"><Music size={18} className="text-white/70 group-hover:text-blue-300" /></span>
+                  <span className="relative text-xs">Click to open audio manager</span>
+                </button>
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-sm text-white/70">Profile Avatar</p>
+                <button onClick={() => paRef.current?.click()} disabled={isSaving("Profile Avatar")} className="relative w-full h-28 rounded-xl border border-white/[0.08] bg-white/[0.02] hover:border-blue-500/40 hover:bg-blue-600/5 transition-all flex flex-col items-center justify-center gap-2 text-white/45 hover:text-blue-300 overflow-hidden group cursor-pointer disabled:opacity-50">
+                  {assetState("Profile Avatar") ? <img src={assetState("Profile Avatar")!} className="absolute inset-0 h-full w-full object-cover opacity-25" /> : null}
+                  <span className="relative flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 group-hover:bg-blue-600/20 transition-colors"><Image size={18} className="text-white/70 group-hover:text-blue-300" /></span>
+                  <span className="relative text-xs">{isSaving("Profile Avatar") ? "saving..." : profileAvatar ? "Click to change file" : "Click to upload a file"}</span>
+                </button>
+                <input ref={paRef} type="file" accept="image/*" className="hidden" onChange={() => handleAsset("Profile Avatar")} />
+                {profileAvatar && <button onClick={() => removeAsset("Profile Avatar")} className="text-[11px] text-red-400/70 hover:text-red-300 transition-colors cursor-pointer self-start">remove</button>}
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-sm text-white/70">Banner</p>
+                <button onClick={() => bannerRef.current?.click()} disabled={isSaving("Banner")} className="relative w-full h-28 rounded-xl border border-white/[0.08] bg-white/[0.02] hover:border-blue-500/40 hover:bg-blue-600/5 transition-all flex flex-col items-center justify-center gap-2 text-white/45 hover:text-blue-300 overflow-hidden group cursor-pointer disabled:opacity-50">
+                  {assetState("Banner") ? <img src={assetState("Banner")!} className="absolute inset-0 h-full w-full object-cover opacity-25" /> : null}
+                  <span className="relative flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 group-hover:bg-blue-600/20 transition-colors"><Image size={18} className="text-white/70 group-hover:text-blue-300" /></span>
+                  <span className="relative text-xs">{isSaving("Banner") ? "saving..." : banner ? "Click to change file" : "Click to upload a file"}</span>
+                </button>
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] text-white/40">Banner enabled</span>
+                  <Toggle
+                    checked={bannerEnabled}
+                    onChange={async (v) => {
+                      if (!user) return;
+                      setBannerEnabled(v);
+                      await apiCall("update", { data: { banner_enabled: v } });
+                      showSaved(v ? "banner on" : "banner off");
+                    }}
+                  />
+                </div>
+                <input ref={bannerRef} type="file" accept="image/*" className="hidden" onChange={() => handleAsset("Banner")} />
+                {banner && <button onClick={() => removeAsset("Banner")} className="text-[11px] text-red-400/70 hover:text-red-300 transition-colors cursor-pointer self-start">remove</button>}
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-sm text-white/70">Custom Cursor</p>
+                <button onClick={() => cursorRef.current?.click()} disabled={isSaving("Custom Cursor")} className="relative w-full h-28 rounded-xl border border-white/[0.08] bg-white/[0.02] hover:border-blue-500/40 hover:bg-blue-600/5 transition-all flex flex-col items-center justify-center gap-2 text-white/45 hover:text-blue-300 overflow-hidden group cursor-pointer disabled:opacity-50">
+                  {assetState("Custom Cursor") ? <img src={assetState("Custom Cursor")!} className="absolute inset-0 h-full w-full object-cover opacity-25" /> : null}
+                  <span className="relative flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 group-hover:bg-blue-600/20 transition-colors"><Image size={18} className="text-white/70 group-hover:text-blue-300" /></span>
+                  <span className="relative text-xs">{isSaving("Custom Cursor") ? "saving..." : customCursor ? "Click to change file" : "Click to upload a file"}</span>
+                </button>
+                <input ref={cursorRef} type="file" accept="image/*" className="hidden" onChange={() => handleAsset("Custom Cursor")} />
+                {customCursor && <button onClick={() => removeAsset("Custom Cursor")} className="text-[11px] text-red-400/70 hover:text-red-300 transition-colors cursor-pointer self-start">remove</button>}
+              </div>
+            </div>
+          </div>
+          </div>
+
           <div>
           <p className="text-sm font-semibold text-white/80 mb-4">Display Name</p>
           <input
@@ -1857,114 +1917,6 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
             <button onClick={saveDesc} disabled={savingDesc} className="text-xs bg-blue-600 hover:bg-blue-500 disabled:opacity-40 px-3 py-1 rounded-lg text-white transition-colors">
               {savingDesc ? "saving..." : "save"}
             </button>
-          </div>
-        </div>
-
-        <div>
-          <p className="text-sm font-semibold text-white/80 mb-4">Assets uploader</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <div className="flex items-center justify-between gap-2 p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] min-w-0">
-              <div className="flex items-center gap-3 min-w-0">
-                {videoBg ? (
-                  <video src={videoBg} className="h-8 w-12 rounded object-cover shrink-0" muted />
-                ) : background ? (
-                  <img src={background} className="h-8 w-12 rounded object-cover shrink-0" />
-                ) : (
-                  <Image size={16} className="text-white/30 shrink-0" />
-                )}
-                <span className="text-sm text-white/60 truncate">Background</span>
-              </div>
-              <button onClick={() => setIsBgModalOpen(true)} className="text-xs text-blue-400 hover:text-blue-300 transition-colors cursor-pointer ml-4 shrink-0">
-                manage
-              </button>
-            </div>
-
-            <div className="flex items-center justify-between gap-2 p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] min-w-0">
-              <div className="flex items-center gap-3 min-w-0">
-                <span className="text-white/30 text-sm shrink-0">♪</span>
-                <span className="text-sm text-white/60 truncate">Audio</span>
-              </div>
-              <button onClick={() => setIsAudioModalOpen(true)} className="text-xs text-blue-400 hover:text-blue-300 transition-colors cursor-pointer shrink-0">
-                manage
-              </button>
-            </div>
-
-            <div className="flex items-center justify-between gap-2 p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] min-w-0">
-              <div className="flex items-center gap-3 min-w-0">
-                {assetPreview("Profile Avatar") || assetIcon("Profile Avatar")}
-                <span className="text-sm text-white/60 truncate">Profile Avatar</span>
-              </div>
-              <div className="flex items-center gap-3 shrink-0">
-                <input ref={paRef} type="file" accept="image/*" className="hidden" onChange={() => handleAsset("Profile Avatar")} />
-                <button onClick={() => paRef.current?.click()} disabled={isSaving("Profile Avatar")} className="text-xs text-blue-400 hover:text-blue-300 disabled:opacity-40 transition-colors cursor-pointer">
-                  {isSaving("Profile Avatar") ? "saving..." : profileAvatar ? "change" : "upload"}
-                </button>
-                {profileAvatar && (
-                  <button onClick={() => removeAsset("Profile Avatar")} disabled={isSaving("Profile Avatar")} className="text-xs text-red-400 hover:text-red-300 disabled:opacity-40 transition-colors cursor-pointer">
-                    remove
-                  </button>
-                )}
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between gap-2 p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] min-w-0">
-              <div className="flex items-center gap-3 min-w-0">
-                {assetPreview("Banner") || assetIcon("Banner")}
-                <span className="text-sm text-white/60 truncate">Banner</span>
-              </div>
-              <div className="flex items-center gap-3 shrink-0">
-                <input ref={bannerRef} type="file" accept="image/*" className="hidden" onChange={() => handleAsset("Banner")} />
-                <button onClick={() => bannerRef.current?.click()} disabled={isSaving("Banner")} className="text-xs text-blue-400 hover:text-blue-300 disabled:opacity-40 transition-colors cursor-pointer">
-                  {isSaving("Banner") ? "saving..." : banner ? "change" : "upload"}
-                </button>
-                {banner && (
-                  <button onClick={() => removeAsset("Banner")} disabled={isSaving("Banner")} className="text-xs text-red-400 hover:text-red-300 disabled:opacity-40 transition-colors cursor-pointer">
-                    remove
-                  </button>
-                )}
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between gap-2 p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] min-w-0">
-              <div className="flex items-center gap-3 min-w-0">
-                {assetPreview("Custom Cursor") || assetIcon("Custom Cursor")}
-                <span className="text-sm text-white/60 truncate">Custom Cursor</span>
-              </div>
-              <div className="flex items-center gap-3 shrink-0">
-                <input ref={cursorRef} type="file" accept="image/*" className="hidden" onChange={() => handleAsset("Custom Cursor")} />
-                <button onClick={() => cursorRef.current?.click()} disabled={isSaving("Custom Cursor")} className="text-xs text-blue-400 hover:text-blue-300 disabled:opacity-40 transition-colors cursor-pointer">
-                  {isSaving("Custom Cursor") ? "saving..." : customCursor ? "change" : "upload"}
-                </button>
-                {customCursor && (
-                  <button onClick={() => removeAsset("Custom Cursor")} disabled={isSaving("Custom Cursor")} className="text-xs text-red-400 hover:text-red-300 disabled:opacity-40 transition-colors cursor-pointer">
-                    remove
-                  </button>
-                )}
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between gap-2 p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] min-w-0">
-              <div className="flex items-center gap-3 min-w-0">
-                <Image size={16} className="text-white/30 shrink-0" />
-                <span className="text-sm text-white/60 truncate">Banner Enabled</span>
-              </div>
-              <button
-                onClick={async () => {
-                  if (!user) return;
-                  const next = !bannerEnabled;
-                  setBannerEnabled(next);
-                  await apiCall("update", { data: { banner_enabled: next } });
-                  showSaved(next ? "banner on" : "banner off");
-                }}
-                className={`text-xs px-3 py-1.5 rounded-lg border transition-colors cursor-pointer ${
-                  bannerEnabled
-                    ? "bg-blue-600/20 border-blue-500/40 text-blue-300"
-                    : "bg-white/[0.03] border-white/10 text-white/40"
-                }`}
-              >
-                {bannerEnabled ? "on" : "off"}
-              </button>
-            </div>
           </div>
         </div>
 
