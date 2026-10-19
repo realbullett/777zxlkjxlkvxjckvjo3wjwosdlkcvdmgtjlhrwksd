@@ -619,64 +619,30 @@ export default function Biolink() {
           transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
           className="relative flex flex-col items-center"
         >
-          {/* 3D robot */}
-          <motion.div
-            animate={{ y: [0, -12, 0], rotateZ: [-2, 2, -2] }}
-            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-            className="relative h-44 w-44 select-none"
-            style={{ transformStyle: "preserve-3d", perspective: 800 }}
-          >
+          {/* 404 animation */}
+          <div className="relative select-none">
             {/* glow */}
-            <div className="absolute inset-0 rounded-full bg-blue-500/20 blur-2xl" />
+            <div className="absolute inset-0 rounded-full bg-blue-500/15 blur-3xl" />
 
-            {/* antenna */}
-            <motion.div
-              animate={{ opacity: [0.5, 1, 0.5] }}
-              transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
-              className="absolute left-1/2 top-1 -translate-x-1/2 flex flex-col items-center"
-            >
-              <div className="h-3 w-3 rounded-full bg-blue-500 shadow-[0_0_14px_#3b82f6]" />
-              <div className="h-5 w-[2px] bg-gradient-to-b from-blue-400 to-white/20" />
-            </motion.div>
-
-            {/* head */}
-            <div
-              className="absolute left-1/2 top-6 h-24 w-32 -translate-x-1/2 rounded-2xl border border-white/10"
-              style={{
-                background: "linear-gradient(150deg,#1b2230 0%,#0b0f17 60%,#05070c 100%)",
-                boxShadow: "inset 0 2px 6px rgba(255,255,255,0.08), inset 0 -6px 14px rgba(0,0,0,0.6), 0 20px 40px rgba(0,0,0,0.6)",
-              }}
-            >
-              {/* visor / eyes */}
-              <div className="absolute inset-x-3 top-4 h-9 rounded-lg bg-black/60 border border-white/5 flex items-center justify-center gap-3 overflow-hidden">
-                <motion.div animate={{ scaleY: [1, 0.1, 1] }} transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut", times: [0, 0.5, 1] }} className="h-3 w-3 rounded-full bg-blue-400 shadow-[0_0_10px_#60a5fa]" />
-                <motion.div animate={{ scaleY: [1, 0.1, 1] }} transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut", times: [0, 0.5, 1] }} className="h-3 w-3 rounded-full bg-blue-400 shadow-[0_0_10px_#60a5fa]" />
-              </div>
-              {/* mouth grille */}
-              <div className="absolute inset-x-4 bottom-3 h-2 rounded-full bg-white/10" />
-            </div>
-
-            {/* body */}
-            <div
-              className="absolute left-1/2 bottom-0 h-16 w-24 -translate-x-1/2 rounded-2xl border border-white/10"
-              style={{
-                background: "linear-gradient(150deg,#161d29 0%,#090c13 70%,#04060a 100%)",
-                boxShadow: "inset 0 2px 5px rgba(255,255,255,0.06), inset 0 -4px 10px rgba(0,0,0,0.6), 0 16px 30px rgba(0,0,0,0.6)",
-              }}
-            >
-              <div className="absolute inset-x-5 top-4 h-1.5 rounded-full bg-blue-500/50 shadow-[0_0_10px_rgba(59,130,246,0.6)]" />
-              <div className="absolute inset-x-5 top-9 h-1.5 rounded-full bg-white/10" />
-            </div>
+            <motion.img
+              src="https://assets.dochipo.com/editor/animations/404-error/3acd113a-bcf3-4aae-9785-1dbbe6a2cb7c.gif"
+              alt="404"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+              className="relative h-56 w-auto max-w-full object-contain select-none"
+              draggable={false}
+            />
 
             {/* floating question mark */}
             <motion.div
               animate={{ y: [0, -6, 0], rotate: [-6, 6, -6] }}
               transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-              className="absolute -right-2 top-2 font-display text-5xl font-black text-blue-500 drop-shadow-[0_0_14px_rgba(59,130,246,0.7)]"
+              className="absolute -right-1 top-1 font-display text-5xl font-black text-blue-500 drop-shadow-[0_0_14px_rgba(59,130,246,0.7)]"
             >
               ?
             </motion.div>
-          </motion.div>
+          </div>
 
           {/* copy */}
           <motion.p
@@ -696,7 +662,7 @@ export default function Biolink() {
             transition={{ delay: 0.3, duration: 0.6 }}
             className="mt-3 text-sm text-white/30"
           >
-            this page doesn't exist — but the robot checked twice.
+            this page doesn't exist, but hey, at least you found the club.
           </motion.p>
 
           <motion.button
