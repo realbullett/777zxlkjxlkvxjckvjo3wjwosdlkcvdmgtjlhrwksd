@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useNavigate, useSearchParams, Link as RouterLink, Link } from "react-router-dom";
 import { motion, AnimatePresence, LayoutGroup, useMotionValue } from "motion/react";
-import { User, Paintbrush, Link as LucideLink, Image, Crown, Layout, Shield, Home, AtSign, Hash, Eye, User as UserIcon, Volume2, X, Music, Play, Pause, Trash2, Upload, LogOut, Check, Database, Award, Copy, HardDrive, Layers, Type, Star, Clock, Search, TrendingUp, RefreshCw, Trophy } from "lucide-react";
+import { User, Paintbrush, Link as LucideLink, Image, Crown, Layout, Shield, Home, AtSign, Hash, Eye, User as UserIcon, Volume2, X, Music, Play, Pause, Trash2, Upload, LogOut, Check, Database, Award, Copy, HardDrive, Layers, Type, Star, Clock, Search, TrendingUp, RefreshCw, Trophy, ChevronDown } from "lucide-react";
 import { PLATFORMS } from "../lib/platforms";
 import { FONTS, CUSTOM_FONT_FAMILY, CUSTOM_FONT_NAME, ResolveFontFamily, CustomFontFace, ToSameOriginUrl } from "../lib/fonts";
 import { SparkleText } from "../components/SparkleText";
@@ -108,6 +108,21 @@ const tabs = [
 
 type TabId = (typeof tabs)[number]["id"];
 
+const TAB_SUBS: Record<string, string[]> = {
+  overview: ["profile info", "security", "danger zone"],
+  customize: ["colors", "fonts", "element positions", "name effects", "entry overlay", "background effects", "banner & audio", "other"],
+  visibility: ["seo", "discord buttons", "counters"],
+  links: ["my links", "platforms"],
+  templates: ["my template", "gallery", "favorites"],
+  data: ["analytics", "resets"],
+  badges: ["my badges", "name / row"],
+  premium: ["upgrade", "what you get"],
+  imagehost: ["uploaded media", "limits"],
+  filehost: ["uploaded files", "limits"],
+  widgets: ["pages", "about", "song", "projects", "pinned widgets"],
+  admin: ["users", "admin log"],
+};
+
 const apiCall = async (action: string, payload: Record<string, unknown> = {}) => {
   let sessionToken: string | null = null;
   try {
@@ -176,6 +191,8 @@ export default function Dashboard() {
   const [searchParams] = useSearchParams();
   const [user, setUser] = useState<User | null>(null);
   const [activeTab, setActiveTab] = useState<TabId>("overview");
+  const [openNav, setOpenNav] = useState<string | null>("customize");
+  const [activeSub, setActiveSub] = useState<{ tab: string; sub: string } | null>({ tab: "customize", sub: "colors" });
   const [unauth, setUnauth] = useState(false);
   const [suspendedMsg, setSuspendedMsg] = useState<string | null>(null);
   const [noticesAcked, setNoticesAcked] = useState(false);
@@ -321,31 +338,81 @@ return (
                 className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white/60 placeholder-white/20 outline-none focus:border-blue-500/40 transition-colors"
               />
             </div>
-            <div className="flex flex-col gap-0.5 px-3">
+            <div className="flex flex-col gap-0.5 px-3 overflow-y-auto flex-1 min-h-0 pr-1">
               {tabs.filter((t) => t.id !== "admin" || user?.id === 1 || user?.is_admin === 1).map((t) => {
                 const Icon = t.icon;
                 const isPremiumTab = t.id === "premium" || t.id === "imagehost" || t.id === "filehost";
                 const isWidgetsTab = t.id === "widgets";
+                const subs = TAB_SUBS[t.id] || null;
+                const isOpen = !!subs && openNav === t.id;
+                const jumpSub = (sub: string) => {
+                  setActiveTab(t.id);
+                  setActiveSub({ tab: t.id, sub });
+                  requestAnimationFrame(() => {
+                    const heads = Array.from(document.querySelectorAll<HTMLElement>("main h3"));
+                    const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "");
+                    const want = norm(sub);
+                    const hit = heads.find((h) => { const have = norm(h.textContent || ""); return have.includes(want) || want.includes(have) || (want === "colors" && have.includes("color")); });
+                    if (hit) hit.scrollIntoView({ behavior: "smooth", block: "center" });
+                    else window.scrollTo({ top: 0, behavior: "smooth" });
+                  });
+                };
                 return (
-                  <button
-                    key={t.id}
-                    onClick={() => { if (t.id === "leaderboard") { navigate("/leaderboard"); return; } setActiveTab(t.id); }}
-                    className={`relative flex items-center gap-2.5 px-2.5 py-2.5 rounded-xl text-[13px] font-medium transition-all ${
-                      isWidgetsTab
-                        ? "shimmer text-emerald-300 border border-emerald-500/30 bg-emerald-600/15 shadow-[0_0_25px_rgba(16,185,129,0.35)]"
-                        : isPremiumTab
-                          ? "shimmer text-blue-300 border border-blue-500/30 bg-blue-600/15 shadow-[0_0_25px_rgba(37,99,235,0.35)]"
-                          : activeTab === t.id
-                            ? "bg-blue-600/20 text-blue-300"
-                            : "text-white/30 hover:text-white/60 hover:bg-white/[0.03]"
-                    }`}
-                  >
-                    <Icon size={16} className={isWidgetsTab ? "text-emerald-400" : isPremiumTab ? "text-blue-400" : undefined} />
-                    <span className={`whitespace-nowrap ${isWidgetsTab ? "text-emerald-300 font-bold" : isPremiumTab ? "text-gradient-blue font-bold" : undefined}`}>{t.label}</span>
-                    {isPremiumTab && (
-                      <Crown size={12} className="text-blue-300 absolute right-3 top-1/2 -translate-y-1/2 animate-pulse" />
+                  <div key={t.id}>
+                    <button
+                      onClick={() => {
+                        if (t.id === "leaderboard") { navigate("/leaderboard"); return; }
+                        setActiveTab(t.id);
+                        setOpenNav(isOpen ? null : t.id);
+                        if (!isOpen && subs) setActiveSub({ tab: t.id, sub: subs[0] });
+                      }}
+                      className={`relative flex w-full items-center gap-2.5 px-2.5 py-2.5 rounded-xl text-[13px] font-medium transition-all ${
+                        isWidgetsTab
+                          ? "shimmer text-emerald-300 border border-emerald-500/30 bg-emerald-600/15 shadow-[0_0_25px_rgba(16,185,129,0.35)]"
+                          : isPremiumTab
+                            ? "shimmer text-blue-300 border border-blue-500/30 bg-blue-600/15 shadow-[0_0_25px_rgba(37,99,235,0.35)]"
+                            : activeTab === t.id
+                              ? "bg-blue-600/20 text-blue-300"
+                              : "text-white/30 hover:text-white/60 hover:bg-white/[0.03]"
+                      }`}
+                    >
+                      <Icon size={16} className={isWidgetsTab ? "text-emerald-400" : isPremiumTab ? "text-blue-400" : undefined} />
+                      <span className={`whitespace-nowrap ${isWidgetsTab ? "text-emerald-300 font-bold" : isPremiumTab ? "text-gradient-blue font-bold" : undefined}`}>{t.label}</span>
+                      {isPremiumTab && (
+                        <Crown size={12} className="text-blue-300 absolute right-6 top-1/2 -translate-y-1/2 animate-pulse" />
+                      )}
+                      {subs && (
+                        <ChevronDown
+                          size={13}
+                          className={`absolute right-2.5 top-1/2 -translate-y-1/2 transition-transform duration-300 ${isOpen ? "rotate-180 text-white/50" : "text-white/25"}`}
+                        />
+                      )}
+                    </button>
+                    {subs && (
+                      <div
+                        className="overflow-hidden opacity-0 transition-[max-height,opacity] duration-300"
+                        style={{ maxHeight: isOpen ? 500 : 0, opacity: isOpen ? 1 : 0, transitionTimingFunction: "cubic-bezier(.4,0,.2,1)" }}
+                      >
+                        <div className="ml-4 my-0.5 pl-3 border-l border-white/[0.07] flex flex-col">
+                          {subs.map((s) => {
+                            const on = activeSub?.tab === t.id && activeSub?.sub === s;
+                            return (
+                              <button
+                                key={s}
+                                onClick={() => jumpSub(s)}
+                                className={`text-left flex items-center gap-2 px-2 py-1.5 rounded-lg text-[11.5px] transition-all ${
+                                  on ? "text-blue-300 bg-blue-600/15" : "text-white/35 hover:text-white/70 hover:bg-white/[0.03]"
+                                }`}
+                              >
+                                <span className={`h-1 w-1 rounded-full shrink-0 ${on ? "bg-blue-400" : "bg-white/20"}`} />
+                                {s}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
                     )}
-                  </button>
+                  </div>
                 );
               })}
             </div>
