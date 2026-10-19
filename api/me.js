@@ -1075,7 +1075,11 @@ export default async function handler(req, res) {
       const exists = await One("SELECT user_id FROM templates WHERE user_id = ? LIMIT 1", [targetUserId]);
       if (!exists) { res.status(404).json({ error: "Template not found" }); return; }
       await Db().execute({ sql: "INSERT OR IGNORE INTO template_installs (user_id, template_user_id) VALUES (?, ?)", args: [uid, targetUserId] });
-      res.status(200).json({ ok: true });
+      const Assets = await All("SELECT type, url FROM assets WHERE user_id = ?", [targetUserId]);
+      for (const A of Assets) {
+        await Db().execute({ sql: "INSERT INTO assets (user_id, type, url) VALUES (?, ?, ?) ON CONFLICT(user_id, type) DO UPDATE SET url = excluded.url", args: [uid, A.type, A.url] });
+      }
+      res.status(200).json({ ok: true, assets: Assets.length });
       return;
     }
 

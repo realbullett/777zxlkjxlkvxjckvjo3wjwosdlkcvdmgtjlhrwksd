@@ -4536,41 +4536,14 @@ function Templates({ user, onTab, onUpdateUser }: { user: User | null; onTab: (t
   const installTemplate = (t: Template) => {
     if (!user) return;
     const prev = { ...user };
-    const data = {
-      description: t.description,
-      accent_color: t.accent_color,
-      text_color: t.text_color,
-      background_color: t.background_color,
-      icon_color: t.icon_color,
-      bg_effect_color: t.bg_effect_color,
-      primary_color: t.primary_color,
-      secondary_color: t.secondary_color,
-      display_effect: t.display_effect,
-      font: t.font,
-      bg_effect: t.bg_effect,
-      entry_text: t.entry_text,
-      entry_font: t.entry_font,
-      entry_color: t.entry_color,
-      entry_effect: t.entry_effect,
-      monochrome_icons: t.monochrome_icons,
-      monochrome_badges: t.monochrome_badges,
-      show_username: t.show_username,
-      panel_mouse_follow: t.panel_mouse_follow,
-      audio_volume: t.audio_volume,
-      audio_autoplay: t.audio_autoplay,
-      audio_loop: t.audio_loop,
-      audio_shuffle: t.audio_shuffle,
-      cursor_effect: t.cursor_effect,
-      avatar_shape: t.avatar_shape,
-      avatar_size: t.avatar_size,
-      avatar_offset_x: t.avatar_offset_x,
-      avatar_offset_y: t.avatar_offset_y,
-      name_offset_x: t.name_offset_x,
-      name_offset_y: t.name_offset_y,
-      badge_offset_x: t.badge_offset_x,
-      badge_offset_y: t.badge_offset_y,
-    };
-    onUpdateUser?.({ ...user, ...data });
+    const data: Record<string, unknown> = {};
+    const Fields = ["description", "accent_color", "text_color", "background_color", "icon_color", "bg_effect_color", "primary_color", "secondary_color", "display_effect", "font", "bg_effect", "entry_text", "entry_font", "entry_color", "entry_effect", "monochrome_icons", "monochrome_badges", "show_username", "panel_mouse_follow", "audio_volume", "audio_autoplay", "audio_loop", "audio_shuffle", "cursor_effect", "avatar_shape", "avatar_size", "avatar_offset_x", "avatar_offset_y", "name_offset_x", "name_offset_y", "badge_offset_x", "badge_offset_y"];
+    for (const K of Fields) {
+      const V = (t as unknown as Record<string, unknown>)[K];
+      if (V !== undefined && V !== null) data[K] = V;
+    }
+    setInstallError(null);
+    onUpdateUser?.({ ...user, ...(data as Partial<User>) });
     onTab("customize");
     setStats((prevStats) => ({
       ...prevStats,
@@ -4581,7 +4554,7 @@ function Templates({ user, onTab, onUpdateUser }: { user: User | null; onTab: (t
       },
     }));
     apiCall("update", { data }).then((res) => {
-      if (res.error) { onUpdateUser?.(prev); return; }
+      if (res.error) { onUpdateUser?.(prev); window.alert(res.error); return; }
       apiCall("template_install", { targetUserId: t.user_id });
       fetchMe().then((d) => { if (d?.user) onUpdateUser?.(d.user); });
     });
