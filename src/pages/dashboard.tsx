@@ -375,18 +375,18 @@ return (
                         className="overflow-hidden opacity-0 transition-[max-height,opacity] duration-300"
                         style={{ maxHeight: isOpen ? 500 : 0, opacity: isOpen ? 1 : 0, transitionTimingFunction: "cubic-bezier(.4,0,.2,1)" }}
                       >
-                        <div className="ml-4 my-0.5 pl-3 border-l border-white/[0.07] flex flex-col">
+                        <div className="ml-4 my-0.5 pl-3 border-l border-white/10 flex flex-col">
                           {subs.map((s) => {
                             const on = activeSub?.tab === t.id && activeSub?.sub === s;
                             return (
                               <button
                                 key={s}
                                 onClick={() => jumpSub(s)}
-                                className={`text-left flex items-center gap-2 px-2 py-1.5 rounded-lg text-[11.5px] transition-all ${
+                                className={`relative text-left flex items-center gap-2 pl-4 pr-2 py-1.5 rounded-lg text-[11.5px] transition-all ${
                                   on ? "text-blue-300 bg-blue-600/15" : "text-white/35 hover:text-white/70 hover:bg-white/[0.03]"
                                 }`}
                               >
-                                <span className={`h-1 w-1 rounded-full shrink-0 ${on ? "bg-blue-400" : "bg-white/20"}`} />
+                                <span className={`absolute -left-3 top-1/2 h-px w-3 ${on ? "bg-blue-400/70" : "bg-white/15"}`} />
                                 {s}
                               </button>
                             );

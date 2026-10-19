@@ -14,6 +14,26 @@ export const Hero = () => {
 
   return (
     <section id="hero" className="relative flex min-h-screen flex-col items-center justify-center px-6 pt-24 pb-12 text-center overflow-hidden">
+      <div className="absolute inset-0 z-0 flex flex-col justify-center gap-7 pointer-events-none select-none">
+        {[24, 34, 20, 30, 26].map((Speed, I) => (
+          <div key={I} className="flex w-full overflow-hidden opacity-70">
+            <div className="flex w-max shrink-0" style={{ animation: `${I % 2 === 0 ? "mq-left" : "mq-right"} ${Speed}s linear infinite` }}>
+              {[0, 1].map((Half) => (
+                <div key={Half} className="flex shrink-0">
+                  {Array.from({ length: 8 }).map((_, K) => (
+                    <span key={K} className="font-display font-black text-4xl md:text-5xl lowercase tracking-tighter px-6 whitespace-nowrap">
+                      <span className="bg-gradient-to-r from-gray-300 via-gray-500 to-gray-900 bg-clip-text text-transparent">gated</span>
+                      <span className="text-white/20 px-2">x</span>
+                      <span className="text-blue-500">sire</span>
+                    </span>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+
       <div className="relative z-10">
 
         <motion.h1

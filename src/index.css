@@ -408,6 +408,15 @@
     animation: marquee 20s linear infinite;
   }
 
+  @keyframes mq-left {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+  @keyframes mq-right {
+    from { transform: translateX(-50%); }
+    to { transform: translateX(0); }
+  }
+
   .lb-bgfx { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
   .lb-bgfx .lb-orb { position: absolute; border-radius: 9999px; filter: blur(90px); opacity: 0.35; animation: lb-drift 14s ease-in-out infinite alternate; }
   .lb-bgfx .lb-o1 { width: 420px; height: 420px; left: -140px; top: -120px; background: radial-gradient(circle, rgba(59,130,246,0.55), transparent 70%); }
