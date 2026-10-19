@@ -19,6 +19,7 @@ import SongPage from "../components/SongPage";
 import ProjectsPage from "../components/ProjectsPage";
 import { normalizeWidgets } from "../lib/widgets";
 import { VerifiedIcon } from "../components/VerifiedIcon";
+import { PlayClickSound } from "../lib/click-sounds";
 
 const TurnstileSiteKey = (import.meta as any).env?.VITE_TURNSTILE_SITE_KEY || "";
 
@@ -100,6 +101,7 @@ type User = {
   audio_loop: boolean | null;
   audio_shuffle: boolean | null;
   cursor_effect: string | null;
+  click_sound: string | null;
   avatar_shape: string | null;
   avatar_size: number | null;
   avatar_offset_x: number | null;
@@ -1020,6 +1022,7 @@ export default function Biolink() {
                         title={p ? p.name : key}
                         className="transition-all hover:scale-110"
                         onClick={() => {
+                          if (user.click_sound) PlayClickSound(user.click_sound);
                           fetch("/api/track-view", {
                             method: "POST",
                             headers: { "Content-Type": "application/json" },

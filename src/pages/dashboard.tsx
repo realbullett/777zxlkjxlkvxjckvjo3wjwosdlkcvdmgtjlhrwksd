@@ -16,6 +16,7 @@ import SongPage from "../components/SongPage";
 import ProjectsPage from "../components/ProjectsPage";
 import { TIMEZONE_PRESETS, MAX_PROJECTS, MAX_TAGS, LANGUAGE_TAGS, SIDE_WIDGET_KEYS, SIDE_WIDGET_LABELS, MAX_SIDE_WIDGETS, defaultLabel, defaultAboutPage, defaultProjectsPage, defaultSongPage, emptyProject, emptyWidgets, findMyTimeZone, normalizeWidgets, parseInviteCode, tzOffsetHours, type AboutPageConfig, type ClockWidgetConfig, type ProjectItem, type SideWidgetKey, type SongPageConfig, type WidgetsConfig } from "../lib/widgets";
 import TagIcon from "../components/TagIcon";
+import { CLICK_SOUNDS, PlayClickSound } from "../lib/click-sounds";
 
 type User = {
   id: number;
@@ -88,6 +89,7 @@ type User = {
   is_admin: number | null;
   reset_notices: { kind: string; reason: string; at: string }[] | null;
   widgets: unknown;
+  click_sound: string | null;
 };
 
 const tabs = [
@@ -1243,6 +1245,7 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
   const [videoAudio, setVideoAudio] = useState(user?.video_audio || false);
   const [banner, setBanner] = useState<string | null>(null);
   const [bannerEnabled, setBannerEnabled] = useState(user?.banner_enabled || false);
+  const [clickSound, setClickSound] = useState(user?.click_sound || "");
 
   useEffect(() => {
     if (!audio1) { setAudio1Duration(null); return; }
@@ -1379,6 +1382,7 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
   const cursorRef = useRef<HTMLInputElement>(null);
   const videoBgRef = useRef<HTMLInputElement>(null);
   const bannerRef = useRef<HTMLInputElement>(null);
+  const clickSoundRef = useRef<HTMLInputElement>(null);
 
   const hydrated = useRef(false);
   useEffect(() => {
@@ -1389,6 +1393,7 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
     setShuffleAudio(!!user.audio_shuffle);
     setVideoAudio(!!user.video_audio);
     setBannerEnabled(!!user.banner_enabled);
+    setClickSound(user.click_sound || "");
     setAudioVolume(user.audio_volume ?? 30);
     setAudioAutoplay(user.audio_autoplay ?? true);
     setAudioLoop(user.audio_loop ?? true);
@@ -1536,10 +1541,12 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
   const uploadAsset = async (type: string, file: File) => {
     if (!user) return;
     const premium = myBadges.includes("premium");
-    const capMb = (type === "video_background" || type.startsWith("audio")) ? (premium ? 10 : 5) : 10;
+    const capMb = type === "click_sound" ? 5 : (type === "video_background" || type.startsWith("audio")) ? (premium ? 10 : 5) : 10;
     if (file.size > capMb * 1024 * 1024) {
-      alert(type === "video_background"
-        ? `Video too large (max ${capMb}MB). Please compress your video to reduce the file size and try again.`
+      alert(type === "click_sound"
+        ? `Click sound too large (max ${capMb}MB). Please use a shorter clip and try again.`
+        : type === "video_background"
+          ? `Video too large (max ${capMb}MB). Please compress your video to reduce the file size and try again.`
         : type.startsWith("audio")
           ? `Audio too large (max ${capMb}MB). Please compress your music file to reduce the file size and try again.`
           : `File too large (max ${capMb}MB). Please compress your file to reduce the file size and try again.`);
@@ -1586,6 +1593,14 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
       if (!hr.ok || !hd || (hd as { error?: string }).error || !(hd as { url?: string }).url) { setSaving(null); alert((hd as { error?: string } | null)?.error || "upload failed"); return; }
     }
     const busted = `${hd.url}?t=${Date.now()}`;
+    if (type === "click_sound") {
+      setClickSound(busted);
+      const { error: soundError } = await apiCall("update", { data: { click_sound: busted } });
+      if (soundError) console.error("click sound save error:", soundError);
+      else showSaved("custom click sound saved!");
+      setSaving(null);
+      return;
+    }
     const { error: upsertError } = await apiCall("asset_upsert", { type, url: busted });
     if (upsertError) console.error("upsert error:", upsertError);
     if (type === "background") setBackground(busted);
@@ -1978,6 +1993,76 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
             >
               save song
             </button>
+          </div>
+        </div>
+
+        <div className="glass-card rounded-2xl p-6">
+          <div className="flex items-center justify-between mb-1">
+            <h3 className="text-sm font-semibold text-white/80">Click Sound</h3>
+            {clickSound && (
+              <button
+                onClick={async () => {
+                  setClickSound("");
+                  await apiCall("update", { data: { click_sound: "" } });
+                  showSaved("click sound off");
+                }}
+                className="text-[11px] text-white/30 hover:text-red-300 transition-colors cursor-pointer"
+              >
+                turn off
+              </button>
+            )}
+          </div>
+          <p className="text-[11px] text-white/40 mb-4">plays when someone clicks one of your links.</p>
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-4">
+            {CLICK_SOUNDS.map((S) => {
+              const on = clickSound === S.id;
+              return (
+                <button
+                  key={S.id}
+                  onClick={async () => {
+                    PlayClickSound(S.id);
+                    setClickSound(S.id);
+                    await apiCall("update", { data: { click_sound: S.id } });
+                    showSaved(`${S.label} selected`);
+                  }}
+                  className={`flex items-center justify-center gap-1.5 px-2 py-2.5 rounded-lg border text-[11px] capitalize transition-all cursor-pointer ${
+                    on ? "bg-blue-600/20 border-blue-500/40 text-blue-300" : "bg-white/[0.02] border-white/[0.06] text-white/40 hover:text-white/70 hover:border-white/15"
+                  }`}
+                >
+                  <Volume2 size={12} />
+                  {S.label}
+                </button>
+              );
+            })}
+          </div>
+          <div className="pt-3 border-t border-white/[0.04]">
+            <p className="text-[11px] text-white/40 mb-2">or upload your own (max 5MB)</p>
+            <div className="flex items-center gap-3 flex-wrap">
+              <input
+                ref={clickSoundRef}
+                type="file"
+                accept="audio/*"
+                className="hidden"
+                onChange={(e) => {
+                  const F = e.target.files?.[0];
+                  if (F) uploadAsset("click_sound", F);
+                  e.target.value = "";
+                }}
+              />
+              <button
+                onClick={() => clickSoundRef.current?.click()}
+                disabled={saving === "click_sound"}
+                className="text-xs bg-white/5 hover:bg-white/10 border border-white/10 px-3 py-1.5 rounded-lg text-white/60 hover:text-white transition-colors cursor-pointer disabled:opacity-40"
+              >
+                {saving === "click_sound" ? "uploading..." : "upload audio"}
+              </button>
+              {clickSound.startsWith("http") && (
+                <>
+                  <span className="text-[11px] text-white/30">custom sound active</span>
+                  <button onClick={() => PlayClickSound(clickSound)} className="text-[11px] text-blue-400 hover:text-blue-300 cursor-pointer">preview</button>
+                </>
+              )}
+            </div>
           </div>
         </div>
 

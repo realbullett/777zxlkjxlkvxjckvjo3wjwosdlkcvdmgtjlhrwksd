@@ -33,7 +33,7 @@ const USER_FIELDS = new Set([
   "discord_rpc_offset_x", "discord_rpc_offset_y",
   "panel_opacity", "panel_hidden", "discord_rpc_enabled",
   "widgets", "onboarding_done", "use_case", "show_joindate", "show_views", "show_votes", "custom_font_scope",
-  "embed_buttons",
+  "embed_buttons", "click_sound",
 ]);
 
 const PREMIUM_VALUES = {
@@ -60,19 +60,25 @@ const TEMPLATE_FIELDS = new Set([
   "tags",
 ]);
 
-const ASSET_TYPES = new Set(["background", "audio", "audio_1", "audio_2", "profile_avatar", "custom_cursor", "video_background", "banner", "custom_font"]);
+const ASSET_TYPES = new Set(["background", "audio", "audio_1", "audio_2", "profile_avatar", "custom_cursor", "video_background", "banner", "custom_font", "click_sound"]);
 const BADGES = new Set(["og", "premium", "verified", "booster", "staff", "bug", "corrupt", "owner"]);
 const ADMIN_DELETE_TABLES = ["badges", "links", "page_views", "templates", "songs", "template_installs"];
 
 const HOST_MAX_BYTES = 10 * 1024 * 1024;
 const UPLOAD_CHUNK_CHARS = 2000000;
-const AssetCap = (t, premium) => ((t === "video_background" || String(t || "").startsWith("audio")) ? (premium ? 10 * 1024 * 1024 : 5 * 1024 * 1024) : 10 * 1024 * 1024);
+const AssetCap = (t, premium) => {
+  if (t === "click_sound") return 5 * 1024 * 1024;
+  if (t === "video_background" || String(t || "").startsWith("audio")) return premium ? 10 * 1024 * 1024 : 5 * 1024 * 1024;
+  return 10 * 1024 * 1024;
+};
 const CapLabel = (t, premium) => `${Math.round(AssetCap(t, premium) / (1024 * 1024))}MB`;
 const CapHint = (t, premium) => (t === "video_background"
   ? `Video too large (max ${CapLabel(t, premium)}). Please compress your video to reduce the file size and try again.`
-  : (String(t || "").startsWith("audio")
-    ? `Audio too large (max ${CapLabel(t, premium)}). Please compress your music file to reduce the file size and try again.`
-    : `File too large (max ${CapLabel(t, premium)}). Please compress your file to reduce the file size and try again.`));
+  : t === "click_sound"
+    ? `Click sound too large (max ${CapLabel(t, premium)}). Please use a shorter clip and try again.`
+    : (String(t || "").startsWith("audio")
+      ? `Audio too large (max ${CapLabel(t, premium)}). Please compress your music file to reduce the file size and try again.`
+      : `File too large (max ${CapLabel(t, premium)}). Please compress your file to reduce the file size and try again.`));
 const HOST_MAX_ITEMS = 10;
 const HOST_MEDIA_TYPES = {
   png: "image/png",
@@ -216,6 +222,7 @@ async function EnsureSchema() {
     D.execute("ALTER TABLE users ADD COLUMN sparkle_intensity INTEGER NOT NULL DEFAULT 14"),
     D.execute("ALTER TABLE users ADD COLUMN custom_font_scope TEXT DEFAULT 'all'"),
     D.execute("ALTER TABLE users ADD COLUMN embed_buttons TEXT"),
+    D.execute("ALTER TABLE users ADD COLUMN click_sound TEXT NOT NULL DEFAULT ''"),
     D.execute("CREATE TABLE IF NOT EXISTS admin_log (id INTEGER PRIMARY KEY AUTOINCREMENT, admin_id INTEGER NOT NULL, action TEXT NOT NULL, target_uid INTEGER, detail TEXT, created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')))"),
     D.execute("CREATE INDEX IF NOT EXISTS idx_admin_log_time ON admin_log (created_at DESC)"),
     D.execute("CREATE TABLE IF NOT EXISTS badge_prefs (user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, badge TEXT NOT NULL, hidden INTEGER NOT NULL DEFAULT 0, by_name INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (user_id, badge))"),
