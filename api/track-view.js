@@ -1,6 +1,5 @@
 import crypto from "crypto";
 import { GetTurso, HasTurso } from "../lib/turso.js";
-import { VerifyTurnstile } from "../lib/auth/register.js";
 const IP_PEPPER = process.env.VIEW_IP_PEPPER || process.env.SESSION_SECRET || "sire-view-ip-secret";
 
 function getClientIp(req) {
@@ -72,7 +71,7 @@ async function TrackClick(UserId, Platform, IpHash) {
   return { status: 200, body: { counted: true } };
 }
 
-async function TrackTurso(UserId, VisitorId, IpHash, Country, Referrer, Device, Token, Ip) {
+async function TrackTurso(UserId, VisitorId, IpHash, Country, Referrer, Device) {
   const Db = GetTurso();
   const Since10 = IsoAgo(10 * 1000);
   const Since20 = IsoAgo(20 * 1000);
@@ -108,8 +107,6 @@ async function TrackTurso(UserId, VisitorId, IpHash, Country, Referrer, Device, 
   if (ByIp.rows?.length) return { status: 200, body: { counted: false } };
   const ByVis = await Db.execute({ sql: "SELECT id FROM page_views WHERE user_id = ? AND visitor_id = ? AND viewed_at >= ? LIMIT 1", args: [UserId, VisitorId, SevenAgo] });
   if (ByVis.rows?.length) return { status: 200, body: { counted: false } };
-  const CaptchaOk = await VerifyTurnstile(Token, Ip);
-  if (!CaptchaOk) return { status: 200, body: { counted: false, captcha: true } };
   await Db.execute({ sql: "INSERT INTO page_views (user_id, visitor_id, ip_hash, country, referrer, device) VALUES (?, ?, ?, ?, ?, ?)", args: [UserId, VisitorId, IpHash, Country, Referrer, Device] });
   return { status: 200, body: { counted: true, source: "turso" } };
 }
@@ -140,7 +137,7 @@ export default async function handler(req, res) {
     return;
   }
 
-  const { user_id, visitor_id, dwell_ms, turnstileToken } = Body;
+  const { user_id, visitor_id, dwell_ms } = Body;
   if (!Number.isInteger(user_id) || typeof visitor_id !== "string" || !visitor_id.trim()) {
     res.status(400).json({ error: "Missing fields" });
     return;
@@ -155,7 +152,7 @@ export default async function handler(req, res) {
   const Referrer = ParseReferrer(Body.referrer);
   const Device = ParseDevice(req.headers["user-agent"]);
   try {
-    const Out = await TrackTurso(user_id, Visitor, IpHash, Country, Referrer, Device, String(turnstileToken || ""), Ip);
+    const Out = await TrackTurso(user_id, Visitor, IpHash, Country, Referrer, Device);
     if (Out.status !== 404) { res.status(Out.status).json(Out.body || { counted: false }); return; }
     res.status(404).json({ error: "User not found" });
   } catch (Err) {

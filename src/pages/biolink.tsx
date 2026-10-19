@@ -584,13 +584,10 @@ export default function Biolink() {
       enterTimerRef.current = setTimeout(async () => {
         if (document.visibilityState !== "visible") return;
         const vid = getVisitorId();
-        let token = "";
-        try { token = await getVoteToken(); } catch {}
-        try { (window as any).turnstile?.reset?.(voteTsId.current); } catch {}
         const r = await fetch("/api/track-view", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ user_id: user.id, visitor_id: vid, dwell_ms: Date.now() - enteredAt, referrer: document.referrer, turnstileToken: token }),
+          body: JSON.stringify({ user_id: user.id, visitor_id: vid, dwell_ms: Date.now() - enteredAt, referrer: document.referrer }),
         });
         const res = await r.json().catch(() => ({}));
         if (res.counted) setViewCount((prev) => (prev !== null ? prev + 1 : prev));
