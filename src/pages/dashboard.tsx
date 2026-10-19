@@ -1319,7 +1319,6 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
   const [panelOpacity, setPanelOpacity] = useState(user?.panel_opacity ?? 100);
   const [panelHidden, setPanelHidden] = useState(user?.panel_hidden || false);
   const [savingAvatar, setSavingAvatar] = useState(false);
-  const [savingPositions, setSavingPositions] = useState(false);
   const [myBadges, setMyBadges] = useState<string[]>([]);
   const [entryPreview, setEntryPreview] = useState(entryText);
   const [songPlatform, setSongPlatform] = useState(user?.song_platform || "");
@@ -2130,144 +2129,99 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
             Hide panel completely
           </label>
         </div>
-            <div className="flex items-center gap-2 pt-2 border-t border-white/[0.04]">
-            <div>
-              <p className="text-xs text-white/50 font-semibold uppercase tracking-wider">Position</p>
-              <p className="text-sm text-white/80 font-mono mt-0.5">{avatarOffsetX}px / {avatarOffsetY}px</p>
+        <div className="pt-3 border-t border-white/[0.04]">
+          <h3 className="text-xs text-white/50 font-semibold uppercase tracking-wider mb-3">Position</h3>
+          <div className="grid gap-3">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-white/50 font-semibold uppercase tracking-wider">Avatar</span>
+              <span className="text-white/80 font-mono">{avatarOffsetX}px / {avatarOffsetY}px</span>
             </div>
-            <div className="ml-auto flex gap-2">
-              <button onClick={async () => {
-                if (!user) return;
-                setAvatarOffsetX(0);
-                setAvatarOffsetY(0);
-                setNameOffsetX(0);
-                setNameOffsetY(0);
-                setBadgeOffsetX(0);
-                setBadgeOffsetY(0);
-                setDescOffsetX(0);
-                setDescOffsetY(0);
-                setSongOffsetX(0);
-                setSongOffsetY(0);
-                setRpcOffsetX(0);
-                setRpcOffsetY(0);
-                setPanelOpacity(100);
-                setPanelHidden(false);
-                const { error } = await apiCall("update", {
-                  data: {
-                    avatar_shape: avatarShape,
-                    avatar_size: avatarSize,
-                    avatar_offset_x: 0,
-                    avatar_offset_y: 0,
-                    name_offset_x: 0,
-                    name_offset_y: 0,
-                    badge_offset_x: 0,
-                    badge_offset_y: 0,
-                    desc_offset_x: 0,
-                    desc_offset_y: 0,
-                    song_offset_x: 0,
-                    song_offset_y: 0,
-                    discord_rpc_offset_x: 0,
-                    discord_rpc_offset_y: 0,
-                    panel_opacity: 100,
-                    panel_hidden: false,
-                  },
-                });
-                if (!error) showSaved("positions reset");
-              }} className="text-xs bg-white/[0.05] hover:bg-white/[0.1] border border-white/[0.1] disabled:opacity-40 px-4 py-2 rounded-lg text-white/70 transition-colors cursor-pointer">
-                reset
-              </button>
-<button onClick={async () => {
-                if (!user) return;
-                setSavingAvatar(true);
-                const { error } = await apiCall("update", {
-                  data: {
-                    avatar_shape: avatarShape,
-                    avatar_size: avatarSize,
-                    avatar_offset_x: avatarOffsetX,
-                    avatar_offset_y: avatarOffsetY,
-                    name_offset_x: nameOffsetX,
-                    name_offset_y: nameOffsetY,
-                    badge_offset_x: badgeOffsetX,
-                    badge_offset_y: badgeOffsetY,
-                    desc_offset_x: descOffsetX,
-                    desc_offset_y: descOffsetY,
-                    song_offset_x: songOffsetX,
-                    song_offset_y: songOffsetY,
-                    discord_rpc_offset_x: rpcOffsetX,
-                    discord_rpc_offset_y: rpcOffsetY,
-                    panel_opacity: panelOpacity,
-                    panel_hidden: panelHidden,
-                  },
-                });
-                if (!error) showSaved("frame saved!");
-                setSavingAvatar(false);
-              }} disabled={savingAvatar} className="text-xs bg-blue-600 hover:bg-blue-500 disabled:opacity-40 px-4 py-2 rounded-lg text-white font-semibold transition-colors cursor-pointer">
-                {savingAvatar ? "saving..." : "save frame"}
-              </button>
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-white/50 font-semibold uppercase tracking-wider">Description</span>
+              <span className="text-white/80 font-mono">{descOffsetX}px / {descOffsetY}px</span>
+            </div>
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-white/50 font-semibold uppercase tracking-wider">Song Player</span>
+              <span className="text-white/80 font-mono">{songOffsetX}px / {songOffsetY}px</span>
+            </div>
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-white/50 font-semibold uppercase tracking-wider">Discord RPC</span>
+              <span className="text-white/80 font-mono">{rpcOffsetX}px / {rpcOffsetY}px</span>
             </div>
           </div>
-        </div>
-
-        <div className="glass-card rounded-2xl p-6">
-        <h3 className="text-sm font-semibold text-white/80 mb-4">Element Positions</h3>
-        <div className="grid gap-3">
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-white/50 font-semibold uppercase tracking-wider">Description</span>
-            <span className="text-white/80 font-mono">{descOffsetX}px / {descOffsetY}px</span>
+          <p className="text-[10px] text-white/30 mt-3">Drag the avatar, description, song player, and discord rpc directly in the live preview to position them.</p>
+          <div className="flex justify-end gap-2 mt-3">
+            <button onClick={async () => {
+              if (!user) return;
+              setAvatarOffsetX(0);
+              setAvatarOffsetY(0);
+              setNameOffsetX(0);
+              setNameOffsetY(0);
+              setBadgeOffsetX(0);
+              setBadgeOffsetY(0);
+              setDescOffsetX(0);
+              setDescOffsetY(0);
+              setSongOffsetX(0);
+              setSongOffsetY(0);
+              setRpcOffsetX(0);
+              setRpcOffsetY(0);
+              setPanelOpacity(100);
+              setPanelHidden(false);
+              const { error } = await apiCall("update", {
+                data: {
+                  avatar_shape: avatarShape,
+                  avatar_size: avatarSize,
+                  avatar_offset_x: 0,
+                  avatar_offset_y: 0,
+                  name_offset_x: 0,
+                  name_offset_y: 0,
+                  badge_offset_x: 0,
+                  badge_offset_y: 0,
+                  desc_offset_x: 0,
+                  desc_offset_y: 0,
+                  song_offset_x: 0,
+                  song_offset_y: 0,
+                  discord_rpc_offset_x: 0,
+                  discord_rpc_offset_y: 0,
+                  panel_opacity: 100,
+                  panel_hidden: false,
+                },
+              });
+              if (!error) showSaved("positions reset");
+            }} className="text-xs bg-white/[0.05] hover:bg-white/[0.1] border border-white/[0.1] px-4 py-2 rounded-lg text-white/70 transition-colors cursor-pointer">
+              reset
+            </button>
+            <button onClick={async () => {
+              if (!user) return;
+              setSavingAvatar(true);
+              const { error } = await apiCall("update", {
+                data: {
+                  avatar_shape: avatarShape,
+                  avatar_size: avatarSize,
+                  avatar_offset_x: avatarOffsetX,
+                  avatar_offset_y: avatarOffsetY,
+                  name_offset_x: nameOffsetX,
+                  name_offset_y: nameOffsetY,
+                  badge_offset_x: badgeOffsetX,
+                  badge_offset_y: badgeOffsetY,
+                  desc_offset_x: descOffsetX,
+                  desc_offset_y: descOffsetY,
+                  song_offset_x: songOffsetX,
+                  song_offset_y: songOffsetY,
+                  discord_rpc_offset_x: rpcOffsetX,
+                  discord_rpc_offset_y: rpcOffsetY,
+                  panel_opacity: panelOpacity,
+                  panel_hidden: panelHidden,
+                },
+              });
+              if (!error) showSaved("saved!");
+              setSavingAvatar(false);
+            }} disabled={savingAvatar} className="text-xs bg-blue-600 hover:bg-blue-500 disabled:opacity-40 px-4 py-2 rounded-lg text-white font-semibold transition-colors cursor-pointer">
+              {savingAvatar ? "saving..." : "save"}
+            </button>
           </div>
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-white/50 font-semibold uppercase tracking-wider">Song Player</span>
-            <span className="text-white/80 font-mono">{songOffsetX}px / {songOffsetY}px</span>
-          </div>
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-white/50 font-semibold uppercase tracking-wider">Discord RPC</span>
-            <span className="text-white/80 font-mono">{rpcOffsetX}px / {rpcOffsetY}px</span>
-          </div>
         </div>
-        <p className="text-[10px] text-white/30 mt-3 mb-3">Drag the description, song player, and discord rpc directly in the live preview to position them.</p>
-        <div className="flex justify-end gap-2">
-          <button onClick={async () => {
-            if (!user) return;
-            setDescOffsetX(0);
-            setDescOffsetY(0);
-            setSongOffsetX(0);
-            setSongOffsetY(0);
-            setRpcOffsetX(0);
-            setRpcOffsetY(0);
-            const { error } = await apiCall("update", {
-              data: {
-                desc_offset_x: 0,
-                desc_offset_y: 0,
-                song_offset_x: 0,
-                song_offset_y: 0,
-                discord_rpc_offset_x: 0,
-                discord_rpc_offset_y: 0,
-              },
-            });
-            if (!error) showSaved("positions reset");
-          }} className="text-xs bg-white/[0.05] hover:bg-white/[0.1] border border-white/[0.1] px-4 py-2 rounded-lg text-white/70 transition-colors cursor-pointer">
-            reset
-          </button>
-          <button onClick={async () => {
-            if (!user) return;
-            setSavingPositions(true);
-            const { error } = await apiCall("update", {
-              data: {
-                desc_offset_x: descOffsetX,
-                desc_offset_y: descOffsetY,
-                song_offset_x: songOffsetX,
-                song_offset_y: songOffsetY,
-                discord_rpc_offset_x: rpcOffsetX,
-                discord_rpc_offset_y: rpcOffsetY,
-              },
-            });
-            if (!error) showSaved("positions saved!");
-            setSavingPositions(false);
-          }} disabled={savingPositions} className="text-xs bg-blue-600 hover:bg-blue-500 disabled:opacity-40 px-4 py-2 rounded-lg text-white font-semibold transition-colors cursor-pointer">
-            {savingPositions ? "saving..." : "save positions"}
-          </button>
-        </div>
-        </div>
+      </div>
 
         <div className="glass-card rounded-2xl p-6">
         <h3 className="text-sm font-semibold text-white/80 mb-4">Display Name Effects</h3>
