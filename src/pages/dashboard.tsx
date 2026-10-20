@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useNavigate, useSearchParams, Link as RouterLink, Link } from "react-router-dom";
 import { motion, AnimatePresence, LayoutGroup, useMotionValue } from "motion/react";
-import { User, Paintbrush, Link as LucideLink, Image, Crown, Layout, Shield, Home, AtSign, Hash, Eye, User as UserIcon, Volume2, X, Music, Play, Pause, Trash2, Upload, LogOut, Check, Database, Award, Copy, HardDrive, Layers, Type, Star, Clock, Search, TrendingUp, RefreshCw, Trophy, ChevronDown } from "lucide-react";
+import { User, Paintbrush, Link as LucideLink, Image, Crown, Layout, Shield, Home, AtSign, Hash, Eye, User as UserIcon, Volume2, X, Music, Play, Pause, Trash2, Upload, LogOut, Check, Database, Award, Copy, HardDrive, Layers, Type, Star, Clock, Search, TrendingUp, RefreshCw, Trophy, ChevronDown, LayoutTemplate } from "lucide-react";
 import { PLATFORMS } from "../lib/platforms";
 import { FONTS, CUSTOM_FONT_FAMILY, CUSTOM_FONT_NAME, ResolveFontFamily, CustomFontFace, ToSameOriginUrl } from "../lib/fonts";
 import { SparkleText } from "../components/SparkleText";
@@ -90,11 +90,13 @@ type User = {
   reset_notices: { kind: string; reason: string; at: string }[] | null;
   widgets: unknown;
   click_sound: string | null;
+  profile_layout: string | null;
 };
 
 const tabs = [
   { id: "overview", label: "account overview", icon: User },
   { id: "customize", label: "customize", icon: Paintbrush },
+  { id: "layouts", label: "profile layouts", icon: LayoutTemplate },
   { id: "visibility", label: "visibility", icon: Eye },
   { id: "links", label: "links", icon: LucideLink },
   { id: "templates", label: "templates", icon: Layout },
@@ -461,6 +463,7 @@ return (
               >
                 {activeTab === "overview" && <AccountOverview user={user} onTab={setActiveTab} onUpdateUser={setUser} />}
                 {activeTab === "customize" && <Customize user={user} onUpdateUser={setUser} />}
+                {activeTab === "layouts" && <ProfileLayouts user={user} onUpdateUser={setUser} />}
                 {activeTab === "visibility" && <Visibility user={user} />}
                 {activeTab === "links" && <Links user={user} />}
                 {activeTab === "imagehost" && <MediaHost user={user} />}
@@ -4861,6 +4864,126 @@ function Templates({ user, onTab, onUpdateUser }: { user: User | null; onTab: (t
           })}
         </div>
       )}
+    </div>
+  );
+}
+
+function ProfileLayouts({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (u: User) => void }) {
+  const [Saving, SetSaving] = useState<string | null>(null);
+  const [JustSaved, SetJustSaved] = useState<string | null>(null);
+  const Active = user?.profile_layout || "classic";
+
+  const LAYOUTS = [
+    { id: "classic", label: "classic", desc: "centered avatar with name, badges and bio stacked underneath" },
+    { id: "left", label: "left aligned", desc: "identity and bio hug the left edge of the panel" },
+    { id: "split", label: "split", desc: "avatar on the left, name, username and badges beside it" },
+    { id: "cover", label: "cover", desc: "banner strip on top with the avatar overlapping it" },
+    { id: "compact", label: "compact", desc: "small inline avatar beside your identity, tighter spacing" },
+    { id: "badges", label: "badges first", desc: "badge row above the avatar, name and bio below" },
+  ];
+
+  const Pick = async (Id: string) => {
+    if (!user) return;
+    SetSaving(Id);
+    const { error } = await apiCall("update", { data: { profile_layout: Id } });
+    SetSaving(null);
+    if (error) { alert(error); return; }
+    onUpdateUser?.({ ...user, profile_layout: Id });
+    SetJustSaved(Id);
+    setTimeout(() => SetJustSaved(null), 1800);
+  };
+
+  const Bar = ({ W, H = "h-1.5", C = "bg-white/20" }: { W: string; H?: string; C?: string }) => (
+    <span className={`${H} ${W} ${C} rounded`} />
+  );
+  const BadgeRow = (
+    <div className="flex gap-1">
+      <span className="h-2.5 w-2.5 rounded bg-white/30" />
+      <span className="h-2.5 w-2.5 rounded bg-blue-400/40" />
+      <span className="h-2.5 w-2.5 rounded bg-white/20" />
+    </div>
+  );
+
+  const Preview = (Id: string) => {
+    if (Id === "classic" || Id === "left" || Id === "badges") {
+      return (
+        <div className={`flex w-full flex-col gap-2 ${Id === "left" ? "items-start px-5" : "items-center"}`}>
+          {Id === "badges" && BadgeRow}
+          <span className="h-9 w-9 rounded-full bg-blue-500/40 border border-white/20" />
+          <Bar W="w-20" H="h-2" C="bg-white/40" />
+          <Bar W="w-28" />
+          <Bar W="w-24" />
+        </div>
+      );
+    }
+    if (Id === "split") {
+      return (
+        <div className="flex w-full items-center gap-3 px-5">
+          <span className="h-10 w-10 shrink-0 rounded-full bg-blue-500/40 border border-white/20" />
+          <div className="flex flex-col items-start gap-1.5">
+            <Bar W="w-20" H="h-2" C="bg-white/40" />
+            <Bar W="w-12" />
+            {BadgeRow}
+          </div>
+        </div>
+      );
+    }
+    if (Id === "cover") {
+      return (
+        <div className="flex h-full w-full flex-col items-center">
+          <div className="h-9 w-full bg-gradient-to-r from-blue-500/40 via-indigo-500/30 to-purple-500/30" />
+          <span className="-mt-4 h-10 w-10 rounded-full bg-[#18181b] border border-blue-500/50" />
+          <div className="mt-2 flex flex-col items-center gap-1.5">
+            <Bar W="w-16" H="h-2" C="bg-white/40" />
+            <Bar W="w-20" />
+          </div>
+        </div>
+      );
+    }
+    return (
+      <div className="flex w-full items-center gap-2.5 px-5">
+        <span className="h-7 w-7 shrink-0 rounded-full bg-blue-500/40 border border-white/20" />
+        <div className="flex flex-col items-start gap-1">
+          <Bar W="w-16" H="h-2" C="bg-white/40" />
+          <Bar W="w-10" />
+        </div>
+        <div className="ml-auto">{BadgeRow}</div>
+      </div>
+    );
+  };
+
+  return (
+    <div>
+      <h1 className="text-lg font-semibold text-white/40 mb-8 lowercase">profile layouts</h1>
+
+      <div className="glass-card rounded-2xl p-6 bg-blue-500/[0.04] border-blue-500/10 mb-6">
+        <p className="text-sm font-semibold text-white/80">pick a layout</p>
+        <p className="text-[11px] text-white/35 mt-1">changes how the main panel on your biolink arranges your avatar, name, badges and bio. saves instantly.</p>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+        {LAYOUTS.map((L) => (
+          <button
+            key={L.id}
+            onClick={() => Pick(L.id)}
+            disabled={Saving === L.id}
+            className={`glass-card rounded-2xl p-4 text-left transition-all cursor-pointer ${
+              Active === L.id ? "border-blue-500/50 bg-blue-500/[0.06]" : "hover:border-white/20"
+            } ${Saving === L.id ? "opacity-60" : ""}`}
+          >
+            <div className="mb-4 h-32 rounded-xl bg-black/30 border border-white/[0.05] flex items-center justify-center overflow-hidden">
+              {Preview(L.id)}
+            </div>
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-semibold text-white/85 capitalize">{L.label}</p>
+              {Active === L.id ? <Check size={14} className="text-blue-400" /> : Saving === L.id ? <span className="text-[10px] text-white/40">saving...</span> : null}
+            </div>
+            <p className="mt-1 text-[11px] text-white/30 leading-relaxed">{L.desc}</p>
+          </button>
+        ))}
+      </div>
+
+      {JustSaved && <p className="text-[11px] text-emerald-400/80 mt-4">layout saved — refresh your page to see it.</p>}
     </div>
   );
 }

@@ -102,6 +102,7 @@ type User = {
   audio_shuffle: boolean | null;
   cursor_effect: string | null;
   click_sound: string | null;
+  profile_layout: string | null;
   avatar_shape: string | null;
   avatar_size: number | null;
   avatar_offset_x: number | null;
@@ -708,6 +709,13 @@ export default function Biolink() {
   }).slice(0, 3);
   const hasSide = sideKeys.length > 0;
   const featFm = sideKeys.length === 3 && sideKeys.includes("lastfm");
+  const ProfileLayout = user.profile_layout || "classic";
+  const IsSplit = ProfileLayout === "split";
+  const IsCompact = ProfileLayout === "compact";
+  const IsGrid = IsSplit || IsCompact;
+  const IsLeft = ProfileLayout === "left" || IsGrid;
+  const IsCover = ProfileLayout === "cover";
+  const IsBadgesFirst = ProfileLayout === "badges";
 
   return (
     <>
@@ -813,7 +821,7 @@ export default function Biolink() {
                 cardRef.current.style.transform = "";
               }
             }}
-            className={`relative ${user?.panel_hidden ? "" : "glass-card rounded-3xl p-8 backdrop-blur-2xl shadow-[0_8px_32px_0_rgba(0,0,0,0.37)]"} ${hasSide ? (featFm ? "xl:grid xl:grid-cols-[minmax(0,1fr)_460px] xl:gap-8 xl:text-left items-start" : "xl:grid xl:grid-cols-[minmax(0,1fr)_300px] xl:gap-8 xl:text-left items-start") : ""}`}
+            className={`relative ${user?.panel_hidden ? "" : "glass-card rounded-3xl p-8 backdrop-blur-2xl shadow-[0_8px_32px_0_rgba(0,0,0,0.37)]"} ${IsLeft ? "text-left" : ""} ${hasSide ? (featFm ? "xl:grid xl:grid-cols-[minmax(0,1fr)_460px] xl:gap-8 xl:text-left items-start" : "xl:grid xl:grid-cols-[minmax(0,1fr)_300px] xl:gap-8 xl:text-left items-start") : ""}`}
             style={{
               backgroundColor: (() => {
                 if (user?.panel_hidden) return "transparent";
@@ -835,9 +843,9 @@ export default function Biolink() {
               borderStyle: "solid",
               willChange: "transform",
             }}>
-            <motion.div variants={dropContainer} initial="hidden" animate={entered ? "show" : "hidden"} className="min-w-0">
+            <motion.div variants={dropContainer} initial="hidden" animate={entered ? "show" : "hidden"} className={`min-w-0 ${IsGrid ? "grid grid-cols-[auto_minmax(0,1fr)] gap-x-5 items-start" : `flex flex-col ${IsLeft ? "items-start" : "items-center"}`}`}>
             {user.banner_enabled && banner && (
-              <div className="pointer-events-none absolute inset-x-0 top-0 z-[1] h-32 overflow-hidden rounded-t-3xl">
+              <div className={`pointer-events-none absolute inset-x-0 top-0 z-[1] ${IsCover ? "h-44" : "h-32"} overflow-hidden rounded-t-3xl`}>
                 <img
                   src={banner}
                   className="h-full w-full object-cover"
@@ -849,22 +857,23 @@ export default function Biolink() {
                 <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/45" />
               </div>
             )}
-            <motion.div variants={dropItem} className={user.banner_enabled && banner ? "pt-24" : ""}>
+            <motion.div variants={dropItem} className={IsGrid ? "col-start-1 row-start-1 row-span-3 self-start" : IsBadgesFirst ? "order-2" : IsCover ? (user.banner_enabled && banner ? "relative z-10 pt-24" : "") : (user.banner_enabled && banner ? "pt-24" : "")}>
               {(() => {
                 const shape = user.avatar_shape || "circle";
-                const size = user.avatar_size || 96;
+                const size = IsCompact ? Math.min(user.avatar_size || 96, 64) : (user.avatar_size || 96);
                 const offX = user.avatar_offset_x || 0;
                 const offY = user.avatar_offset_y || 0;
                 const roundClass = shape === "rounded" ? "rounded-2xl" : "rounded-full";
                 const src = pa || user.avatar_url;
+                const alignClass = IsLeft ? "" : "mx-auto";
                 return src ? (
-                  <img src={src} className={`${roundClass} mx-auto mb-4 object-cover`} style={{ width: size, height: size, transform: `translate(${offX}px, ${offY}px)` }} />
+                  <img src={src} className={`${roundClass} ${alignClass} mb-4 object-cover`} style={{ width: size, height: size, transform: `translate(${offX}px, ${offY}px)` }} />
                 ) : (
-                  <div className={`${roundClass} mx-auto mb-4 bg-white/[0.04] border border-white/[0.06]`} style={{ width: size, height: size, transform: `translate(${offX}px, ${offY}px)` }} />
+                  <div className={`${roundClass} ${alignClass} mb-4 bg-white/[0.04] border border-white/[0.06]`} style={{ width: size, height: size, transform: `translate(${offX}px, ${offY}px)` }} />
 );
                 })()}
               </motion.div>
-              <div className={`relative w-fit ${hasSide ? "mx-auto xl:mx-0" : "mx-auto"}`} style={{ transform: `translate(${user.name_offset_x || 0}px, ${user.name_offset_y || 0}px)` }}>
+              <div className={`relative w-fit ${IsGrid ? "col-start-2 row-start-1" : IsLeft ? "" : hasSide ? "mx-auto xl:mx-0" : "mx-auto"} ${IsBadgesFirst ? "order-3" : ""}`} style={{ transform: `translate(${user.name_offset_x || 0}px, ${user.name_offset_y || 0}px)` }}>
                 <motion.div variants={dropItem}>
                 <h1
                   onMouseEnter={() => setHoveredUid(true)}
@@ -898,8 +907,8 @@ export default function Biolink() {
                 </AnimatePresence>
               </div>
               {visibleBadges.length > 0 && (
-                <motion.div variants={dropContainer} style={{ transform: `translate(${user.badge_offset_x || 0}px, ${user.badge_offset_y || 0}px)` }}>
-                  <div className="flex items-center justify-center mb-4">
+                <motion.div variants={dropContainer} className={IsGrid ? "col-start-2 row-start-2" : IsBadgesFirst ? "order-first" : ""} style={{ transform: `translate(${user.badge_offset_x || 0}px, ${user.badge_offset_y || 0}px)` }}>
+                  <div className={`flex items-center ${IsLeft ? "justify-start" : "justify-center"} ${IsGrid ? "mb-0" : "mb-4"}`}>
                     <LayoutGroup>
                       <motion.div
                         layout
@@ -976,25 +985,25 @@ export default function Biolink() {
               </div>
               </motion.div>
             )}
-            <motion.div variants={dropItem}>
+            <motion.div variants={dropItem} className={`${IsGrid ? "col-start-2 row-start-3" : ""} ${IsBadgesFirst ? "order-4" : ""}`}>
               {user.show_username !== false && (
                 <p className="text-xs mb-3" style={{ color: "var(--text-color, #ffffff)", opacity: 0.4 }}>@{user.username}</p>
               )}
             </motion.div>
-            <motion.div variants={dropItem}>
+            <motion.div variants={dropItem} className={`${IsGrid ? "col-start-1 col-span-2 row-start-4 w-full" : ""} ${IsBadgesFirst ? "order-5" : ""}`}>
               <div style={{ transform: `translate(${user.desc_offset_x || 0}px, ${user.desc_offset_y || 0}px)` }}>
               {user.desc_effect === "typewriter" ? (
                 user.desc_lines?.length || user.description ? (
-                  <TypewriterDesc lines={user.desc_lines?.length ? user.desc_lines : [user.description || ""]} speed={user.desc_effect_speed ?? 50} />
+                  <TypewriterDesc lines={user.desc_lines?.length ? user.desc_lines : [user.description || ""]} speed={user.desc_effect_speed ?? 50} Left={IsLeft} />
                 ) : null
               ) : user.description && (
-                <p className="text-sm max-w-xs mx-auto mb-6" style={{ color: "var(--text-color, #ffffff)" }}>{user.description}</p>
+                <p className={`text-sm ${IsLeft ? "max-w-md" : "max-w-xs mx-auto"} mb-6`} style={{ color: "var(--text-color, #ffffff)" }}>{user.description}</p>
               )}
               </div>
             </motion.div>
-            <motion.div variants={dropItem}>
+            <motion.div variants={dropItem} className={`${IsGrid ? "col-start-1 col-span-2 row-start-5 w-full" : ""} ${IsBadgesFirst ? "order-6" : ""}`}>
               {(user.discord_rpc_enabled && user.discord_id) || (user.song_platform && user.song_id) ? (
-                <div className="flex items-center justify-center gap-3 mb-6 px-4">
+                <div className={`flex items-center ${IsLeft ? "justify-start" : "justify-center"} gap-3 mb-6 px-4`}>
                   {user.discord_rpc_enabled && user.discord_id && (
                     <div className="w-full max-w-xs" style={{ transform: `translate(${user.discord_rpc_offset_x || 0}px, ${user.discord_rpc_offset_y || 0}px)` }}>
                       <DiscordRPC discordId={user.discord_id} />
@@ -1008,9 +1017,9 @@ export default function Biolink() {
                 </div>
               ) : null}
             </motion.div>
-            <motion.div variants={dropItem}>
+            <motion.div variants={dropItem} className={`${IsGrid ? "col-start-1 col-span-2 row-start-6 w-full" : ""} ${IsBadgesFirst ? "order-7" : ""}`}>
               {Object.keys(links).length > 0 && (
-                <div className={`flex items-center justify-center flex-wrap mb-6 ${Object.keys(links).length > 1 ? "gap-2" : "gap-3"}`}>
+                <div className={`flex items-center ${IsLeft ? "justify-start" : "justify-center"} flex-wrap mb-6 ${Object.keys(links).length > 1 ? "gap-2" : "gap-3"}`}>
                   {Object.keys(links).map((key) => {
                     const p = PLATFORMS.find((x) => x.id === key);
                     return (
@@ -1180,7 +1189,7 @@ export default function Biolink() {
     );
 }
 
-function TypewriterDesc({ lines, speed }: { lines: string[]; speed?: number }) {
+function TypewriterDesc({ lines, speed, Left }: { lines: string[]; speed?: number; Left?: boolean }) {
   const [displayText, setDisplayText] = useState(lines[0] || "");
   const maxLine = lines.reduce((a, b) => a.length >= b.length ? a : b, "");
   useEffect(() => {
@@ -1202,7 +1211,7 @@ function TypewriterDesc({ lines, speed }: { lines: string[]; speed?: number }) {
     return () => clearInterval(timer);
   }, [lines, speed]);
   return (
-    <p className="text-sm max-w-xs mx-auto mb-6" style={{ color: "var(--text-color, #ffffff)", display: "grid" }}>
+    <p className={`text-sm ${Left ? "max-w-md" : "max-w-xs mx-auto"} mb-6`} style={{ color: "var(--text-color, #ffffff)", display: "grid" }}>
       <span className="invisible" style={{ gridArea: "1/1" }}>{maxLine}</span>
       <span style={{ gridArea: "1/1" }}>{displayText}</span>
     </p>

@@ -38,6 +38,7 @@ async function EnsureUserColumns(Db) {
   try { await Db.execute("ALTER TABLE users ADD COLUMN show_votes INTEGER NOT NULL DEFAULT 1"); } catch {}
   try { await Db.execute("ALTER TABLE users ADD COLUMN embed_buttons TEXT"); } catch {}
   try { await Db.execute("ALTER TABLE users ADD COLUMN click_sound TEXT NOT NULL DEFAULT ''"); } catch {}
+  try { await Db.execute("ALTER TABLE users ADD COLUMN profile_layout TEXT NOT NULL DEFAULT 'classic'"); } catch {}
 }
 async function EnsureVotes(Db) {
   if (VotesEnsured) return;
