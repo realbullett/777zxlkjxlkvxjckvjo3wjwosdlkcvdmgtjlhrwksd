@@ -77,6 +77,73 @@ const PREMIUM_FEATURES = [
   "Metadata & SEO Customization",
 ];
 
+const LAYOUTS = [
+  { id: "classic", label: "classic" },
+  { id: "left", label: "left aligned" },
+  { id: "split", label: "split" },
+  { id: "cover", label: "cover" },
+  { id: "compact", label: "compact" },
+  { id: "badges", label: "badges first" },
+];
+
+const LayoutPreview = ({ Id }: { Id: string }) => (
+  <div className="relative flex h-20 w-full items-center justify-center gap-1.5 overflow-hidden rounded-xl border border-white/10 bg-black/40 px-3">
+    {Id === "classic" && (
+      <div className="flex flex-col items-center gap-1.5">
+        <div className="h-5 w-5 rounded-full bg-blue-400/80" />
+        <div className="h-1 w-12 rounded bg-white/30" />
+        <div className="h-1 w-16 rounded bg-white/15" />
+      </div>
+    )}
+    {Id === "left" && (
+      <div className="flex w-full flex-col items-start gap-1.5">
+        <div className="h-5 w-5 rounded-full bg-blue-400/80" />
+        <div className="h-1 w-14 rounded bg-white/30" />
+        <div className="h-1 w-20 rounded bg-white/15" />
+      </div>
+    )}
+    {Id === "split" && (
+      <div className="flex w-full items-center gap-3">
+        <div className="h-7 w-7 shrink-0 rounded-full bg-blue-400/80" />
+        <div className="flex flex-col gap-1.5">
+          <div className="h-1.5 w-16 rounded bg-white/30" />
+          <div className="h-1 w-10 rounded bg-white/20" />
+          <div className="h-1 w-12 rounded bg-white/15" />
+        </div>
+      </div>
+    )}
+    {Id === "cover" && (
+      <>
+        <div className="absolute inset-x-0 top-0 h-7 bg-gradient-to-r from-blue-600/40 to-blue-400/30" />
+        <div className="mt-6 flex flex-col items-center gap-1.5">
+          <div className="h-5 w-5 rounded-full border-2 border-black/60 bg-blue-400/80" />
+          <div className="h-1 w-12 rounded bg-white/30" />
+        </div>
+      </>
+    )}
+    {Id === "compact" && (
+      <div className="flex items-center gap-2">
+        <div className="h-4 w-4 rounded-full bg-blue-400/80" />
+        <div className="flex flex-col gap-1">
+          <div className="h-1 w-14 rounded bg-white/30" />
+          <div className="h-1 w-10 rounded bg-white/15" />
+        </div>
+      </div>
+    )}
+    {Id === "badges" && (
+      <div className="flex flex-col items-center gap-1.5">
+        <div className="flex gap-1">
+          <div className="h-2 w-2 rounded-full bg-yellow-400/70" />
+          <div className="h-2 w-2 rounded-full bg-emerald-400/70" />
+          <div className="h-2 w-2 rounded-full bg-purple-400/70" />
+        </div>
+        <div className="h-4 w-4 rounded-full bg-blue-400/80" />
+        <div className="h-1 w-12 rounded bg-white/25" />
+      </div>
+    )}
+  </div>
+);
+
 export default function Welcome() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -92,6 +159,7 @@ export default function Welcome() {
   const [tplLoading, setTplLoading] = useState(false);
   const [tplLoaded, setTplLoaded] = useState(false);
   const [installing, setInstalling] = useState<number | null>(null);
+  const [layout, setLayout] = useState("classic");
 
   useEffect(() => {
     document.title = "welcome — sire.lol";
@@ -123,7 +191,7 @@ export default function Welcome() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const next = () => setStep((s) => Math.min(s + 1, 4));
+  const next = () => setStep((s) => Math.min(s + 1, 5));
 
   const saveUseCase = async (skip: boolean) => {
     if (skip || !useCase) { next(); return; }
@@ -180,6 +248,12 @@ export default function Welcome() {
     next();
   };
 
+  const saveLayout = async () => {
+    setSaving(true);
+    try { await apiUpdate({ profile_layout: layout }); } catch {}
+    setSaving(false);
+    next();
+  };
   const finish = async (tab?: string) => {
     setSaving(true);
     try { await apiUpdate({ onboarding_done: 1 }); } catch {}
@@ -206,14 +280,14 @@ export default function Welcome() {
             <span className="text-blue-400">sire</span>.lol
           </button>
           <div className="flex items-center gap-1.5">
-            {[0, 1, 2, 3, 4].map((i) => (
+            {[0, 1, 2, 3, 4, 5].map((i) => (
               <div key={i} className="flex items-center gap-1.5">
                 <div className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold transition-all ${
                   i < step ? "bg-blue-600 text-white" : i === step ? "bg-blue-600/25 border border-blue-500/50 text-blue-200" : "bg-white/[0.06] text-white/40"
                 }`}>
                   {i < step ? <Check size={13} /> : i + 1}
                 </div>
-                {i < 4 && <div className={`h-px w-4 ${i < step ? "bg-blue-500/60" : "bg-white/15"}`} />}
+                {i < 5 && <div className={`h-px w-4 ${i < step ? "bg-blue-500/60" : "bg-white/15"}`} />}
               </div>
             ))}
           </div>
@@ -421,6 +495,39 @@ export default function Welcome() {
 
             {step === 4 && (
               <motion.div key="s4" initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -24 }} transition={{ duration: 0.22 }}>
+                <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Pick your profile layout</h1>
+                <p className="mt-2 text-sm text-white/50">Choose how your panel looks. You can switch it anytime from the dashboard.</p>
+                <div className="mt-6 grid grid-cols-2 gap-3">
+                  {LAYOUTS.map((L) => (
+                    <button
+                      key={L.id}
+                      onClick={() => setLayout(L.id)}
+                      className={`rounded-2xl border p-2.5 text-left transition-all ${
+                        layout === L.id ? "border-blue-500/60 bg-blue-600/10" : "border-white/10 bg-white/[0.03] hover:border-white/25"
+                      }`}
+                    >
+                      <LayoutPreview Id={L.id} />
+                      <p className={`mt-2 px-1 text-xs font-semibold ${layout === L.id ? "text-blue-200" : "text-white/70"}`}>{L.label}</p>
+                    </button>
+                  ))}
+                </div>
+                <div className="mt-6 flex items-center gap-3">
+                  <button
+                    onClick={saveLayout}
+                    disabled={saving}
+                    className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-blue-500/40 bg-blue-600/25 py-3 text-sm font-semibold transition-all hover:bg-blue-600/35 disabled:opacity-40"
+                  >
+                    {saving ? <Loader2 size={16} className="animate-spin" /> : <>Continue <ArrowRight size={16} /></>}
+                  </button>
+                  <button onClick={next} className="rounded-xl border border-white/10 bg-white/[0.04] px-6 py-3 text-sm font-medium text-white/70 transition-all hover:border-white/25">
+                    Skip
+                  </button>
+                </div>
+              </motion.div>
+            )}
+
+            {step === 5 && (
+              <motion.div key="s5" initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -24 }} transition={{ duration: 0.22 }}>
                 <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight sm:text-3xl">
                   <PartyPopper size={24} className="text-blue-300" /> You've reached the end!
                 </h1>
