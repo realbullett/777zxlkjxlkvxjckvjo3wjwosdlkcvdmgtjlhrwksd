@@ -2015,7 +2015,7 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
               </button>
             )}
           </div>
-          <p className="text-[11px] text-white/40 mb-4">plays when someone clicks one of your links.</p>
+          <p className="text-[11px] text-white/40 mb-4">plays on every click a visitor makes on your page.</p>
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-4">
             {CLICK_SOUNDS.map((S) => {
               const on = clickSound === S.id;

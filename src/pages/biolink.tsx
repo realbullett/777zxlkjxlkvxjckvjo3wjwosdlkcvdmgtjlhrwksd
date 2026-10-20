@@ -467,6 +467,14 @@ export default function Biolink() {
     };
   }, []);
 
+  useEffect(() => {
+    const Sound = user?.click_sound;
+    if (!Sound) return;
+    const OnClick = () => PlayClickSound(Sound);
+    window.addEventListener("click", OnClick);
+    return () => window.removeEventListener("click", OnClick);
+  }, [user?.click_sound]);
+
   const voteTsId = useRef<string | null>(null);
   const voteTsResolve = useRef<((t: string) => void) | null>(null);
 
@@ -1031,7 +1039,6 @@ export default function Biolink() {
                         title={p ? p.name : key}
                         className="transition-all hover:scale-110"
                         onClick={() => {
-                          if (user.click_sound) PlayClickSound(user.click_sound);
                           fetch("/api/track-view", {
                             method: "POST",
                             headers: { "Content-Type": "application/json" },
