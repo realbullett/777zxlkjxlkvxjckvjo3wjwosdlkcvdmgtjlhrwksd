@@ -7,6 +7,7 @@ import { CUSTOM_FONT_FAMILY, ResolveFontFamily, CustomFontFace, ToSameOriginUrl 
 import { SparkleText } from "../components/SparkleText";
 import { RainEffect, SnowEffect, AuroraEffect, TvStaticEffect, ParticlesEffect, GalaxyEffect, MatrixEffect, SpotlightEffect } from "../components/BackgroundEffect";
 import SongPlayer from "../components/SongPlayer";
+import VolumeControl from "../components/VolumeControl";
 import DiscordRPC from "../components/DiscordRPC";
 import DiscordServerCard from "../components/DiscordServerCard";
 import RobloxCard from "../components/RobloxCard";
@@ -157,6 +158,13 @@ export default function Biolink() {
   const touchRef = useRef<{ y: number; allow: boolean; scroller: HTMLElement | null } | null>(null);
   const enterTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const enteredAtRef = useRef(0);
+  const [Volume, SetVolume] = useState(() => {
+    const Stored = localStorage.getItem("sire_volume");
+    if (Stored === null) return 100;
+    const N = Number(Stored);
+    return Number.isFinite(N) ? Math.max(0, Math.min(100, N)) : 100;
+  });
+  const [Muted, SetMuted] = useState(() => localStorage.getItem("sire_muted") === "1");
 
   const getPageTops = () =>
     Array.from(document.querySelectorAll<HTMLElement>(".snap-page")).map((el) => el.getBoundingClientRect().top + window.scrollY);
@@ -338,6 +346,30 @@ export default function Biolink() {
 
   const audio = selectedAudio || audio1 || null;
   const cursor = getAsset("custom_cursor");
+
+  useEffect(() => {
+    localStorage.setItem("sire_volume", String(Volume));
+    localStorage.setItem("sire_muted", Muted ? "1" : "0");
+  }, [Volume, Muted]);
+
+  useEffect(() => {
+    const Gain = Muted ? 0 : Volume / 100;
+    if (audioRef.current) {
+      audioRef.current.volume = ((user?.audio_volume ?? 30) / 100) * Gain;
+      audioRef.current.muted = Muted;
+    }
+    if (videoRef.current) {
+      videoRef.current.volume = Gain;
+      videoRef.current.muted = !videoAudio || Muted;
+    }
+    window.dispatchEvent(new CustomEvent("sire-volume", { detail: { Gain } }));
+  }, [Volume, Muted, audio, videoBg, videoAudio, user?.audio_volume, entered]);
+
+  const ChangeVolume = (V: number) => {
+    SetVolume(V);
+    SetMuted(V === 0);
+  };
+  const ToggleMute = () => SetMuted((M) => !M);
 
   const [cursorDataUrl, setCursorDataUrl] = useState<string | null>(null);
 
@@ -605,7 +637,8 @@ export default function Biolink() {
       }, 3000);
     }
     if (audioRef.current && !hasSongPage && (user?.audio_autoplay ?? true)) {
-      audioRef.current.volume = (user?.audio_volume ?? 30) / 100;
+      audioRef.current.volume = ((user?.audio_volume ?? 30) / 100) * (Muted ? 0 : Volume / 100);
+      audioRef.current.muted = Muted;
       audioRef.current.loop = user?.audio_loop ?? true;
       audioRef.current.play().catch(() => {});
     }
@@ -766,6 +799,8 @@ export default function Biolink() {
       {bgEffect === "spotlight" && <SpotlightEffect />}
       {user?.cursor_effect && user?.cursor_effect !== "none" && <CursorEffect type={user.cursor_effect} />}
       <div className="absolute inset-0 bg-black/30" />
+
+      <VolumeControl Volume={Volume} Muted={Muted} OnVolume={ChangeVolume} OnMute={ToggleMute} />
 
       {audio && !hasSongPage && <audio ref={audioRef} src={audio} loop />}
 
@@ -1011,7 +1046,7 @@ export default function Biolink() {
             </motion.div>
             <motion.div variants={dropItem} className={`${IsGrid ? "col-start-1 col-span-2 row-start-5 w-full" : ""} ${IsBadgesFirst ? "order-6" : ""}`}>
               {(user.discord_rpc_enabled && user.discord_id) || (user.song_platform && user.song_id) ? (
-                <div className={`flex items-center ${IsLeft ? "justify-start" : "justify-center"} gap-3 mb-6 px-4`}>
+                <div className={`flex flex-col ${IsLeft ? "items-start" : "items-center"} gap-3 mb-6 px-4`}>
                   {user.discord_rpc_enabled && user.discord_id && (
                     <div className="w-full max-w-xs" style={{ transform: `translate(${user.discord_rpc_offset_x || 0}px, ${user.discord_rpc_offset_y || 0}px)` }}>
                       <DiscordRPC discordId={user.discord_id} />

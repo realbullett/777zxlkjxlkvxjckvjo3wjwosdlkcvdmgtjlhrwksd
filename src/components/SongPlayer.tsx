@@ -2,7 +2,18 @@ import { useEffect, useRef, useState } from "react";
 import { Play, Pause } from "lucide-react";
 
 declare global {
-  interface Window { YT?: any; onYouTubeIframeAPIReady?: () => void; }
+  interface Window {
+    YT?: any;
+    onYouTubeIframeAPIReady?: () => void;
+    SpotifyIframeApi?: any;
+    onSpotifyIframeApiReady?: () => void;
+  }
+}
+
+function StoredGain() {
+  if (localStorage.getItem("sire_muted") === "1") return 0;
+  const N = Number(localStorage.getItem("sire_volume") ?? 100);
+  return Number.isFinite(N) ? Math.max(0, Math.min(100, N)) / 100 : 1;
 }
 
 function loadYTAPI() {
@@ -18,6 +29,7 @@ function loadYTAPI() {
 function YTPlayer({ id, playing, onEnded }: { id: string; playing: boolean; onEnded: () => void }) {
   const playerRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const gainRef = useRef(StoredGain());
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
@@ -28,7 +40,7 @@ function YTPlayer({ id, playing, onEnded }: { id: string; playing: boolean; onEn
         videoId: id,
         playerVars: { autoplay: 0, controls: 0, origin: location.origin },
         events: {
-          onReady: () => setReady(true),
+          onReady: () => { p.setVolume(Math.round(gainRef.current * 100)); setReady(true); },
           onStateChange: (e: any) => { if (e.data === window.YT.PlayerState.ENDED) onEnded(); },
         },
       });
@@ -43,6 +55,15 @@ function YTPlayer({ id, playing, onEnded }: { id: string; playing: boolean; onEn
     else playerRef.current.pauseVideo();
   }, [playing, ready]);
 
+  useEffect(() => {
+    const OnVolume = (E: Event) => {
+      gainRef.current = (E as CustomEvent).detail.Gain;
+      playerRef.current?.setVolume(Math.round(gainRef.current * 100));
+    };
+    window.addEventListener("sire-volume", OnVolume);
+    return () => window.removeEventListener("sire-volume", OnVolume);
+  }, []);
+
   return <div ref={containerRef} className="hidden" />;
 }
 
@@ -53,24 +74,79 @@ function fetchYTTrack(id: string): Promise<string> {
     .catch(() => "YouTube");
 }
 
+let SpotifyApiPromise: Promise<any> | null = null;
+function loadSpotifyApi() {
+  if (window.SpotifyIframeApi) return Promise.resolve(window.SpotifyIframeApi);
+  if (SpotifyApiPromise) return SpotifyApiPromise;
+  SpotifyApiPromise = new Promise((Resolve) => {
+    window.onSpotifyIframeApiReady = (Api: any) => { window.SpotifyIframeApi = Api; Resolve(Api); };
+    const Script = document.createElement("script");
+    Script.src = "https://open.spotify.com/embed/iframe-api/v1";
+    Script.async = true;
+    document.body.appendChild(Script);
+  });
+  return SpotifyApiPromise;
+}
+
+function SpotifyPlayer({ id }: { id: string }) {
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const hostRef = useRef<HTMLDivElement>(null);
+  const controllerRef = useRef<any>(null);
+  const playingRef = useRef(false);
+  const wasPlayingRef = useRef(false);
+
+  useEffect(() => {
+    let dead = false;
+    loadSpotifyApi().then((Api) => {
+      if (dead || !hostRef.current) return;
+      Api.createController(hostRef.current, { uri: `spotify:track:${id}`, width: "100%", height: 80 }, (Controller: any) => {
+        controllerRef.current = Controller;
+        Controller.addListener("playback_update", (E: any) => {
+          playingRef.current = !!E?.data && !E.data.isPaused;
+        });
+        const Frame = wrapRef.current?.querySelector("iframe");
+        if (Frame) {
+          Frame.style.width = "100%";
+          Frame.style.height = "80px";
+          Frame.style.border = "0";
+          Frame.style.display = "block";
+        }
+      });
+    });
+    return () => {
+      dead = true;
+      try { controllerRef.current?.destroy(); } catch { /* not ready */ }
+      controllerRef.current = null;
+    };
+  }, [id]);
+
+  useEffect(() => {
+    const OnVolume = (E: Event) => {
+      const Gain = (E as CustomEvent).detail.Gain;
+      const C = controllerRef.current;
+      if (!C) return;
+      if (Gain === 0 && playingRef.current) {
+        wasPlayingRef.current = true;
+        C.pause();
+      } else if (Gain > 0 && wasPlayingRef.current) {
+        wasPlayingRef.current = false;
+        C.resume();
+      }
+    };
+    window.addEventListener("sire-volume", OnVolume);
+    return () => window.removeEventListener("sire-volume", OnVolume);
+  }, []);
+
+  return (
+    <div ref={wrapRef} className="relative w-full overflow-hidden rounded-2xl" style={{ height: 80 }}>
+      <div ref={hostRef} />
+    </div>
+  );
+}
+
 export default function SongPlayer({ platform, id, fill }: { platform: "youtube" | "spotify"; id: string; fill?: boolean }) {
   const [playing, setPlaying] = useState(false);
   const [title, setTitle] = useState("");
-  const spotifyRef = useRef<HTMLDivElement>(null);
-  const [spotifyScale, setSpotifyScale] = useState(1);
-
-  useEffect(() => {
-    if (platform !== "spotify") return;
-    const el = spotifyRef.current;
-    if (!el) return;
-    const update = () => setSpotifyScale(fill
-      ? Math.min(1.75, Math.max(0.6, el.clientWidth / 300))
-      : Math.min(1, el.clientWidth / 300));
-    update();
-    const ro = new ResizeObserver(update);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [platform, id, fill]);
 
   useEffect(() => {
     if (platform === "youtube") fetchYTTrack(id).then(setTitle);
@@ -108,22 +184,7 @@ export default function SongPlayer({ platform, id, fill }: { platform: "youtube"
           </div>
         </div>
       ) : (
-        <div ref={spotifyRef} className="relative w-full overflow-hidden rounded-2xl" style={{ height: Math.round(80 * spotifyScale) }}>
-          <iframe
-            src={`https://open.spotify.com/embed/track/${id}`}
-            style={{
-              position: "absolute",
-              left: "50%",
-              top: 0,
-              width: 300,
-              height: 80,
-              border: "none",
-              transform: `translateX(-50%) scale(${spotifyScale})`,
-              transformOrigin: "center top",
-            }}
-            allow="autoplay; encrypted-media"
-          />
-        </div>
+        <SpotifyPlayer id={id} />
       )}
     </div>
   );
