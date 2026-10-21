@@ -102,7 +102,9 @@ function SpotifyPlayer({ id }: { id: string }) {
       Api.createController(hostRef.current, { uri: `spotify:track:${id}`, width: "100%", height: 80 }, (Controller: any) => {
         controllerRef.current = Controller;
         Controller.addListener("playback_update", (E: any) => {
-          playingRef.current = !!E?.data && !E.data.isPaused;
+          const Playing = !!E?.data && !E.data.isPaused;
+          playingRef.current = Playing;
+          if (Playing && StoredGain() === 0) Controller.pause();
         });
         const Frame = wrapRef.current?.querySelector("iframe");
         if (Frame) {
@@ -125,10 +127,10 @@ function SpotifyPlayer({ id }: { id: string }) {
       const Gain = (E as CustomEvent).detail.Gain;
       const C = controllerRef.current;
       if (!C) return;
-      if (Gain === 0 && playingRef.current) {
+      if (Gain === 0) {
         wasPlayingRef.current = true;
         C.pause();
-      } else if (Gain > 0 && wasPlayingRef.current) {
+      } else if (wasPlayingRef.current) {
         wasPlayingRef.current = false;
         C.resume();
       }
