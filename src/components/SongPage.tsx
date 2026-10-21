@@ -82,19 +82,6 @@ function SpotifyPlayerLyrics({ id, autoPlay = false, bgImage }: { id: string; au
   }, [playing]);
 
   useEffect(() => {
-    const OnVolume = (E: Event) => {
-      const Gain = Math.min(1, Math.max(0, ((E as CustomEvent).detail?.Gain ?? 1)));
-      if (ytActive) {
-        try { ytPlayerRef.current?.setVolume(Math.round(Gain * 100)); } catch {}
-      } else if (audioRef.current) {
-        audioRef.current.volume = Gain;
-      }
-    };
-    window.addEventListener("sire-volume", OnVolume);
-    return () => window.removeEventListener("sire-volume", OnVolume);
-  }, [ytActive]);
-
-  useEffect(() => {
     let cancelled = false;
     setInfo(null);
     setError(false);
@@ -138,6 +125,19 @@ function SpotifyPlayerLyrics({ id, autoPlay = false, bgImage }: { id: string; au
   };
 
   const ytActive = useYt && !!info?.ytId;
+
+  useEffect(() => {
+    const OnVolume = (E: Event) => {
+      const Gain = Math.min(1, Math.max(0, ((E as CustomEvent).detail?.Gain ?? 1)));
+      if (ytActive) {
+        try { ytPlayerRef.current?.setVolume(Math.round(Gain * 100)); } catch {}
+      } else if (audioRef.current) {
+        audioRef.current.volume = Gain;
+      }
+    };
+    window.addEventListener("sire-volume", OnVolume);
+    return () => window.removeEventListener("sire-volume", OnVolume);
+  }, [ytActive]);
 
   const play = (fromZero: boolean) => {
     if (ytActive) {
