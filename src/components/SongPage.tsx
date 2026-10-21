@@ -50,8 +50,15 @@ function withAlpha(c: string, a: number): string {
   return c;
 }
 
-function SpotifyPlayerLyrics({ id, autoPlay = false, bgImage }: { id: string; autoPlay?: boolean; bgImage?: string }) {
-  const [info, setInfo] = useState<TrackInfo | null>(null);
+function StoredGain() {
+  try {
+    if (localStorage.getItem("sire_muted") === "1") return 0;
+    const V = parseInt(localStorage.getItem("sire_volume") || "100", 10);
+    return Math.min(100, Math.max(0, isNaN(V) ? 100 : V)) / 100;
+  } catch { return 1; }
+}
+
+function SpotifyPlayerLyrics({ id, autoPlay = false, bgImage }: { id: string; autoPlay?: boolean; bgImage?: string }) {  const [info, setInfo] = useState<TrackInfo | null>(null);
   const [error, setError] = useState(false);
   const [ytReady, setYtReady] = useState(false);
   const [useYt, setUseYt] = useState(true);
@@ -73,6 +80,19 @@ function SpotifyPlayerLyrics({ id, autoPlay = false, bgImage }: { id: string; au
   useEffect(() => {
     playingRef.current = playing;
   }, [playing]);
+
+  useEffect(() => {
+    const OnVolume = (E: Event) => {
+      const Gain = Math.min(1, Math.max(0, ((E as CustomEvent).detail?.Gain ?? 1)));
+      if (ytActive) {
+        try { ytPlayerRef.current?.setVolume(Math.round(Gain * 100)); } catch {}
+      } else if (audioRef.current) {
+        audioRef.current.volume = Gain;
+      }
+    };
+    window.addEventListener("sire-volume", OnVolume);
+    return () => window.removeEventListener("sire-volume", OnVolume);
+  }, [ytActive]);
 
   useEffect(() => {
     let cancelled = false;
@@ -195,6 +215,7 @@ function SpotifyPlayerLyrics({ id, autoPlay = false, bgImage }: { id: string; au
         events: {
           onReady: () => {
             ytPlayerRef.current = p;
+            try { p.setVolume(Math.round(StoredGain() * 100)); } catch {}
             setYtReady(true);
           },
           onStateChange: (e: any) => {
@@ -431,7 +452,7 @@ function SpotifyPlayerLyrics({ id, autoPlay = false, bgImage }: { id: string; au
         </div>
       </div>
       <div ref={ytHostRef} className="hidden" />
-      <audio ref={audioRef} preload="auto" />
+      <audio ref={audioRef} preload="auto" onLoadedMetadata={(E) => { E.currentTarget.volume = StoredGain(); }} />
     </div>
   );
 }
