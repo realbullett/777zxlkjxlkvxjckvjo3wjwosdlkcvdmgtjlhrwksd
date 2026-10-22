@@ -33,7 +33,7 @@ const USER_FIELDS = new Set([
   "discord_rpc_offset_x", "discord_rpc_offset_y",
   "panel_opacity", "panel_hidden", "discord_rpc_enabled",
   "widgets", "onboarding_done", "use_case", "show_joindate", "show_views", "show_votes", "custom_font_scope",
-  "embed_buttons", "click_sound", "profile_layout", "country",
+  "embed_buttons", "click_sound", "profile_layout", "country", "panel_glow_mode", "panel_glow_color", "panel_glow_color_2", "panel_glow_spread",
 ]);
 
 const PREMIUM_VALUES = {
@@ -224,6 +224,10 @@ async function EnsureSchema() {
     D.execute("ALTER TABLE users ADD COLUMN embed_buttons TEXT"),
     D.execute("ALTER TABLE users ADD COLUMN click_sound TEXT NOT NULL DEFAULT ''"),
     D.execute("ALTER TABLE users ADD COLUMN profile_layout TEXT NOT NULL DEFAULT 'classic'"),
+    D.execute("ALTER TABLE users ADD COLUMN panel_glow_mode TEXT NOT NULL DEFAULT 'none'"),
+    D.execute("ALTER TABLE users ADD COLUMN panel_glow_color TEXT NOT NULL DEFAULT ''"),
+    D.execute("ALTER TABLE users ADD COLUMN panel_glow_color_2 TEXT NOT NULL DEFAULT ''"),
+    D.execute("ALTER TABLE users ADD COLUMN panel_glow_spread INTEGER NOT NULL DEFAULT 50"),
     D.execute("ALTER TABLE users ADD COLUMN country TEXT NOT NULL DEFAULT ''"),
     D.execute("CREATE TABLE IF NOT EXISTS admin_log (id INTEGER PRIMARY KEY AUTOINCREMENT, admin_id INTEGER NOT NULL, action TEXT NOT NULL, target_uid INTEGER, detail TEXT, created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')))"),
     D.execute("CREATE INDEX IF NOT EXISTS idx_admin_log_time ON admin_log (created_at DESC)"),

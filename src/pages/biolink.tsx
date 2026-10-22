@@ -65,6 +65,10 @@ type User = {
   show_joindate: boolean | null;
   show_views: boolean | null;
   country: string | null;
+  panel_glow_mode: string | null;
+  panel_glow_color: string | null;
+  panel_glow_color_2: string | null;
+  panel_glow_spread: number | null;
   show_votes: boolean | null;
   custom_font_scope: string | null;
   description: string | null;
@@ -904,6 +908,17 @@ export default function Biolink() {
               borderWidth: "1px",
               borderStyle: "solid",
               willChange: "transform",
+              boxShadow: (() => {
+                const Mode = user?.panel_glow_mode;
+                const Col = user?.panel_glow_color;
+                if (user?.panel_hidden || !Mode || Mode === "none" || !Col) return "0 8px 32px 0 rgba(0, 0, 0, 0.37)";
+                const Sp = user?.panel_glow_spread ?? 50;
+                const B = 10 + Sp * 0.6;
+                const T = Sp * 0.6;
+                const Col2 = user?.panel_glow_color_2;
+                if (Mode === "gradient" && Col2) return `0 0 ${B}px ${T}px ${Col}, 0 0 ${B * 0.55}px ${T * 0.5}px ${Col2}, 0 0 ${B * 0.28}px ${T * 0.22}px ${Col2}`;
+                return `0 0 ${B}px ${T}px ${Col}`;
+              })(),
             }}>
             <motion.div variants={dropContainer} initial="hidden" animate={entered ? "show" : "hidden"} className={`min-w-0 ${IsGrid ? "grid grid-cols-[auto_minmax(0,1fr)] gap-x-5 items-start" : `flex flex-col ${IsLeft ? "items-start" : "items-center"}`}`}>
             {user.banner_enabled && banner && (

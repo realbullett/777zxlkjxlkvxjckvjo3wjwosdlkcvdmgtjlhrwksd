@@ -37,6 +37,10 @@ type User = {
   bg_effect_color: string | null;
   primary_color: string | null;
   secondary_color: string | null;
+  panel_glow_mode: string | null;
+  panel_glow_color: string | null;
+  panel_glow_color_2: string | null;
+  panel_glow_spread: number | null;
   display_effect: string | null;
   sparkle_intensity?: number | null;
   font: string | null;
@@ -1312,6 +1316,10 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
   const [bgEffectColor, setBgEffectColor] = useState(user?.bg_effect_color || "rgba(255, 255, 255, 0.08)");
   const [primaryColor, setPrimaryColor] = useState(user?.primary_color || "rgba(255, 255, 255, 0.1)");
   const [secondaryColor, setSecondaryColor] = useState(user?.secondary_color || "rgba(255, 255, 255, 0.15)");
+  const [glowMode, setGlowMode] = useState(user?.panel_glow_mode || "none");
+  const [glowColor, setGlowColor] = useState(user?.panel_glow_color || "");
+  const [glowColor2, setGlowColor2] = useState(user?.panel_glow_color_2 || "");
+  const [glowSpread, setGlowSpread] = useState(user?.panel_glow_spread ?? 50);
   const [savingColors, setSavingColors] = useState(false);
   const [displayEffect, setDisplayEffect] = useState(user?.display_effect || "none");
   const [sparkleIntensity, setSparkleIntensity] = useState(user?.sparkle_intensity ?? 14);
@@ -1436,6 +1444,10 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
     setBgEffectColor(user.bg_effect_color || "rgba(255, 255, 255, 0.08)");
     setPrimaryColor(user.primary_color || "rgba(255, 255, 255, 0.1)");
     setSecondaryColor(user.secondary_color || "rgba(255, 255, 255, 0.15)");
+    setGlowMode(user.panel_glow_mode || "none");
+    setGlowColor(user.panel_glow_color || "");
+    setGlowColor2(user.panel_glow_color_2 || "");
+    setGlowSpread(user.panel_glow_spread ?? 50);
     setDisplayEffect(user.display_effect || "none");
     setSparkleIntensity(user.sparkle_intensity ?? 14);
     setFont(user.font || "Inter");
@@ -1539,6 +1551,10 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
         bg_effect_color: bgEffectColor,
         primary_color: primaryColor,
         secondary_color: secondaryColor,
+        panel_glow_mode: glowMode,
+        panel_glow_color: glowColor,
+        panel_glow_color_2: glowColor2,
+        panel_glow_spread: glowSpread,
       },
     });
     if (error) console.error("saveColors error:", error);
@@ -1554,6 +1570,10 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
     setBgEffectColor("rgba(255, 255, 255, 0.08)");
     setPrimaryColor("rgba(255, 255, 255, 0.1)");
     setSecondaryColor("rgba(255, 255, 255, 0.15)");
+    setGlowMode("none");
+    setGlowColor("");
+    setGlowColor2("");
+    setGlowSpread(50);
     if (!user) return;
     setSavingColors(true);
     const { error } = await apiCall("update", {
@@ -1565,6 +1585,10 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
         bg_effect_color: "rgba(255, 255, 255, 0.08)",
         primary_color: "rgba(255, 255, 255, 0.1)",
         secondary_color: "rgba(255, 255, 255, 0.15)",
+        panel_glow_mode: "none",
+        panel_glow_color: "",
+        panel_glow_color_2: "",
+        panel_glow_spread: 50,
       },
     });
     if (error) console.error("reset error:", error);
@@ -2187,34 +2211,80 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
 
         <div>
           <p className="text-sm font-semibold text-white/80 mb-4">Color Customization</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="rounded-2xl bg-white/[0.02] border border-white/[0.06] overflow-hidden divide-y divide-white/[0.04]">
             {[
-              { label: "Accent Color", value: accentColor, onChange: setAccentColor },
-              { label: "Text Color", value: textColor, onChange: setTextColor },
-              { label: "Background Color", value: backgroundColor, onChange: setBackgroundColor },
-              { label: "Icon Color", value: iconColor, onChange: setIconColor },
-              { label: "Bg Effect Color", value: bgEffectColor, onChange: setBgEffectColor },
-              { label: "Primary Color", value: primaryColor, onChange: setPrimaryColor },
-              { label: "Secondary Color", value: secondaryColor, onChange: setSecondaryColor },
+              { label: "accent color", value: accentColor, onChange: setAccentColor },
+              { label: "text color", value: textColor, onChange: setTextColor },
+              { label: "background color", value: backgroundColor, onChange: setBackgroundColor },
+              { label: "icon color", value: iconColor, onChange: setIconColor },
+              { label: "bg effect color", value: bgEffectColor, onChange: setBgEffectColor },
+              { label: "primary color", value: primaryColor, onChange: setPrimaryColor },
+              { label: "secondary color", value: secondaryColor, onChange: setSecondaryColor },
             ].map((c) => (
-              <div key={c.label} className="flex items-center justify-between gap-2 p-3 rounded-xl bg-white/[0.02] border border-white/[0.06] overflow-hidden">
-                <span className="text-xs text-white/60 truncate mr-1 font-medium">{c.label}</span>
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <input
-                    type="color"
-                    value={c.value.startsWith("#") ? c.value : "#ffffff"}
-                    onChange={(e) => c.onChange(e.target.value)}
-                    className="h-6 w-8 rounded border border-white/[0.1] bg-white/[0.03] cursor-pointer p-0 overflow-hidden"
-                  />
-                  <input
-                    type="text"
-                    value={c.value}
-                    onChange={(e) => c.onChange(e.target.value)}
-                    className="w-20 bg-white/[0.03] border border-white/[0.06] rounded px-1.5 py-1 text-white outline-none focus:border-blue-500/30 transition-colors font-mono text-[10px] text-center truncate"
-                  />
-                </div>
+              <div key={c.label} className="flex items-center gap-3 p-3.5">
+                <span className="w-28 shrink-0 text-xs text-white/55 font-medium">{c.label}</span>
+                <input
+                  type="color"
+                  value={c.value.startsWith("#") ? c.value : "#ffffff"}
+                  onChange={(e) => c.onChange(e.target.value)}
+                  className="h-8 w-10 shrink-0 rounded-lg border border-white/[0.1] bg-white/[0.03] cursor-pointer p-0 overflow-hidden"
+                />
+                <input
+                  type="text"
+                  value={c.value}
+                  onChange={(e) => c.onChange(e.target.value)}
+                  className="flex-1 min-w-0 bg-white/[0.03] border border-white/[0.06] rounded-lg px-2.5 py-1.5 text-white/80 outline-none focus:border-blue-500/40 transition-colors font-mono text-xs"
+                />
               </div>
             ))}
+          </div>
+          <div className="mt-6 rounded-2xl bg-white/[0.02] border border-white/[0.06] p-4 space-y-4">
+            <div>
+              <p className="text-sm font-semibold text-white/80">panel glow</p>
+              <p className="text-[10.5px] text-white/30 mt-0.5">glowing edge around your glass panel.</p>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {["none", "solid", "gradient"].map((M) => (
+                <button key={M} onClick={() => setGlowMode(M)} className={`py-2 rounded-xl text-xs font-medium border transition-all cursor-pointer ${glowMode === M ? "bg-blue-600/20 border-blue-500/40 text-blue-300" : "bg-white/[0.03] border-white/[0.06] text-white/45 hover:text-white/70 hover:bg-white/[0.06]"}`}>
+                  {M}
+                </button>
+              ))}
+            </div>
+            {glowMode !== "none" && (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {glowMode === "solid" && (
+                    <div className="flex items-center gap-3">
+                      <span className="w-20 shrink-0 text-xs text-white/55">color</span>
+                      <input type="color" value={glowColor.startsWith("#") ? glowColor : "#3b82f6"} onChange={(e) => setGlowColor(e.target.value)} className="h-8 w-10 shrink-0 rounded-lg border border-white/[0.1] bg-white/[0.03] cursor-pointer p-0 overflow-hidden" />
+                      <input type="text" value={glowColor} onChange={(e) => setGlowColor(e.target.value)} placeholder="#3b82f6" className="flex-1 min-w-0 bg-white/[0.03] border border-white/[0.06] rounded-lg px-2.5 py-1.5 text-white/80 outline-none focus:border-blue-500/40 transition-colors font-mono text-xs" />
+                    </div>
+                  )}
+                  {glowMode === "gradient" && (
+                    <>
+                      <div className="flex items-center gap-3">
+                        <span className="w-20 shrink-0 text-xs text-white/55">color 1</span>
+                        <input type="color" value={glowColor.startsWith("#") ? glowColor : "#3b82f6"} onChange={(e) => setGlowColor(e.target.value)} className="h-8 w-10 shrink-0 rounded-lg border border-white/[0.1] bg-white/[0.03] cursor-pointer p-0 overflow-hidden" />
+                        <input type="text" value={glowColor} onChange={(e) => setGlowColor(e.target.value)} placeholder="#3b82f6" className="flex-1 min-w-0 bg-white/[0.03] border border-white/[0.06] rounded-lg px-2.5 py-1.5 text-white/80 outline-none focus:border-blue-500/40 transition-colors font-mono text-xs" />
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="w-20 shrink-0 text-xs text-white/55">color 2</span>
+                        <input type="color" value={glowColor2.startsWith("#") ? glowColor2 : "#a855f7"} onChange={(e) => setGlowColor2(e.target.value)} className="h-8 w-10 shrink-0 rounded-lg border border-white/[0.1] bg-white/[0.03] cursor-pointer p-0 overflow-hidden" />
+                        <input type="text" value={glowColor2} onChange={(e) => setGlowColor2(e.target.value)} placeholder="#a855f7" className="flex-1 min-w-0 bg-white/[0.03] border border-white/[0.06] rounded-lg px-2.5 py-1.5 text-white/80 outline-none focus:border-blue-500/40 transition-colors font-mono text-xs" />
+                      </div>
+                    </>
+                  )}
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-white/55">glow spread</span>
+                  <div className="flex items-center gap-2">
+                    <input type="range" min={0} max={100} value={glowSpread} onChange={(e) => setGlowSpread(Number(e.target.value))} className="w-28 h-1 accent-blue-500 cursor-pointer" />
+                    <span className="text-[10px] font-mono text-white/40 w-8 text-right">{glowSpread}%</span>
+                  </div>
+                </div>
+                <p className="text-[10.5px] text-white/30">spread controls how far the glow bleeds out. hit save colors to apply.</p>
+              </>
+            )}
           </div>
           <div className="mt-4 flex justify-end gap-3">
             <button onClick={resetToGlassy} disabled={savingColors} className="text-xs bg-white/[0.05] hover:bg-white/[0.1] border border-white/[0.1] disabled:opacity-40 px-4 py-2 rounded-lg text-white transition-colors cursor-pointer">
@@ -2229,7 +2299,7 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
     </div>
 
     <div className="lg:w-[55%] flex-1 space-y-6">
-      <Preview user={user} desc={desc} descEffect={descEffect} descSpeed={descSpeed} descLines={descLines} background={background} audio={audio1 || audio2} profileAvatar={profileAvatar} customCursor={customCursor} displayEffect={displayEffect} sparkleIntensity={sparkleIntensity} font={font} customFontUrl={customFontUrl} customFontName={customFontName} fontScope={fontScope} videoBg={videoBg} videoAudio={videoAudio} bgEffect={bgEffect} avatarShape={avatarShape} avatarSize={avatarSize} avatarOffsetX={avatarOffsetX} avatarOffsetY={avatarOffsetY} onAvatarOffsetChange={(x, y) => { setAvatarOffsetX(Math.round(x)); setAvatarOffsetY(Math.round(y)); }} banner={banner} bannerEnabled={bannerEnabled} entryText={entryText} entryFont={entryFont} entryColor={entryColor} entryEffect={entryEffect} songPlatform={songPlatform} songId={songId} showUsername={showUsername} primaryColor={primaryColor} secondaryColor={secondaryColor} accentColor={accentColor} textColor={textColor} backgroundColor={backgroundColor} iconColor={iconColor} bgEffectColor={bgEffectColor} panelMouseFollow={panelMouseFollow} cursorEffect={cursorEffect} nameOffsetX={nameOffsetX} nameOffsetY={nameOffsetY} onNameOffsetChange={(x, y) => { setNameOffsetX(Math.round(x)); setNameOffsetY(Math.round(y)); }} badgeOffsetX={badgeOffsetX} badgeOffsetY={badgeOffsetY} onBadgeOffsetChange={(x, y) => { setBadgeOffsetX(Math.round(x)); setBadgeOffsetY(Math.round(y)); }} descOffsetX={descOffsetX} descOffsetY={descOffsetY} onDescOffsetChange={(x, y) => { setDescOffsetX(Math.round(x)); setDescOffsetY(Math.round(y)); }} songOffsetX={songOffsetX} songOffsetY={songOffsetY} onSongOffsetChange={(x, y) => { setSongOffsetX(Math.round(x)); setSongOffsetY(Math.round(y)); }} rpcOffsetX={rpcOffsetX} rpcOffsetY={rpcOffsetY} onRpcOffsetChange={(x, y) => { setRpcOffsetX(Math.round(x)); setRpcOffsetY(Math.round(y)); }} badges={myBadges} panelOpacity={panelOpacity} panelHidden={panelHidden} discordId={linkedDiscordId} discordRpcEnabled={discordRpcEnabled} />
+      <Preview user={user} desc={desc} descEffect={descEffect} descSpeed={descSpeed} descLines={descLines} background={background} audio={audio1 || audio2} profileAvatar={profileAvatar} customCursor={customCursor} displayEffect={displayEffect} sparkleIntensity={sparkleIntensity} font={font} customFontUrl={customFontUrl} customFontName={customFontName} fontScope={fontScope} videoBg={videoBg} videoAudio={videoAudio} bgEffect={bgEffect} avatarShape={avatarShape} avatarSize={avatarSize} avatarOffsetX={avatarOffsetX} avatarOffsetY={avatarOffsetY} onAvatarOffsetChange={(x, y) => { setAvatarOffsetX(Math.round(x)); setAvatarOffsetY(Math.round(y)); }} banner={banner} bannerEnabled={bannerEnabled} entryText={entryText} entryFont={entryFont} entryColor={entryColor} entryEffect={entryEffect} songPlatform={songPlatform} songId={songId} showUsername={showUsername} primaryColor={primaryColor} secondaryColor={secondaryColor} accentColor={accentColor} textColor={textColor} backgroundColor={backgroundColor} iconColor={iconColor} bgEffectColor={bgEffectColor} panelMouseFollow={panelMouseFollow} cursorEffect={cursorEffect} nameOffsetX={nameOffsetX} nameOffsetY={nameOffsetY} onNameOffsetChange={(x, y) => { setNameOffsetX(Math.round(x)); setNameOffsetY(Math.round(y)); }} badgeOffsetX={badgeOffsetX} badgeOffsetY={badgeOffsetY} onBadgeOffsetChange={(x, y) => { setBadgeOffsetX(Math.round(x)); setBadgeOffsetY(Math.round(y)); }} descOffsetX={descOffsetX} descOffsetY={descOffsetY} onDescOffsetChange={(x, y) => { setDescOffsetX(Math.round(x)); setDescOffsetY(Math.round(y)); }} songOffsetX={songOffsetX} songOffsetY={songOffsetY} onSongOffsetChange={(x, y) => { setSongOffsetX(Math.round(x)); setSongOffsetY(Math.round(y)); }} rpcOffsetX={rpcOffsetX} rpcOffsetY={rpcOffsetY} onRpcOffsetChange={(x, y) => { setRpcOffsetX(Math.round(x)); setRpcOffsetY(Math.round(y)); }} badges={myBadges} panelOpacity={panelOpacity} panelHidden={panelHidden} glowMode={glowMode} glowColor={glowColor} glowColor2={glowColor2} glowSpread={glowSpread} discordId={linkedDiscordId} discordRpcEnabled={discordRpcEnabled} />
 
       <div className="glass-card rounded-2xl p-5 space-y-4">
         <div className="flex items-center justify-between">
@@ -3144,7 +3214,7 @@ function Toggle({ checked, onChange, className = "" }: { checked: boolean; onCha
   );
 }
 
-function Preview({ user, desc, background, audio, profileAvatar, customCursor, displayEffect, sparkleIntensity, font, customFontUrl, customFontName, fontScope, videoBg, videoAudio, bgEffect, descEffect, descSpeed, descLines, avatarShape, avatarSize, avatarOffsetX, avatarOffsetY, onAvatarOffsetChange, banner, bannerEnabled, entryText, entryFont, entryColor, entryEffect, songPlatform, songId, showUsername, primaryColor, secondaryColor, accentColor, textColor, backgroundColor, iconColor, bgEffectColor, panelMouseFollow, cursorEffect: cursorEffectType, nameOffsetX, nameOffsetY, onNameOffsetChange, badgeOffsetX, badgeOffsetY, onBadgeOffsetChange, descOffsetX, descOffsetY, onDescOffsetChange, songOffsetX, songOffsetY, onSongOffsetChange, rpcOffsetX, rpcOffsetY, onRpcOffsetChange, badges, panelOpacity, panelHidden, discordId, discordRpcEnabled }: { 
+function Preview({ user, desc, background, audio, profileAvatar, customCursor, displayEffect, sparkleIntensity, font, customFontUrl, customFontName, fontScope, videoBg, videoAudio, bgEffect, descEffect, descSpeed, descLines, avatarShape, avatarSize, avatarOffsetX, avatarOffsetY, onAvatarOffsetChange, banner, bannerEnabled, entryText, entryFont, entryColor, entryEffect, songPlatform, songId, showUsername, primaryColor, secondaryColor, accentColor, textColor, backgroundColor, iconColor, bgEffectColor, panelMouseFollow, cursorEffect: cursorEffectType, nameOffsetX, nameOffsetY, onNameOffsetChange, badgeOffsetX, badgeOffsetY, onBadgeOffsetChange, descOffsetX, descOffsetY, onDescOffsetChange, songOffsetX, songOffsetY, onSongOffsetChange, rpcOffsetX, rpcOffsetY, onRpcOffsetChange, badges, panelOpacity, panelHidden, glowMode, glowColor, glowColor2, glowSpread, discordId, discordRpcEnabled }: { 
   user: User | null; 
   desc?: string;
   background: string | null; 
@@ -3204,6 +3274,10 @@ function Preview({ user, desc, background, audio, profileAvatar, customCursor, d
   badges?: string[];
   panelOpacity?: number;
   panelHidden?: boolean;
+  glowMode?: string;
+  glowColor?: string;
+  glowColor2?: string;
+  glowSpread?: number;
   discordId?: string | null;
   discordRpcEnabled?: boolean;
 }) {
@@ -3376,6 +3450,16 @@ function Preview({ user, desc, background, audio, profileAvatar, customCursor, d
                 borderWidth: "1px",
                 borderStyle: "solid",
                 willChange: "transform",
+                boxShadow: (() => {
+                  if (panelHidden || glowMode === "none" || !glowColor) return undefined;
+                  const Sp = glowSpread ?? 50;
+                  const B = 10 + Sp * 0.6;
+                  const T = Sp * 0.6;
+                  if (glowMode === "gradient" && glowColor2) {
+                    return `0 0 ${B}px ${T}px ${glowColor}, 0 0 ${B * 0.55}px ${T * 0.5}px ${glowColor2}, 0 0 ${B * 0.28}px ${T * 0.22}px ${glowColor2}`;
+                  }
+                  return `0 0 ${B}px ${T}px ${glowColor}`;
+                })(),
               }}
             >
                 {bannerEnabled && banner && (

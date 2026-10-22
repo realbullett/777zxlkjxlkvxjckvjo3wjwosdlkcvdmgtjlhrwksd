@@ -39,6 +39,10 @@ async function EnsureUserColumns(Db) {
   try { await Db.execute("ALTER TABLE users ADD COLUMN embed_buttons TEXT"); } catch {}
   try { await Db.execute("ALTER TABLE users ADD COLUMN click_sound TEXT NOT NULL DEFAULT ''"); } catch {}
   try { await Db.execute("ALTER TABLE users ADD COLUMN profile_layout TEXT NOT NULL DEFAULT 'classic'"); } catch {}
+  try { await Db.execute("ALTER TABLE users ADD COLUMN panel_glow_mode TEXT NOT NULL DEFAULT 'none'"); } catch {}
+  try { await Db.execute("ALTER TABLE users ADD COLUMN panel_glow_color TEXT NOT NULL DEFAULT ''"); } catch {}
+  try { await Db.execute("ALTER TABLE users ADD COLUMN panel_glow_color_2 TEXT NOT NULL DEFAULT ''"); } catch {}
+  try { await Db.execute("ALTER TABLE users ADD COLUMN panel_glow_spread INTEGER NOT NULL DEFAULT 50"); } catch {}
   try { await Db.execute("ALTER TABLE users ADD COLUMN country TEXT NOT NULL DEFAULT ''"); } catch {}
 }
 async function EnsureVotes(Db) {
