@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+﻿import { useEffect, useRef, useState } from "react";
 
 type Pt = { X: number; Y: number; NX: number; NY: number };
 
@@ -91,7 +91,7 @@ function DrawHeart(Ctx: CanvasRenderingContext2D, X: number, Y: number, S: numbe
   Ctx.save();
   Ctx.globalAlpha = Alpha;
   Ctx.shadowColor = Base;
-  Ctx.shadowBlur = 18;
+  Ctx.shadowBlur = 22;
   Ctx.beginPath();
   Ctx.moveTo(X, Y + S * 0.4);
   Ctx.bezierCurveTo(X - S * 1.1, Y - S * 0.5, X - S * 0.6, Y - S * 1.15, X, Y - S * 0.5);
@@ -104,6 +104,9 @@ function DrawHeart(Ctx: CanvasRenderingContext2D, X: number, Y: number, S: numbe
   Ctx.fillStyle = G;
   Ctx.fill();
   Ctx.shadowBlur = 0;
+  Ctx.strokeStyle = "rgba(255,255,255,0.7)";
+  Ctx.lineWidth = 1.2;
+  Ctx.stroke();
   Ctx.fillStyle = "rgba(255,255,255,0.85)";
   Ctx.beginPath();
   Ctx.ellipse(X - S * 0.42, Y - S * 0.58, S * 0.18, S * 0.1, -0.55, 0, Math.PI * 2);
@@ -115,8 +118,10 @@ function DrawFlake(Ctx: CanvasRenderingContext2D, X: number, Y: number, S: numbe
   Ctx.save();
   Ctx.translate(X, Y);
   Ctx.rotate(Spin);
-  Ctx.strokeStyle = `rgba(224,242,255,${Alpha})`;
-  Ctx.lineWidth = Math.max(1, S * 0.11);
+  Ctx.shadowColor = "#bae6fd";
+  Ctx.shadowBlur = 9;
+  Ctx.strokeStyle = `rgba(255,255,255,${Alpha})`;
+  Ctx.lineWidth = Math.max(1.3, S * 0.13);
   Ctx.lineCap = "round";
   for (let I = 0; I < 6; I++) {
     Ctx.save();
@@ -125,12 +130,21 @@ function DrawFlake(Ctx: CanvasRenderingContext2D, X: number, Y: number, S: numbe
     Ctx.moveTo(0, 0);
     Ctx.lineTo(0, -S);
     Ctx.moveTo(0, -S * 0.55);
-    Ctx.lineTo(-S * 0.25, -S * 0.78);
+    Ctx.lineTo(-S * 0.3, -S * 0.82);
     Ctx.moveTo(0, -S * 0.55);
-    Ctx.lineTo(S * 0.25, -S * 0.78);
+    Ctx.lineTo(S * 0.3, -S * 0.82);
+    Ctx.moveTo(0, -S * 0.82);
+    Ctx.lineTo(-S * 0.2, -S * 1.02);
+    Ctx.moveTo(0, -S * 0.82);
+    Ctx.lineTo(S * 0.2, -S * 1.02);
     Ctx.stroke();
     Ctx.restore();
   }
+  Ctx.shadowBlur = 0;
+  Ctx.fillStyle = `rgba(255,255,255,${Alpha})`;
+  Ctx.beginPath();
+  Ctx.arc(0, 0, Math.max(1.4, S * 0.16), 0, Math.PI * 2);
+  Ctx.fill();
   Ctx.restore();
 }
 
@@ -138,21 +152,23 @@ function DrawStar(Ctx: CanvasRenderingContext2D, X: number, Y: number, S: number
   Ctx.save();
   Ctx.translate(X, Y);
   Ctx.rotate(Spin);
-  const G = Ctx.createRadialGradient(0, 0, 0, 0, 0, S);
+  Ctx.globalCompositeOperation = "lighter";
+  const G = Ctx.createRadialGradient(0, 0, 0, 0, 0, S * 1.6);
   G.addColorStop(0, `rgba(255,255,255,${Alpha})`);
-  G.addColorStop(0.4, `rgba(253,224,71,${Alpha * 0.8})`);
+  G.addColorStop(0.22, `rgba(255,246,178,${Alpha * 0.9})`);
+  G.addColorStop(0.55, `rgba(253,224,71,${Alpha * 0.42})`);
   G.addColorStop(1, "rgba(253,224,71,0)");
   Ctx.fillStyle = G;
   Ctx.beginPath();
-  for (let I = 0; I < 8; I++) {
-    const A = (I / 8) * Math.PI * 2;
-    const R = I % 2 === 0 ? S : S * 0.3;
-    const PX = Math.cos(A) * R;
-    const PY = Math.sin(A) * R;
-    if (I === 0) Ctx.moveTo(PX, PY);
-    else Ctx.lineTo(PX, PY);
-  }
-  Ctx.closePath();
+  Ctx.arc(0, 0, S * 1.6, 0, Math.PI * 2);
+  Ctx.fill();
+  Ctx.fillStyle = `rgba(255,255,255,${Alpha})`;
+  Ctx.beginPath();
+  Ctx.moveTo(0, -S * 1.7);
+  Ctx.quadraticCurveTo(S * 0.18, -S * 0.18, S * 1.7, 0);
+  Ctx.quadraticCurveTo(S * 0.18, S * 0.18, 0, S * 1.7);
+  Ctx.quadraticCurveTo(-S * 0.18, S * 0.18, -S * 1.7, 0);
+  Ctx.quadraticCurveTo(-S * 0.18, -S * 0.18, 0, -S * 1.7);
   Ctx.fill();
   Ctx.restore();
 }
@@ -404,7 +420,7 @@ export function PanelTracer({ Type, Color, Speed }: { Type: string | null; Color
           P.S += Dt * 18 * SpeedMul;
           const Q = At(P.S);
           const Bob = Math.sin(Time * 1.2 + P.Seed) * 3;
-          DrawFlower(Ctx, Q.X + Q.NX * (7 + Bob), Q.Y + Q.NY * (7 + Bob), P.Size, Time * 1.1 + P.Seed, C);
+          DrawFlower(Ctx, Q.X - Q.NX * (3 + Bob), Q.Y - Q.NY * (3 + Bob), P.Size, Time * 1.1 + P.Seed, C);
         }
       }
 
@@ -413,7 +429,7 @@ export function PanelTracer({ Type, Color, Speed }: { Type: string | null; Color
           P.S += (P.Vs * 60 + 10) * Dt * SpeedMul;
           const Q = At(P.S);
           const Fl = 0.55 + 0.45 * Math.sin(Time * 2 + P.Seed);
-          DrawFlake(Ctx, Q.X + Q.NX * 5, Q.Y + Q.NY * 5, 4 + Fl * 4, Time * 0.8 + P.Seed, 0.35 + Fl * 0.5);
+          DrawFlake(Ctx, Q.X - Q.NX * 2, Q.Y - Q.NY * 2, 6 + Fl * 6, Time * 0.8 + P.Seed, 0.6 + Fl * 0.4);
         }
       }
 
@@ -424,7 +440,7 @@ export function PanelTracer({ Type, Color, Speed }: { Type: string | null; Color
           P.S += P.Vs * 60 * Dt * SpeedMul;
           const Q = At(P.S);
           const Tw = 0.4 + 0.6 * Math.pow(Math.abs(Math.sin(Time * 1.6 + P.Seed)), 3);
-          DrawStar(Ctx, Q.X + Q.NX * 4, Q.Y + Q.NY * 4, 4 + Tw * 7, Time * 0.4 + P.Seed, Tw);
+          DrawStar(Ctx, Q.X - Q.NX * 3, Q.Y - Q.NY * 3, 7 + Tw * 9, Time * 0.4 + P.Seed, 0.7 + Tw * 0.3);
         }
         Ctx.restore();
       }
@@ -434,7 +450,7 @@ export function PanelTracer({ Type, Color, Speed }: { Type: string | null; Color
           P.S += Dt * 24 * SpeedMul;
           const Q = At(P.S);
           const Bob = Math.sin(Time * 1.6 + P.Seed);
-          DrawHeart(Ctx, Q.X + Q.NX * (10 + Bob * 3), Q.Y + Q.NY * (10 + Bob * 3), 11 + Rand(P.Seed) * 3, C, 0.75 + 0.25 * Bob);
+          DrawHeart(Ctx, Q.X - Q.NX * (4 + Bob * 2), Q.Y - Q.NY * (4 + Bob * 2), 15 + Rand(P.Seed) * 4, C, 0.85 + 0.15 * Bob);
         }
       }
 
