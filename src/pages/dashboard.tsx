@@ -1324,7 +1324,7 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
   const [glowColor2, setGlowColor2] = useState(user?.panel_glow_color_2 || "");
   const [glowSpread, setGlowSpread] = useState(user?.panel_glow_spread ?? 50);
   const [pulseOn, setPulseOn] = useState(!!user?.panel_pulse_enabled);
-  const [pulseColor, setPulseColor] = useState(user?.panel_pulse_color || "");
+  const [pulseColor, setPulseColor] = useState(user?.panel_pulse_color || "#3b82f6");
   const [pulseSpeed, setPulseSpeed] = useState(user?.panel_pulse_speed ?? 50);
   const [savingColors, setSavingColors] = useState(false);
   const [displayEffect, setDisplayEffect] = useState(user?.display_effect || "none");
@@ -1455,7 +1455,7 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
     setGlowColor2(user.panel_glow_color_2 || "");
     setGlowSpread(user.panel_glow_spread ?? 50);
   setPulseOn(!!user.panel_pulse_enabled);
-  setPulseColor(user.panel_pulse_color || "");
+  setPulseColor(user.panel_pulse_color || "#3b82f6");
   setPulseSpeed(user.panel_pulse_speed ?? 50);
     setDisplayEffect(user.display_effect || "none");
     setSparkleIntensity(user.sparkle_intensity ?? 14);
