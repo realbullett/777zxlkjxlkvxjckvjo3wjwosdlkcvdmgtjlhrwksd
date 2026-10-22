@@ -9,6 +9,7 @@ const DEFAULTS: Record<string, string> = {
   snow: "#e0f2ff",
   stars: "#fde047",
   hearts: "#f9a8d4",
+  halloween: "#f97316",
 };
 
 function BuildPath(W: number, H: number, R: number) {
@@ -170,6 +171,101 @@ function DrawStar(Ctx: CanvasRenderingContext2D, X: number, Y: number, S: number
   Ctx.quadraticCurveTo(-S * 0.18, S * 0.18, -S * 1.7, 0);
   Ctx.quadraticCurveTo(-S * 0.18, -S * 0.18, 0, -S * 1.7);
   Ctx.fill();
+  Ctx.restore();
+}
+
+function DrawPumpkin(Ctx: CanvasRenderingContext2D, X: number, Y: number, S: number, Spin: number, Alpha: number) {
+  Ctx.save();
+  Ctx.globalAlpha = Alpha;
+  Ctx.translate(X, Y);
+  Ctx.rotate(Spin);
+  Ctx.shadowColor = "#fb923c";
+  Ctx.shadowBlur = 20;
+  const Body = Ctx.createLinearGradient(0, -S, 0, S);
+  Body.addColorStop(0, "#ffc078");
+  Body.addColorStop(0.45, "#f97316");
+  Body.addColorStop(1, "#a63a05");
+  for (let I = -2; I <= 2; I++) {
+    Ctx.fillStyle = Body;
+    Ctx.beginPath();
+    Ctx.ellipse(I * S * 0.27, 0, S * 0.32, S * (1 - Math.abs(I) * 0.06), 0, 0, Math.PI * 2);
+    Ctx.fill();
+    Ctx.strokeStyle = "rgba(110,35,0,0.28)";
+    Ctx.lineWidth = 1;
+    Ctx.beginPath();
+    Ctx.ellipse(I * S * 0.27, 0, S * 0.32, S * (1 - Math.abs(I) * 0.06), 0, 0, Math.PI * 2);
+    Ctx.stroke();
+  }
+  Ctx.shadowBlur = 0;
+  Ctx.strokeStyle = "#3f6212";
+  Ctx.lineWidth = Math.max(2, S * 0.16);
+  Ctx.lineCap = "round";
+  Ctx.beginPath();
+  Ctx.moveTo(0, -S * 0.92);
+  Ctx.quadraticCurveTo(S * 0.12, -S * 1.22, S * 0.3, -S * 1.16);
+  Ctx.stroke();
+  Ctx.fillStyle = "rgba(255,235,120,0.95)";
+  Ctx.shadowColor = "#facc15";
+  Ctx.shadowBlur = 12;
+  for (const Side of [-1, 1]) {
+    Ctx.beginPath();
+    Ctx.moveTo(Side * S * 0.14, -S * 0.22);
+    Ctx.lineTo(Side * S * 0.52, -S * 0.34);
+    Ctx.lineTo(Side * S * 0.5, S * 0.02);
+    Ctx.closePath();
+    Ctx.fill();
+  }
+  Ctx.beginPath();
+  Ctx.moveTo(-S * 0.46, S * 0.28);
+  Ctx.lineTo(-S * 0.24, S * 0.5);
+  Ctx.lineTo(-S * 0.02, S * 0.3);
+  Ctx.lineTo(S * 0.2, S * 0.52);
+  Ctx.lineTo(S * 0.44, S * 0.28);
+  Ctx.lineTo(S * 0.36, S * 0.62);
+  Ctx.lineTo(-S * 0.38, S * 0.62);
+  Ctx.closePath();
+  Ctx.fill();
+  Ctx.restore();
+}
+
+function DrawBat(Ctx: CanvasRenderingContext2D, X: number, Y: number, S: number, Flap: number, Alpha: number) {
+  Ctx.save();
+  Ctx.globalAlpha = Alpha;
+  Ctx.translate(X, Y);
+  Ctx.shadowColor = "#a855f7";
+  Ctx.shadowBlur = 14;
+  const W = S * 2.1;
+  const Tip = Flap * S * 0.75;
+  Ctx.fillStyle = "#160a22";
+  for (const Side of [-1, 1]) {
+    Ctx.beginPath();
+    Ctx.moveTo(Side * S * 0.18, -S * 0.12);
+    Ctx.quadraticCurveTo(Side * W * 0.5, Tip - S * 0.7, Side * W, Tip - S * 0.2);
+    Ctx.quadraticCurveTo(Side * W * 0.64, Tip + S * 0.5, Side * S * 0.95, S * 0.42);
+    Ctx.quadraticCurveTo(Side * S * 0.62, S * 0.3, Side * S * 0.4, S * 0.46);
+    Ctx.quadraticCurveTo(Side * S * 0.3, S * 0.2, Side * S * 0.18, S * 0.16);
+    Ctx.closePath();
+    Ctx.fill();
+  }
+  Ctx.beginPath();
+  Ctx.ellipse(0, 0, S * 0.34, S * 0.52, 0, 0, Math.PI * 2);
+  Ctx.fill();
+  for (const Side of [-1, 1]) {
+    Ctx.beginPath();
+    Ctx.moveTo(Side * S * 0.2, -S * 0.32);
+    Ctx.lineTo(Side * S * 0.36, -S * 0.92);
+    Ctx.lineTo(Side * S * 0.02, -S * 0.5);
+    Ctx.closePath();
+    Ctx.fill();
+  }
+  Ctx.shadowColor = "#fde047";
+  Ctx.shadowBlur = 8;
+  Ctx.fillStyle = "rgba(253,224,71,0.95)";
+  for (const Side of [-1, 1]) {
+    Ctx.beginPath();
+    Ctx.arc(Side * S * 0.13, -S * 0.1, Math.max(0.9, S * 0.07), 0, Math.PI * 2);
+    Ctx.fill();
+  }
   Ctx.restore();
 }
 
@@ -485,6 +581,45 @@ export function PanelTracer({ Type, Color, Speed }: { Type: string | null; Color
           const Q = At(P.S);
           const Bob = Math.sin(Time * 1.6 + P.Seed);
           DrawHeart(Ctx, Q.X - Q.NX * (4 + Bob * 2), Q.Y - Q.NY * (4 + Bob * 2), 15 + Rand(P.Seed) * 4, C, 0.85 + 0.15 * Bob);
+        }
+      }
+
+      if (T === "halloween") {
+        Ctx.save();
+        Ctx.globalCompositeOperation = "lighter";
+        Ctx.lineWidth = 5;
+        Ctx.strokeStyle = `rgba(249,115,22,${0.1 + 0.05 * Math.sin(Time * 6.3)})`;
+        Ctx.shadowColor = "#f97316";
+        Ctx.shadowBlur = 16;
+        Ctx.stroke(Outline);
+        Ctx.lineWidth = 2.2;
+        Ctx.strokeStyle = `rgba(168,85,247,${0.2 + 0.08 * Math.sin(Time * 4.1 + 1)})`;
+        Ctx.shadowColor = "#a855f7";
+        Ctx.shadowBlur = 22;
+        Ctx.stroke(Outline);
+        Ctx.restore();
+        const Pumpkins = Math.max(3, Math.round(Len / 150));
+        for (let I = 0; I < Pumpkins; I++) {
+          const Seed = I * 23.7;
+          const Q = At((I / Pumpkins) * Len + Time * 9 * SpeedMul);
+          const Bob = Math.sin(Time * 2 + Seed) * 2.5;
+          DrawPumpkin(Ctx, Q.X - Q.NX * (7 + Bob), Q.Y - Q.NY * (7 + Bob), 12 + Rand(Seed) * 4, Math.sin(Time * 0.9 + Seed) * 0.16, 1);
+        }
+        const Bats = Math.max(5, Math.round(Len / 65));
+        for (let I = 0; I < Bats; I++) {
+          const Seed = I * 31.9 + 7;
+          const Q = At((I / Bats) * Len - Time * 48 * SpeedMul);
+          const Flap = Math.sin(Time * (10 + Rand(Seed) * 5) + Seed);
+          const Lift = 16 + Math.sin(Time * 2.2 + Seed) * 6;
+          DrawBat(Ctx, Q.X - Q.NX * Lift, Q.Y - Q.NY * Lift, 8 + Rand(Seed) * 3.5, Flap, 0.95);
+        }
+        for (let I = 0; I < 2; I++) {
+          const Base = At(Math.random() * Len);
+          const Rise = 16 + Math.random() * 30;
+          Ctx.fillStyle = `rgba(253,224,71,${0.35 + Math.random() * 0.4})`;
+          Ctx.beginPath();
+          Ctx.arc(Base.X - Base.NX * Rise, Base.Y - Base.NY * Rise, 0.8 + Math.random() * 1.3, 0, Math.PI * 2);
+          Ctx.fill();
         }
       }
 

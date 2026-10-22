@@ -5306,8 +5306,8 @@ function PanelDesign({ user, onUpdateUser }: { user: User | null; onUpdateUser?:
               </div>
               {pulseOn && (
                 <>
-                  <div className="grid grid-cols-4 sm:grid-cols-7 gap-1.5">
-                    {["pulse", "lightning", "flowers", "snow", "fire", "stars", "hearts"].map((E) => (
+                  <div className="grid grid-cols-4 sm:grid-cols-8 gap-1.5">
+                    {["pulse", "lightning", "flowers", "snow", "fire", "stars", "hearts", "halloween"].map((E) => (
                       <button key={E} onClick={() => setPulseType(E)} className={`py-1.5 rounded-lg text-[10px] font-medium border transition-all cursor-pointer ${pulseType === E ? "bg-blue-600/20 border-blue-500/40 text-blue-300" : "bg-white/[0.03] border-white/[0.06] text-white/45 hover:text-white/70 hover:bg-white/[0.06]"}`}>
                         {E}
                       </button>
