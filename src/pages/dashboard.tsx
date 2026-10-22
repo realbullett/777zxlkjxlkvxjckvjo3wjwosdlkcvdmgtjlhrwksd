@@ -55,6 +55,7 @@ type User = {
   banner_enabled: boolean;
   show_username: boolean;
   show_joindate: boolean;
+  country: string | null;
   show_views: boolean;
   show_votes: boolean;
   custom_font_scope: string | null;
@@ -111,6 +112,33 @@ const tabs = [
 ] as const;
 
 type TabId = (typeof tabs)[number]["id"];
+
+const Countries = [
+  "Afghanistan","Albania","Algeria","Andorra","Angola","Argentina","Armenia","Australia","Austria","Azerbaijan",
+  "Bahamas","Bahrain","Bangladesh","Barbados","Belarus","Belgium","Belize","Benin","Bhutan","Bolivia","Bosnia and Herzegovina","Botswana","Brazil","Brunei","Bulgaria","Burkina Faso","Burundi",
+  "Cambodia","Cameroon","Canada","Chad","Chile","China","Colombia","Costa Rica","Croatia","Cuba","Cyprus","Czechia",
+  "Denmark","Djibouti","Dominica","Dominican Republic",
+  "Ecuador","Egypt","El Salvador","Estonia","Eswatini","Ethiopia",
+  "Fiji","Finland","France",
+  "Gabon","Gambia","Georgia","Germany","Ghana","Greece","Grenada","Guatemala","Guinea","Guyana",
+  "Haiti","Honduras","Hong Kong","Hungary",
+  "Iceland","India","Indonesia","Iran","Iraq","Ireland","Israel","Italy",
+  "Jamaica","Japan","Jordan",
+  "Kazakhstan","Kenya","Kiribati","Kosovo","Kuwait","Kyrgyzstan",
+  "Laos","Latvia","Lebanon","Lesotho","Liberia","Libya","Liechtenstein","Lithuania","Luxembourg",
+  "Macau","Madagascar","Malawi","Malaysia","Maldives","Mali","Malta","Mauritania","Mauritius","Mexico","Moldova","Monaco","Mongolia","Montenegro","Morocco","Mozambique","Myanmar",
+  "Namibia","Nauru","Nepal","Netherlands","New Zealand","Nicaragua","Niger","Nigeria","North Korea","North Macedonia","Norway",
+  "Oman",
+  "Pakistan","Palau","Palestine","Panama","Papua New Guinea","Paraguay","Peru","Philippines","Poland","Portugal",
+  "Qatar",
+  "Romania","Russia","Rwanda",
+  "Saint Kitts and Nevis","Saint Lucia","Samoa","San Marino","Saudi Arabia","Senegal","Serbia","Seychelles","Sierra Leone","Singapore","Slovakia","Slovenia","Somalia","South Africa","South Korea","South Sudan","Spain","Sri Lanka","Sudan","Suriname","Sweden","Switzerland","Syria",
+  "Taiwan","Tajikistan","Tanzania","Thailand","Timor-Leste","Togo","Tonga","Trinidad and Tobago","Tunisia","Turkey","Turkmenistan","Tuvalu",
+  "Uganda","Ukraine","United Arab Emirates","United Kingdom","United States","Uruguay","Uzbekistan",
+  "Vanuatu","Vatican City","Venezuela","Vietnam",
+  "Yemen",
+  "Zambia","Zimbabwe",
+];
 
 const TAB_SUBS: Record<string, string[]> = {
   overview: ["profile info", "security", "danger zone"],
@@ -1337,6 +1365,7 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
   const [discordRpcEnabled, setDiscordRpcEnabled] = useState(user?.discord_rpc_enabled || false);
   const [showUsername, setShowUsername] = useState(user?.show_username !== false);
   const [showJoindate, setShowJoindate] = useState(user?.show_joindate !== false);
+  const [country, setCountry] = useState(user?.country || "");
   const [showViews, setShowViews] = useState(user?.show_views !== false);
   const [showVotes, setShowVotes] = useState(user?.show_votes !== false);
   const linkedDiscordId = user?.discord_id || (user?.provider === "discord" ? user?.provider_id : null) || null;
@@ -1441,6 +1470,7 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
     setPanelHidden(!!user.panel_hidden);
     setShowUsername(user.show_username !== false);
     setShowJoindate(user.show_joindate !== false);
+    setCountry(user.country || "");
     setShowViews(user.show_views !== false);
     setShowVotes(user.show_votes !== false);
     setDiscordRpcEnabled(!!user.discord_rpc_enabled);
@@ -1807,6 +1837,26 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
                 else showSaved(v ? "showing @username!" : "@username hidden!");
               }}
             />
+          </div>
+          <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/[0.04]">
+            <div className="pr-4">
+              <p className="text-xs text-white/50 font-semibold uppercase tracking-wider">Country</p>
+              <p className="text-[10px] text-white/30">Shows your country with a pin under your username</p>
+            </div>
+            <select
+              value={country}
+              onChange={async (e) => {
+                const Val = e.target.value;
+                setCountry(Val);
+                const { error } = await apiCall("update", { data: { country: Val } });
+                if (error) console.error("saveCountry error:", error);
+                else showSaved(Val ? `${Val} set!` : "country removed!");
+              }}
+              className="bg-[#0b0b10] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-white/80 outline-none focus:border-blue-500/40 max-w-[150px] cursor-pointer"
+            >
+              <option value="">none</option>
+              {Countries.map((C) => <option key={C} value={C}>{C}</option>)}
+            </select>
           </div>
           <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/[0.04]">
             <div>

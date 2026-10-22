@@ -39,6 +39,7 @@ async function EnsureUserColumns(Db) {
   try { await Db.execute("ALTER TABLE users ADD COLUMN embed_buttons TEXT"); } catch {}
   try { await Db.execute("ALTER TABLE users ADD COLUMN click_sound TEXT NOT NULL DEFAULT ''"); } catch {}
   try { await Db.execute("ALTER TABLE users ADD COLUMN profile_layout TEXT NOT NULL DEFAULT 'classic'"); } catch {}
+  try { await Db.execute("ALTER TABLE users ADD COLUMN country TEXT NOT NULL DEFAULT ''"); } catch {}
 }
 async function EnsureVotes(Db) {
   if (VotesEnsured) return;

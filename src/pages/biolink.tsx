@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence, LayoutGroup, type Variants } from "motion/react";
-import { Eye, Link as LinkIcon, ThumbsUp, ThumbsDown, Calendar, CheckCircle2, X, ChevronDown, ChevronUp } from "lucide-react";
+import { Eye, Link as LinkIcon, ThumbsUp, ThumbsDown, Calendar, CheckCircle2, X, ChevronDown, ChevronUp, MapPin } from "lucide-react";
 import { PLATFORMS } from "../lib/platforms";
 import { CUSTOM_FONT_FAMILY, ResolveFontFamily, CustomFontFace, ToSameOriginUrl } from "../lib/fonts";
 import { SparkleText } from "../components/SparkleText";
@@ -64,6 +64,7 @@ type User = {
   created_at: string | null;
   show_joindate: boolean | null;
   show_views: boolean | null;
+  country: string | null;
   show_votes: boolean | null;
   custom_font_scope: string | null;
   description: string | null;
@@ -1050,6 +1051,12 @@ export default function Biolink() {
               {user.show_username !== false && (
                 <p className="text-xs mb-3" style={{ color: "var(--text-color, #ffffff)", opacity: 0.4 }}>@{user.username}</p>
               )}
+              {user.country ? (
+                <div className={`flex items-center gap-1.5 ${user.show_username !== false ? "" : "mb-3"} ${IsLeft || IsGrid ? "justify-start" : "justify-center"}`}>
+                  <MapPin size={13} className="shrink-0" style={{ color: "var(--text-color, #ffffff)", opacity: 0.55 }} />
+                  <span className="text-xs font-semibold lowercase" style={{ color: "var(--text-color, #ffffff)", opacity: 0.65 }}>{user.country}</span>
+                </div>
+              ) : null}
             </motion.div>
             <motion.div variants={dropItem} className={`${IsGrid ? "col-start-1 col-span-2 row-start-4 w-full" : ""} ${IsBadgesFirst ? "order-5" : ""}`}>
               <div style={{ transform: `translate(${user.desc_offset_x || 0}px, ${user.desc_offset_y || 0}px)` }}>
