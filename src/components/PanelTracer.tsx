@@ -613,6 +613,74 @@ export function PanelTracer({ Type, Color, Speed }: { Type: string | null; Color
           const Lift = 16 + Math.sin(Time * 2.2 + Seed) * 6;
           DrawBat(Ctx, Q.X - Q.NX * Lift, Q.Y - Q.NY * Lift, 8 + Rand(Seed) * 3.5, Flap, 0.95);
         }
+        const Cycle = 6.5;
+        const CycleIdx = Math.floor(Time / Cycle);
+        const Local = Time % Cycle;
+        const Seed = CycleIdx * 71.3 + 3;
+        const Spot = At(((CycleIdx * 0.37 + 0.13) % 1) * Len);
+        const DirX = Size.W / 2 - Spot.X;
+        const DirY = Size.H / 2 - Spot.Y;
+        const DirLen = Math.hypot(DirX, DirY) || 1;
+        const UX = DirX / DirLen;
+        const UY = DirY / DirLen;
+        const Depth = Math.min(Size.W, Size.H) * 0.3;
+        if (Local > 0.45 && Local < 5) {
+          const CrackFade = Math.max(0, 1 - (Local - 0.45) / 3.8);
+          Ctx.save();
+          Ctx.globalCompositeOperation = "lighter";
+          Ctx.lineCap = "round";
+          Ctx.shadowColor = "#7dd3fc";
+          Ctx.shadowBlur = 12;
+          for (let I = 0; I < 9; I++) {
+            const Ang = (I / 9) * Math.PI * 2 + Rand(Seed + I) * 0.5;
+            const Reach = 18 + Rand(Seed + I * 2.1) * 48;
+            let Px = Spot.X;
+            let Py = Spot.Y;
+            Ctx.beginPath();
+            Ctx.moveTo(Px, Py);
+            for (let K = 1; K <= 5; K++) {
+              const D = (Reach * K) / 5;
+              const Jit = (Rand(Seed + I * 9 + K) - 0.5) * 13;
+              Px = Spot.X + Math.cos(Ang) * D + Math.cos(Ang + Math.PI / 2) * Jit;
+              Py = Spot.Y + Math.sin(Ang) * D + Math.sin(Ang + Math.PI / 2) * Jit;
+              Ctx.lineTo(Px, Py);
+              if (K === 2 || K === 4) {
+                Ctx.lineTo(Px + Math.cos(Ang + 0.85) * Reach * 0.26, Py + Math.sin(Ang + 0.85) * Reach * 0.26);
+                Ctx.moveTo(Px, Py);
+              }
+            }
+            Ctx.strokeStyle = `rgba(224,245,255,${0.75 * CrackFade})`;
+            Ctx.lineWidth = I % 3 === 0 ? 2 : 1.1;
+            Ctx.stroke();
+          }
+          const Flash = Math.max(0, 1 - (Local - 0.45) / 0.5);
+          if (Flash > 0) {
+            const G = Ctx.createRadialGradient(Spot.X, Spot.Y, 0, Spot.X, Spot.Y, 46);
+            G.addColorStop(0, `rgba(255,255,255,${0.85 * Flash})`);
+            G.addColorStop(0.4, `rgba(186,230,253,${0.5 * Flash})`);
+            G.addColorStop(1, "rgba(125,211,252,0)");
+            Ctx.fillStyle = G;
+            Ctx.beginPath();
+            Ctx.arc(Spot.X, Spot.Y, 46, 0, Math.PI * 2);
+            Ctx.fill();
+            Ctx.strokeStyle = `rgba(224,245,255,${0.8 * Flash})`;
+            Ctx.lineWidth = 2.4;
+            Ctx.beginPath();
+            Ctx.arc(Spot.X, Spot.Y, 10 + (1 - Flash) * 44, 0, Math.PI * 2);
+            Ctx.stroke();
+          }
+          Ctx.restore();
+        }
+        if (Local <= 0.45) {
+          const Grow = Local / 0.45;
+          DrawBat(Ctx, Spot.X, Spot.Y, 2 + Grow * 2.4, Math.sin(Time * 26), Grow);
+        } else if (Local < 1.9) {
+          const P = (Local - 0.45) / 1.45;
+          DrawBat(Ctx, Spot.X + UX * Depth * P, Spot.Y + UY * Depth * P, 3 + P * P * 10, Math.sin(Time * 26), 1);
+        } else if (Local < 3.2) {
+          const R = Math.min(1, (Local - 1.9) / 1.3);
+          DrawBat(Ctx, Spot.X + UX * Depth * (1 - R), Spot.Y + UY * Depth * (1 - R), 13 - 11 * R, Math.sin(Time * 26), 1 - R * 0.9);
+        }
         for (let I = 0; I < 2; I++) {
           const Base = At(Math.random() * Len);
           const Rise = 16 + Math.random() * 30;
