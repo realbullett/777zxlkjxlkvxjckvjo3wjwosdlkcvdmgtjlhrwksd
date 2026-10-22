@@ -598,14 +598,14 @@ export function PanelTracer({ Type, Color, Speed }: { Type: string | null; Color
         Ctx.shadowBlur = 22;
         Ctx.stroke(Outline);
         Ctx.restore();
-        const Pumpkins = Math.max(3, Math.round(Len / 150));
+        const Pumpkins = Math.max(2, Math.round(Len / 260));
         for (let I = 0; I < Pumpkins; I++) {
           const Seed = I * 23.7;
           const Q = At((I / Pumpkins) * Len + Time * 9 * SpeedMul);
           const Bob = Math.sin(Time * 2 + Seed) * 2.5;
           DrawPumpkin(Ctx, Q.X - Q.NX * (7 + Bob), Q.Y - Q.NY * (7 + Bob), 12 + Rand(Seed) * 4, Math.sin(Time * 0.9 + Seed) * 0.16, 1);
         }
-        const Bats = Math.max(5, Math.round(Len / 65));
+        const Bats = Math.max(2, Math.round(Len / 150));
         for (let I = 0; I < Bats; I++) {
           const Seed = I * 31.9 + 7;
           const Q = At((I / Bats) * Len - Time * 48 * SpeedMul);
