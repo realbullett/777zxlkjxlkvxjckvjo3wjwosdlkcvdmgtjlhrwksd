@@ -13,7 +13,7 @@ const DEFAULTS: Record<string, string> = {
 
 function BuildPath(W: number, H: number, R: number) {
   const Pts: Pt[] = [];
-  const Step = 0.1;
+  const Step = 0.06;
   const Add = (X: number, Y: number, NX: number, NY: number) => Pts.push({ X, Y, NX, NY });
   for (let X = R; X <= W - R; X += 2) Add(X, 1, 0, -1);
   for (let A = -Math.PI / 2; A <= 0; A += Step) Add(W - R + Math.cos(A) * R, R + Math.sin(A) * R, Math.cos(A), Math.sin(A));
@@ -179,13 +179,23 @@ export function PanelTracer({ Type, Color, Speed }: { Type: string | null; Color
   const BoxRef = useRef<HTMLDivElement>(null);
   const CanvasRef = useRef<HTMLCanvasElement>(null);
   const [Size, setSize] = useState({ W: 0, H: 0 });
+  const [Radius, setRadius] = useState(24);
 
   useEffect(() => {
     const El = BoxRef.current;
     if (!El) return;
-    const RO = new ResizeObserver(() => setSize({ W: El.clientWidth, H: El.clientHeight }));
+    const Measure = () => {
+      setSize({ W: El.clientWidth, H: El.clientHeight });
+      const Parent = El.parentElement;
+      if (Parent) {
+        const Raw = getComputedStyle(Parent).borderTopLeftRadius;
+        const Num = parseFloat(Raw);
+        if (Num > 0) setRadius(Num);
+      }
+    };
+    const RO = new ResizeObserver(Measure);
     RO.observe(El);
-    setSize({ W: El.clientWidth, H: El.clientHeight });
+    Measure();
     return () => RO.disconnect();
   }, []);
 
@@ -203,7 +213,19 @@ export function PanelTracer({ Type, Color, Speed }: { Type: string | null; Color
     Ctx.setTransform(Dpr, 0, 0, Dpr, 0, 0);
 
     const C = Color || DEFAULTS[T] || "#38bdf8";
-    const Pts = BuildPath(Size.W, Size.H, 26);
+    const Sprite = document.createElement("canvas");
+    Sprite.width = Sprite.height = 64;
+    const SC = Sprite.getContext("2d");
+    if (SC) {
+      const SG = SC.createRadialGradient(32, 32, 0, 32, 32, 32);
+      SG.addColorStop(0, "rgba(255,255,235,1)");
+      SG.addColorStop(0.35, "rgba(255,205,80,0.85)");
+      SG.addColorStop(0.7, "rgba(255,110,20,0.45)");
+      SG.addColorStop(1, "rgba(160,20,0,0)");
+      SC.fillStyle = SG;
+      SC.fillRect(0, 0, 64, 64);
+    }
+    const Pts = BuildPath(Size.W, Size.H, Radius);
     const Len = Pts.length;
     const At = (S: number) => Pts[((Math.floor(S) % Len) + Len) % Len];
     const Outline = new Path2D();
@@ -252,7 +274,7 @@ export function PanelTracer({ Type, Color, Speed }: { Type: string | null; Color
       Ctx.clearRect(0, 0, Size.W, Size.H);
 
       if (T === "fire") {
-        const Emit = Math.max(6, Math.round(Len / 18));
+        const Emit = Math.max(4, Math.round(Len / 26));
         for (let I = 0; I < Emit; I++) {
           const P = Make(Math.random() * Len, 0.55 + Math.random() * 0.7, 3 + Math.random() * 7);
           P.NX = P.NX + (Math.random() - 0.5) * 0.5;
@@ -266,7 +288,7 @@ export function PanelTracer({ Type, Color, Speed }: { Type: string | null; Color
         Ctx.shadowColor = "#ff7a18";
         Ctx.shadowBlur = 18;
         Ctx.beginPath();
-        for (let I = 0; I <= Len; I += 6) {
+        for (let I = 0; I <= Len; I += 3) {
           const P = At(I);
           if (I === 0) Ctx.moveTo(P.X, P.Y);
           else Ctx.lineTo(P.X, P.Y);
@@ -274,33 +296,66 @@ export function PanelTracer({ Type, Color, Speed }: { Type: string | null; Color
         Ctx.closePath();
         Ctx.stroke();
         Ctx.shadowBlur = 0;
+        const Flames = Math.max(10, Math.round(Len / 22));
+        for (let I = 0; I < Flames; I++) {
+          const Seed = I * 17.31;
+          const Base = At((I / Flames) * Len + Math.sin(Time * 0.9 + Seed) * 6);
+          const Flick = Math.sin(Time * (7 + Rand(Seed) * 6) + Seed);
+          const H = 24 + 16 * (0.5 + 0.5 * Math.sin(Time * 5 + Seed)) + 8 * Flick;
+          const W = 9 + 4 * Math.sin(Time * 4 + Seed * 2);
+          const Sway = Math.sin(Time * 3 + Seed) * 8;
+          const Ang = Math.atan2(-Base.NY, -Base.NX) + Math.PI / 2;
+          Ctx.save();
+          Ctx.translate(Base.X + Base.NX * 4, Base.Y + Base.NY * 4);
+          Ctx.rotate(Ang);
+          Ctx.globalCompositeOperation = "lighter";
+          const FG = Ctx.createLinearGradient(0, 4, 0, -H);
+          FG.addColorStop(0, "rgba(255,240,190,0.95)");
+          FG.addColorStop(0.3, "rgba(255,190,60,0.85)");
+          FG.addColorStop(0.65, "rgba(255,110,20,0.6)");
+          FG.addColorStop(1, "rgba(200,30,0,0)");
+          Ctx.fillStyle = FG;
+          Ctx.shadowColor = "#ff7a18";
+          Ctx.shadowBlur = 16;
+          Ctx.beginPath();
+          Ctx.moveTo(-W, 4);
+          Ctx.bezierCurveTo(-W, -H * 0.45, -W * 0.35 + Sway, -H * 0.7, Sway * 1.5, -H);
+          Ctx.bezierCurveTo(W * 0.35 + Sway, -H * 0.7, W, -H * 0.45, W, 4);
+          Ctx.quadraticCurveTo(0, 10, -W, 4);
+          Ctx.fill();
+          Ctx.fillStyle = "rgba(255,255,240,0.75)";
+          Ctx.shadowBlur = 8;
+          Ctx.beginPath();
+          Ctx.moveTo(-W * 0.4, 3);
+          Ctx.bezierCurveTo(-W * 0.4, -H * 0.3, -W * 0.1 + Sway * 0.6, -H * 0.45, Sway * 0.9, -H * 0.62);
+          Ctx.bezierCurveTo(W * 0.1 + Sway * 0.6, -H * 0.45, W * 0.4, -H * 0.3, W * 0.4, 3);
+          Ctx.fill();
+          Ctx.restore();
+        }
+        Ctx.save();
+        Ctx.globalCompositeOperation = "lighter";
+        for (let I = 0; I < 3; I++) {
+          const Base = At(Math.random() * Len);
+          const Rise = 14 + Math.random() * 26;
+          Ctx.fillStyle = `rgba(255,${170 + Math.floor(Math.random() * 60)},60,${0.5 + Math.random() * 0.5})`;
+          Ctx.beginPath();
+          Ctx.arc(Base.X - Base.NX * Rise, Base.Y - Base.NY * Rise, 0.8 + Math.random() * 1.4, 0, Math.PI * 2);
+          Ctx.fill();
+        }
+        Ctx.restore();
         for (let I = Parts.length - 1; I >= 0; I--) {
           const P = Parts[I];
           P.Life += Dt;
           if (P.Life >= P.Max) { Parts.splice(I, 1); continue; }
           const R = P.Life / P.Max;
           const Drift = 1 + R * 9;
-          const X = P.X + P.NX * Drift * 2 + (Rand(P.Seed + Time * 2) - 0.5) * R * 6;
-          const Y = P.Y + P.NY * Drift * 2 + (Rand(P.Seed * 2 + Time * 2) - 0.5) * R * 6;
-          const Rad = P.Size * (1 - R * 0.65);
-          const G = Ctx.createRadialGradient(X, Y, 0, X, Y, Rad);
-          if (R < 0.3) {
-            G.addColorStop(0, "rgba(255,255,235,0.95)");
-            G.addColorStop(0.5, "rgba(255,214,90,0.8)");
-            G.addColorStop(1, "rgba(255,120,20,0)");
-          } else if (R < 0.65) {
-            G.addColorStop(0, "rgba(255,196,60,0.85)");
-            G.addColorStop(0.6, "rgba(255,110,20,0.6)");
-            G.addColorStop(1, "rgba(180,30,0,0)");
-          } else {
-            G.addColorStop(0, "rgba(255,90,20,0.4)");
-            G.addColorStop(1, "rgba(90,10,0,0)");
-          }
-          Ctx.fillStyle = G;
-          Ctx.beginPath();
-          Ctx.arc(X, Y, Rad, 0, Math.PI * 2);
-          Ctx.fill();
+          const X = P.X - P.NX * Drift * 2 + (Rand(P.Seed + Time * 2) - 0.5) * R * 6;
+          const Y = P.Y - P.NY * Drift * 2 + (Rand(P.Seed * 2 + Time * 2) - 0.5) * R * 6;
+          const Rad = P.Size * (1 - R * 0.65) * 1.6;
+          Ctx.globalAlpha = R < 0.3 ? 0.95 : R < 0.65 ? 0.6 : 0.3;
+          Ctx.drawImage(Sprite, X - Rad, Y - Rad, Rad * 2, Rad * 2);
         }
+        Ctx.globalAlpha = 1;
         Ctx.restore();
       }
 
@@ -437,7 +492,7 @@ export function PanelTracer({ Type, Color, Speed }: { Type: string | null; Color
     };
     Rq = requestAnimationFrame(Frame);
     return () => cancelAnimationFrame(Rq);
-  }, [T, Color, Speed, Size.W, Size.H, Lap]);
+  }, [T, Color, Speed, Size.W, Size.H, Radius, Lap]);
 
   if (T === "pulse") {
     const C = Color || "#3b82f6";
@@ -446,7 +501,8 @@ export function PanelTracer({ Type, Color, Speed }: { Type: string | null; Color
 
   return (
     <div ref={BoxRef} className="pointer-events-none absolute inset-0">
-      <canvas ref={CanvasRef} className="pointer-events-none absolute left-0 top-0" />
+      <canvas ref={CanvasRef} className="pointer-events-none absolute left-0 top-0" style={{ borderRadius: `${Radius}px` }} />
     </div>
   );
 }
+
