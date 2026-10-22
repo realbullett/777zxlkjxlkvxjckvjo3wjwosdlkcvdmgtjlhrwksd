@@ -774,6 +774,7 @@ export default function Biolink() {
   const IsLeft = ProfileLayout === "left" || IsGrid;
   const IsCover = ProfileLayout === "cover";
   const IsBadgesFirst = ProfileLayout === "badges";
+  const FlowMeta = ProfileLayout !== "classic";
 
   return (
     <>
@@ -1136,9 +1137,9 @@ export default function Biolink() {
                 </div>
               )}
             </motion.div>
-            <motion.div initial={{ opacity: 0 }} animate={entered ? { opacity: 1 } : {}} transition={{ duration: 0.4, delay: 0.5 }}>
+            <motion.div initial={{ opacity: 0 }} animate={entered ? { opacity: 1 } : {}} transition={{ duration: 0.4, delay: 0.5 }} className={`${IsGrid ? "col-start-1 col-span-2" : ""} ${IsBadgesFirst && FlowMeta ? "order-8" : ""} ${FlowMeta ? "flex w-full items-center justify-between mt-2" : ""}`}>
               {user.show_views !== false ? (
-              <div className="group absolute bottom-4 left-4 flex items-center gap-2 rounded-xl bg-white/10 px-3 py-1.5 backdrop-blur-sm cursor-default">
+              <div className={FlowMeta ? "group relative flex items-center gap-2 rounded-xl bg-white/10 px-3 py-1.5 backdrop-blur-sm" : "group absolute bottom-4 left-4 flex items-center gap-2 rounded-xl bg-white/10 px-3 py-1.5 backdrop-blur-sm cursor-default"}>
                 <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-black/80 px-2 py-1 text-[11px] font-medium text-white/80 opacity-0 transition-opacity group-hover:opacity-100">views</span>
                 <Eye size={16} className="text-white shrink-0" />
                 <span className="text-sm font-bold text-white tabular-nums min-w-[2ch] text-center">
@@ -1155,7 +1156,7 @@ export default function Biolink() {
               </div>
               ) : null}
               {!user.views_blacklisted && user.show_votes !== false && (
-                <div className="absolute bottom-4 right-4 flex items-center gap-1 rounded-xl bg-white/10 px-2 py-1.5 backdrop-blur-sm">
+                <div className={FlowMeta ? "relative flex items-center gap-1 rounded-xl bg-white/10 px-2 py-1.5 backdrop-blur-sm" : "absolute bottom-4 right-4 flex items-center gap-1 rounded-xl bg-white/10 px-2 py-1.5 backdrop-blur-sm"}>
                   <button onClick={() => castVote(1)} aria-label="like profile" className="flex items-center gap-1 rounded-lg px-1.5 py-0.5 transition-all hover:scale-110">
                     <ThumbsUp size={16} className={myVote === 1 ? "text-green-400" : "text-white"} fill={myVote === 1 ? "currentColor" : "none"} />
                     <span className="text-sm font-bold text-white tabular-nums min-w-[2ch] text-center">{likes}</span>
