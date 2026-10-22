@@ -307,7 +307,7 @@ export function PanelTracer({ Type, Color, Speed }: { Type: string | null; Color
       if (T === "lightning") {
         if (!Strike && Time > NextStrike) {
           Strike = { S: Math.random() * Len, Len: Len * (0.1 + Math.random() * 0.18), Seed: Math.random() * 1000, Age: 0 };
-          NextStrike = Time + 0.35 + Math.random() * 1.1;
+          NextStrike = Time + 0.22 + Math.random() * 0.85;
         }
         Parts.length = 0;
         if (Strike) {
@@ -391,27 +391,6 @@ export function PanelTracer({ Type, Color, Speed }: { Type: string | null; Color
             }
             Ctx.restore();
           }
-        }
-        if (!Strike) {
-          const P = At((Time * 260 * SpeedMul) % Len);
-          Ctx.save();
-          Ctx.globalCompositeOperation = "lighter";
-          const G = Ctx.createRadialGradient(P.X, P.Y, 0, P.X, P.Y, 14);
-          G.addColorStop(0, "rgba(255,255,255,0.95)");
-          G.addColorStop(0.35, "rgba(56,189,248,0.7)");
-          G.addColorStop(1, "rgba(56,189,248,0)");
-          Ctx.fillStyle = G;
-          Ctx.beginPath();
-          Ctx.arc(P.X, P.Y, 14, 0, Math.PI * 2);
-          Ctx.fill();
-          Ctx.strokeStyle = "rgba(125,211,252,0.35)";
-          Ctx.lineWidth = 2;
-          Ctx.shadowColor = C;
-          Ctx.shadowBlur = 14;
-          Ctx.beginPath();
-          Ctx.arc(P.X, P.Y, 6, 0, Math.PI * 2);
-          Ctx.stroke();
-          Ctx.restore();
         }
       }
 
