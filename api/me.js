@@ -34,6 +34,7 @@ const USER_FIELDS = new Set([
   "panel_opacity", "panel_hidden", "discord_rpc_enabled", "panel_pulse_enabled",
   "widgets", "onboarding_done", "use_case", "show_joindate", "show_views", "show_votes", "custom_font_scope",
   "embed_buttons", "click_sound", "profile_layout", "country", "panel_glow_mode", "panel_glow_color", "panel_glow_color_2", "panel_glow_spread",
+  "panel_pulse_color", "panel_pulse_speed",
 ]);
 
 const PREMIUM_VALUES = {
