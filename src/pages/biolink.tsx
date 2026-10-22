@@ -128,6 +128,22 @@ type Asset = {
   url: string;
 };
 
+const AdultDomains = ["onlyfans.com", "fansly.com", "pornhub.com", "xvideos.com", "xnxx.com", "xhamster.com", "chaturbate.com", "stripchat.com", "bongacams.com", "spankbang.com", "redtube.com", "youporn.com", "eporner.com", "erome.com", "motherless.com", "rule34.xxx", "nhentai.net", "hanime.tv", "cam4.com", "livejasmin.com", "manyvids.com"];
+
+function HostOf(Url: string) {
+  try {
+    return new URL(Url).hostname.replace(/^www\./, "").toLowerCase();
+  } catch {
+    return "";
+  }
+}
+
+function IsAdultLink(Url: string) {
+  const Host = HostOf(Url);
+  const Raw = Url.toLowerCase();
+  return AdultDomains.some((D) => Host === D || Host.endsWith("." + D)) || /onlyfans|fansly|porn|xxx|nsfw|hentai|nhentai/.test(Raw);
+}
+
 export default function Biolink() {
   const { username } = useParams();
   const navigate = useNavigate();
@@ -146,6 +162,7 @@ export default function Biolink() {
   const [links, setLinks] = useState<Record<string, string>>({});
   const [hoveredBadge, setHoveredBadge] = useState<string | null>(null);
   const [hoveredUid, setHoveredUid] = useState(false);
+  const [LinkWarn, SetLinkWarn] = useState<{ Url: string; Adult: boolean } | null>(null);
   const [activePage, setActivePage] = useState(0);
   const cardRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -1065,22 +1082,47 @@ export default function Biolink() {
                 <div className={`flex items-center ${IsLeft ? "justify-start" : "justify-center"} flex-wrap mb-6 ${Object.keys(links).length > 1 ? "gap-2" : "gap-3"}`}>
                   {Object.keys(links).map((key) => {
                     const p = PLATFORMS.find((x) => x.id === key);
+                    const Url = links[key] || "";
+                    const Adult = IsAdultLink(Url);
+                    const Host = HostOf(Url);
                     return (
                       <a
                         key={key}
-                        href={links[key]}
+                        href={Url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        title={p ? p.name : key}
-                        className="transition-all hover:scale-110"
-                        onClick={() => {
+                        className="group relative transition-all hover:scale-110"
+                        onClick={(E) => {
                           fetch("/api/track-view", {
                             method: "POST",
                             headers: { "Content-Type": "application/json" },
                             body: JSON.stringify({ type: "click", user_id: user.id, platform: key }),
                           }).catch(() => {});
+                          if (Adult || !p) {
+                            E.preventDefault();
+                            SetLinkWarn({ Url, Adult });
+                          }
                         }}
                       >
+                        <span className="pointer-events-none absolute bottom-full left-1/2 z-50 mb-2 w-max max-w-[240px] -translate-x-1/2 whitespace-normal rounded-lg border border-white/10 bg-black/90 px-2.5 py-1.5 text-center text-[10px] font-medium leading-tight text-white/75 opacity-0 shadow-xl backdrop-blur-md transition-opacity duration-150 group-hover:opacity-100">
+                          {Adult ? (
+                            <>
+                              <span className="block font-bold text-red-400">18+ only</span>
+                              <span className="block text-white/40">age-restricted · {Host || "external"}</span>
+                            </>
+                          ) : p ? (
+                            <>
+                              <span className="block">opens {p.name}</span>
+                              <span className="block text-white/35">{Host}</span>
+                            </>
+                          ) : (
+                            <>
+                              <span className="block font-bold text-amber-300/90">custom link</span>
+                              <span className="block max-w-[220px] truncate text-white/40">{Host || Url}</span>
+                              <span className="block text-amber-300/70">continue at your own risk</span>
+                            </>
+                          )}
+                        </span>
                         {p ? (
                           <img src={p.logoUrl} alt={p.name} className={`h-8 w-8 ${user.monochrome_icons ? "grayscale brightness-150" : ""}`} />
                         ) : (
@@ -1226,6 +1268,65 @@ export default function Biolink() {
               </motion.span>
             </motion.button>
           ) : null}
+          {LinkWarn && (
+            <div
+              className="fixed inset-0 z-[200] flex items-end justify-center bg-black/80 px-4 pb-5 backdrop-blur-md sm:items-center sm:px-6 sm:pb-0"
+              onClick={() => SetLinkWarn(null)}
+            >
+              <motion.div
+                initial={{ opacity: 0, y: 24, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+                onClick={(E) => E.stopPropagation()}
+                className="relative w-full max-w-md overflow-hidden rounded-2xl border border-white/10 bg-[#0b0b0c] text-left text-white shadow-[0_30px_80px_rgba(0,0,0,0.85)]"
+              >
+                <div className={`warn-stripe h-1.5 w-full ${LinkWarn.Adult ? "bg-[repeating-linear-gradient(45deg,#ef4444_0_10px,#450a0a_10px_20px)]" : "bg-[repeating-linear-gradient(45deg,#f59e0b_0_10px,#1c1917_10px_20px)]"}`} />
+                <button
+                  onClick={() => SetLinkWarn(null)}
+                  className="absolute right-3 top-4 text-white/25 transition-colors hover:text-white"
+                  aria-label="close"
+                >
+                  <X size={16} />
+                </button>
+                <div className="p-6 sm:p-7">
+                  <p className={`font-mono text-[10px] font-bold tracking-[0.18em] ${LinkWarn.Adult ? "text-red-400" : "text-amber-300"}`}>
+                    {LinkWarn.Adult ? "age-restricted destination" : "external destination"}
+                  </p>
+                  <h3 className="mt-2 break-all text-2xl font-black lowercase leading-tight tracking-tight">
+                    {HostOf(LinkWarn.Url) || "unknown site"}
+                  </h3>
+                  <div className="mt-4 flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
+                    <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${LinkWarn.Adult ? "bg-red-400" : "bg-amber-400"}`} />
+                    <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-white/45">{LinkWarn.Url}</span>
+                    <span className="shrink-0 font-mono text-[9px] tracking-wide text-white/20">unverified</span>
+                  </div>
+                  <p className="mt-4 text-[13px] leading-relaxed text-white/45">
+                    {LinkWarn.Adult
+                      ? "this destination hosts adult content. only continue if you're 18 or older and okay with what's behind this door."
+                      : "sire doesn't control this site or check what's on it. look over the address above before you go handing out your info."}
+                  </p>
+                  <div className="mt-6 flex flex-col gap-2">
+                    <button
+                      onClick={() => {
+                        window.open(LinkWarn.Url, "_blank", "noopener,noreferrer");
+                        SetLinkWarn(null);
+                      }}
+                      className={`flex w-full items-center justify-between rounded-xl px-5 py-3 text-[13px] font-bold text-white transition-colors ${LinkWarn.Adult ? "bg-red-600 hover:bg-red-500" : "bg-blue-600 hover:bg-blue-500"}`}
+                    >
+                      <span>{LinkWarn.Adult ? "i'm 18+, continue" : "continue to site"}</span>
+                      <span className="font-mono text-base leading-none">↗</span>
+                    </button>
+                    <button
+                      onClick={() => SetLinkWarn(null)}
+                      className="w-full rounded-xl px-5 py-2.5 text-[12px] font-semibold text-white/35 transition-colors hover:bg-white/[0.04] hover:text-white/70"
+                    >
+                      stay on sire
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          )}
       </div>
       </>
     );
