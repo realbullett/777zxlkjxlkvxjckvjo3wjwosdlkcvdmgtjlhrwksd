@@ -1280,7 +1280,7 @@ export default function Biolink() {
                 onClick={(E) => E.stopPropagation()}
                 className="relative w-full max-w-md overflow-hidden rounded-2xl border border-white/10 bg-[#0b0b0c] text-left text-white shadow-[0_30px_80px_rgba(0,0,0,0.85)]"
               >
-                <div className={`warn-stripe h-1.5 w-full ${LinkWarn.Adult ? "bg-[repeating-linear-gradient(45deg,#ef4444_0_10px,#450a0a_10px_20px)]" : "bg-[repeating-linear-gradient(45deg,#f59e0b_0_10px,#1c1917_10px_20px)]"}`} />
+                <div className={`h-px w-full ${LinkWarn.Adult ? "bg-gradient-to-r from-transparent via-red-500/60 to-transparent" : "bg-gradient-to-r from-transparent via-amber-500/60 to-transparent"}`} />
                 <button
                   onClick={() => SetLinkWarn(null)}
                   className="absolute right-3 top-4 text-white/25 transition-colors hover:text-white"
@@ -1289,17 +1289,13 @@ export default function Biolink() {
                   <X size={16} />
                 </button>
                 <div className="p-6 sm:p-7">
-                  <p className={`font-mono text-[10px] font-bold tracking-[0.18em] ${LinkWarn.Adult ? "text-red-400" : "text-amber-300"}`}>
-                    {LinkWarn.Adult ? "age-restricted destination" : "external destination"}
-                  </p>
-                  <h3 className="mt-2 break-all text-2xl font-black lowercase leading-tight tracking-tight">
+                  <img src="/pumpkin.gif" alt="" draggable={false} className="pointer-events-none mx-auto h-16 w-auto select-none" />
+                  <h3 className="mt-3 break-all text-2xl font-black lowercase leading-tight tracking-tight">
                     {HostOf(LinkWarn.Url) || "unknown site"}
                   </h3>
-                  <div className="mt-4 flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
-                    <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${LinkWarn.Adult ? "bg-red-400" : "bg-amber-400"}`} />
-                    <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-white/45">{LinkWarn.Url}</span>
-                    <span className="shrink-0 font-mono text-[9px] tracking-wide text-white/20">unverified</span>
-                  </div>
+                  <p className="mt-4 break-all font-mono text-[11.5px] leading-relaxed text-white/40">
+                    {LinkWarn.Url}
+                  </p>
                   <p className="mt-4 text-[13px] leading-relaxed text-white/45">
                     {LinkWarn.Adult
                       ? "this destination hosts adult content. only continue if you're 18 or older and okay with what's behind this door."
