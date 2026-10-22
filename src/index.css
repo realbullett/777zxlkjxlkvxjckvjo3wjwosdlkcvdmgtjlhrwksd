@@ -551,46 +551,55 @@
     offset-path: inset(0 round 26px);
     animation: dot-orbit 9s linear infinite, dot-pulse 1.25s ease-in-out infinite;
   }
-  .edge-tracer {
-    position: absolute; top: 0; left: 0;
-    height: 18px; width: 18px;
-    display: flex; align-items: center; justify-content: center;
-    offset-path: inset(0 round 26px);
-    animation-iteration-count: infinite, infinite;
-    will-change: offset-distance, transform;
+  .edge-trail {
+    animation-name: edge-run;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+    will-change: stroke-dashoffset;
   }
-  .edge-orbit-spin { animation-name: dot-orbit, edge-spin; animation-timing-function: linear, ease-in-out; }
-  .edge-orbit-flicker { animation-name: dot-orbit, edge-flicker; animation-timing-function: linear, ease-in-out; }
-  .edge-orbit-flame { animation-name: dot-orbit, edge-flame; animation-timing-function: linear, ease-in-out; }
-  .edge-orbit-twinkle { animation-name: dot-orbit, edge-twinkle; animation-timing-function: linear, ease-in-out; }
-  .edge-orbit-beat { animation-name: dot-orbit, edge-beat; animation-timing-function: linear, ease-in-out; }
-  @keyframes edge-spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
+  @keyframes edge-run {
+    from { stroke-dashoffset: 0; }
+    to { stroke-dashoffset: -100; }
   }
-  @keyframes edge-flicker {
+  .edge-flicker-fx { animation-name: edge-flicker-fx; animation-timing-function: ease-in-out; animation-iteration-count: infinite; }
+  @keyframes edge-flicker-fx {
     0%, 100% { opacity: 1; }
-    6% { opacity: 0.25; }
-    10% { opacity: 1; }
-    18% { opacity: 0.4; }
-    22% { opacity: 1; }
-    60% { opacity: 0.85; }
+    7% { opacity: 0.3; }
+    12% { opacity: 1; }
+    23% { opacity: 0.4; }
+    29% { opacity: 1; }
+    54% { opacity: 0.7; }
+    61% { opacity: 1; }
+    70% { opacity: 0.35; }
+    76% { opacity: 1; }
   }
-  @keyframes edge-flame {
-    0%, 100% { transform: scale(1) skewX(0deg); }
-    25% { transform: scale(1.12) skewX(-2deg); }
-    55% { transform: scale(0.94) skewX(2deg); }
-    80% { transform: scale(1.06) skewX(-1deg); }
+  .edge-flame-fx { animation-name: edge-flame-fx; animation-timing-function: ease-in-out; animation-iteration-count: infinite; }
+  @keyframes edge-flame-fx {
+    0%, 100% { opacity: 1; }
+    18% { opacity: 0.62; }
+    34% { opacity: 0.92; }
+    52% { opacity: 0.7; }
+    63% { opacity: 1; }
+    78% { opacity: 0.55; }
+    88% { opacity: 0.9; }
   }
-  @keyframes edge-twinkle {
-    0%, 100% { transform: scale(0.75); opacity: 0.6; }
-    50% { transform: scale(1.15); opacity: 1; }
+  .edge-twinkle-fx { animation-name: edge-twinkle-fx; animation-timing-function: ease-in-out; animation-iteration-count: infinite; }
+  @keyframes edge-twinkle-fx {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
   }
-  @keyframes edge-beat {
-    0%, 100% { transform: scale(1); }
-    30% { transform: scale(1.35); }
-    50% { transform: scale(1); }
-    70% { transform: scale(1.25); }
+  .edge-bloom-fx { animation-name: edge-bloom-fx; animation-timing-function: ease-in-out; animation-iteration-count: infinite; }
+  @keyframes edge-bloom-fx {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
+  }
+  .edge-beat-fx { animation-name: edge-beat-fx; animation-timing-function: ease-in-out; animation-iteration-count: infinite; }
+  @keyframes edge-beat-fx {
+    0%, 100% { opacity: 0.65; }
+    18% { opacity: 1; }
+    32% { opacity: 0.8; }
+    46% { opacity: 1; }
+    70% { opacity: 0.7; }
   }
 
 }
