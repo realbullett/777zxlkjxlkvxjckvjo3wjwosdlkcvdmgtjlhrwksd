@@ -38,41 +38,77 @@ function DrawFlower(Ctx: CanvasRenderingContext2D, X: number, Y: number, Size: n
   Ctx.translate(X, Y);
   Ctx.rotate(Spin);
   Ctx.scale(1, Tilt);
-  for (let I = 0; I < 6; I++) {
+  Ctx.shadowColor = Base;
+  Ctx.shadowBlur = 16;
+  for (const Side of [-1, 1]) {
     Ctx.save();
-    Ctx.rotate((I / 6) * Math.PI * 2);
-    const G = Ctx.createRadialGradient(0, -Size * 0.85, 1, 0, -Size * 0.55, Size * 0.85);
-    G.addColorStop(0, "#ffe4f1");
-    G.addColorStop(0.45, Base);
-    G.addColorStop(1, "rgba(120,20,70,0.25)");
-    Ctx.fillStyle = G;
+    Ctx.rotate(Side * 1.15);
+    const LG = Ctx.createLinearGradient(0, Size * 0.2, Side * Size * 0.9, Size * 0.95);
+    LG.addColorStop(0, "rgba(134,239,172,0.95)");
+    LG.addColorStop(1, "rgba(21,94,50,0.45)");
+    Ctx.fillStyle = LG;
     Ctx.beginPath();
-    Ctx.ellipse(0, -Size * 0.62, Size * 0.36, Size * 0.62, 0, 0, Math.PI * 2);
+    Ctx.ellipse(Side * Size * 0.45, Size * 0.85, Size * 0.5, Size * 0.2, Side * 0.5, 0, Math.PI * 2);
     Ctx.fill();
     Ctx.restore();
   }
-  const C = Ctx.createRadialGradient(-Size * 0.15, -Size * 0.15, 1, 0, 0, Size * 0.42);
-  C.addColorStop(0, "#fff7cf");
-  C.addColorStop(0.6, "#ffd166");
-  C.addColorStop(1, "#c98a12");
+  for (let I = 0; I < 8; I++) {
+    Ctx.save();
+    Ctx.rotate((I / 8) * Math.PI * 2 + 0.18);
+    const G = Ctx.createRadialGradient(0, -Size * 0.98, 1, 0, -Size * 0.5, Size);
+    G.addColorStop(0, "#ffffff");
+    G.addColorStop(0.32, I % 2 ? "#ffeaf4" : Base);
+    G.addColorStop(0.78, Base);
+    G.addColorStop(1, "rgba(90,10,50,0.42)");
+    Ctx.fillStyle = G;
+    Ctx.beginPath();
+    Ctx.ellipse(0, -Size * 0.7, Size * 0.34, Size * 0.72, 0, 0, Math.PI * 2);
+    Ctx.fill();
+    Ctx.strokeStyle = "rgba(255,255,255,0.22)";
+    Ctx.lineWidth = 0.8;
+    Ctx.beginPath();
+    Ctx.moveTo(0, -Size * 0.2);
+    Ctx.lineTo(0, -Size * 1.3);
+    Ctx.stroke();
+    Ctx.restore();
+  }
+  const C = Ctx.createRadialGradient(-Size * 0.16, -Size * 0.16, 1, 0, 0, Size * 0.44);
+  C.addColorStop(0, "#fffbe0");
+  C.addColorStop(0.45, "#ffd166");
+  C.addColorStop(1, "#a86b08");
   Ctx.fillStyle = C;
   Ctx.beginPath();
-  Ctx.arc(0, 0, Size * 0.34, 0, Math.PI * 2);
+  Ctx.arc(0, 0, Size * 0.37, 0, Math.PI * 2);
+  Ctx.fill();
+  Ctx.fillStyle = "rgba(255,255,255,0.85)";
+  Ctx.beginPath();
+  Ctx.ellipse(-Size * 0.13, -Size * 0.15, Size * 0.1, Size * 0.06, -0.6, 0, Math.PI * 2);
   Ctx.fill();
   Ctx.restore();
 }
 
-function DrawHeart(Ctx: CanvasRenderingContext2D, X: number, Y: number, S: number, Base: string) {
-  const G = Ctx.createLinearGradient(X - S, Y - S, X + S, Y + S);
-  G.addColorStop(0, "#ffd9e7");
-  G.addColorStop(0.5, Base);
-  G.addColorStop(1, "rgba(120,20,70,0.55)");
-  Ctx.fillStyle = G;
+function DrawHeart(Ctx: CanvasRenderingContext2D, X: number, Y: number, S: number, Base: string, Alpha: number) {
+  Ctx.save();
+  Ctx.globalAlpha = Alpha;
+  Ctx.shadowColor = Base;
+  Ctx.shadowBlur = 18;
   Ctx.beginPath();
   Ctx.moveTo(X, Y + S * 0.4);
   Ctx.bezierCurveTo(X - S * 1.1, Y - S * 0.5, X - S * 0.6, Y - S * 1.15, X, Y - S * 0.5);
   Ctx.bezierCurveTo(X + S * 0.6, Y - S * 1.15, X + S * 1.1, Y - S * 0.5, X, Y + S * 0.4);
+  const G = Ctx.createLinearGradient(X - S, Y - S, X + S, Y + S);
+  G.addColorStop(0, "#ffffff");
+  G.addColorStop(0.26, "#ffe3ef");
+  G.addColorStop(0.62, Base);
+  G.addColorStop(1, "rgba(140,20,80,0.9)");
+  Ctx.fillStyle = G;
   Ctx.fill();
+  Ctx.shadowBlur = 0;
+  Ctx.fillStyle = "rgba(255,255,255,0.85)";
+  Ctx.beginPath();
+  Ctx.ellipse(X - S * 0.42, Y - S * 0.58, S * 0.18, S * 0.1, -0.55, 0, Math.PI * 2);
+  Ctx.fill();
+  Ctx.restore();
 }
 
 function DrawFlake(Ctx: CanvasRenderingContext2D, X: number, Y: number, S: number, Spin: number, Alpha: number) {
@@ -154,6 +190,9 @@ export function PanelTracer({ Type, Color, Speed }: { Type: string | null; Color
     const Pts = BuildPath(Size.W, Size.H, 26);
     const Len = Pts.length;
     const At = (S: number) => Pts[((Math.floor(S) % Len) + Len) % Len];
+    const Outline = new Path2D();
+    Pts.forEach((P, I) => (I === 0 ? Outline.moveTo(P.X, P.Y) : Outline.lineTo(P.X, P.Y)));
+    Outline.closePath();
     const SpeedMul = (100 - (Speed ?? 50)) / 60 + 0.35;
     let Rq = 0;
     let Prev = performance.now();
@@ -166,8 +205,8 @@ export function PanelTracer({ Type, Color, Speed }: { Type: string | null; Color
     };
 
     if (T === "flowers") {
-      const N = Math.max(3, Math.round(Len / 110));
-      for (let I = 0; I < N; I++) Parts.push(Make((I / N) * Len, 1e9, 0));
+      const N = Math.max(6, Math.round(Len / 55));
+      for (let I = 0; I < N; I++) Parts.push(Make((I / N) * Len, 1e9, 12 + Math.random() * 8));
     } else if (T === "snow") {
       const N = Math.max(14, Math.round(Len / 16));
       for (let I = 0; I < N; I++) {
@@ -183,7 +222,7 @@ export function PanelTracer({ Type, Color, Speed }: { Type: string | null; Color
         Parts.push(P);
       }
     } else if (T === "hearts") {
-      const N = Math.max(5, Math.round(Len / 90));
+      const N = Math.max(8, Math.round(Len / 70));
       for (let I = 0; I < N; I++) Parts.push(Make((I / N) * Len, 1e9, 0));
     }
 
@@ -251,18 +290,18 @@ export function PanelTracer({ Type, Color, Speed }: { Type: string | null; Color
 
       if (T === "lightning") {
         if (!Strike && Time > NextStrike) {
-          Strike = { S: Math.random() * Len, Len: Len * (0.08 + Math.random() * 0.16), Seed: Math.random() * 1000, Age: 0 };
+          Strike = { S: Math.random() * Len, Len: Len * (0.1 + Math.random() * 0.18), Seed: Math.random() * 1000, Age: 0 };
           NextStrike = Time + 0.35 + Math.random() * 1.1;
         }
         Parts.length = 0;
         if (Strike) {
           Strike.Age += Dt;
-          const Fade = Math.max(0, 1 - Strike.Age / 0.28);
+          const Fade = Math.max(0, 1 - Strike.Age / 0.3);
           if (Fade <= 0) Strike = null;
           if (Strike) {
             const Ca = Fade;
-            const Steps = Math.max(8, Math.floor(Strike.Len / 5));
-            const Bolt = (Width: number, Stroke: string, Blur: number) => {
+            const Bolt = (Start: number, Length: number, Amp: number, Seed: number, Width: number, Stroke: string, Blur: number) => {
+              const Steps = Math.max(8, Math.floor(Length / 4.5));
               Ctx.save();
               Ctx.strokeStyle = Stroke;
               Ctx.lineWidth = Width;
@@ -272,11 +311,10 @@ export function PanelTracer({ Type, Color, Speed }: { Type: string | null; Color
               Ctx.shadowBlur = Blur;
               Ctx.beginPath();
               for (let I = 0; I <= Steps; I++) {
-                const S = Strike!.S + (I / Steps) * Strike!.Len;
-                const P = At(S);
+                const P = At(Start + (I / Steps) * Length);
                 const Env = Math.sin((I / Steps) * Math.PI);
-                const J = (Rand(Strike!.Seed + I * 3.7) - 0.5) * 14 * Env;
-                const Rise = (Rand(Strike!.Seed + I * 9.1) - 0.5) * 8 * Env;
+                const J = (Rand(Seed + I * 3.7) - 0.5) * Amp * Env;
+                const Rise = (Rand(Seed + I * 9.1) - 0.5) * Amp * 0.5 * Env;
                 const X = P.X + P.NX * (J + Rise);
                 const Y = P.Y + P.NY * (J + Rise);
                 if (I === 0) Ctx.moveTo(X, Y);
@@ -287,49 +325,86 @@ export function PanelTracer({ Type, Color, Speed }: { Type: string | null; Color
             };
             Ctx.save();
             Ctx.globalCompositeOperation = "lighter";
-            Bolt(9, `rgba(56,189,248,${0.18 * Ca})`, 24);
-            Bolt(4, `rgba(125,211,252,${0.55 * Ca})`, 12);
-            Bolt(1.6, `rgba(255,255,255,${0.95 * Ca})`, 6);
-            for (let B = 0; B < 3; B++) {
-              const BS = Strike.S + Strike.Len * (0.2 + B * 0.28);
+            Ctx.strokeStyle = `rgba(56,189,248,${0.06 * Ca})`;
+            Ctx.lineWidth = 10;
+            Ctx.shadowColor = C;
+            Ctx.shadowBlur = 34;
+            Ctx.stroke(Outline);
+            Ctx.strokeStyle = `rgba(186,230,253,${0.28 * Ca})`;
+            Ctx.lineWidth = 2;
+            Ctx.shadowBlur = 18;
+            Ctx.stroke(Outline);
+            Ctx.shadowBlur = 0;
+            for (let L = 0; L < 3; L++) {
+              const Lp = 1 - L * 0.28;
+              Bolt(Strike.S, Strike.Len * Lp, 20 - L * 4, Strike.Seed + L * 41, L === 0 ? 14 : 8, `rgba(56,189,248,${(L === 0 ? 0.22 : 0.13) * Ca})`, 30);
+            }
+            Bolt(Strike.S, Strike.Len, 20, Strike.Seed, 6, `rgba(125,211,252,${0.7 * Ca})`, 16);
+            Bolt(Strike.S, Strike.Len, 20, Strike.Seed, 2.2, `rgba(255,255,255,${Ca})`, 8);
+            for (let B = 0; B < 6; B++) {
+              const BS = Strike.S + Strike.Len * (0.08 + B * 0.15);
               const P = At(BS);
-              Ctx.strokeStyle = `rgba(186,230,253,${0.4 * Ca})`;
-              Ctx.lineWidth = 1.2;
+              const Dx = (Rand(Strike.Seed + B * 7) - 0.5) * 30;
+              const Dy = (Rand(Strike.Seed + B * 11) - 0.5) * 30;
+              Ctx.strokeStyle = `rgba(186,230,253,${0.5 * Ca})`;
+              Ctx.lineWidth = 1.6;
               Ctx.shadowColor = C;
-              Ctx.shadowBlur = 10;
+              Ctx.shadowBlur = 12;
               Ctx.beginPath();
               Ctx.moveTo(P.X, P.Y);
               let BX = P.X;
               let BY = P.Y;
-              for (let K = 0; K < 4; K++) {
-                BX += (Rand(Strike.Seed + B * 7 + K) - 0.5) * 14 + P.NX * 4;
-                BY += (Rand(Strike.Seed + B * 11 + K) - 0.5) * 14 + P.NY * 4;
+              for (let K = 0; K < 5; K++) {
+                BX += Dx / 5 + (Rand(Strike.Seed + B * 7 + K) - 0.5) * 12 + P.NX * 3;
+                BY += Dy / 5 + (Rand(Strike.Seed + B * 11 + K) - 0.5) * 12 + P.NY * 3;
                 Ctx.lineTo(BX, BY);
               }
               Ctx.stroke();
+            }
+            for (let Sp = 0; Sp < 14; Sp++) {
+              const P = At(Strike.S + Strike.Len * Rand(Strike.Seed + Sp * 3.3));
+              const X = P.X + (Rand(Strike.Seed + Sp) - 0.5) * 40;
+              const Y = P.Y + (Rand(Strike.Seed + Sp * 2) - 0.5) * 40;
+              const G = Ctx.createRadialGradient(X, Y, 0, X, Y, 2.4);
+              G.addColorStop(0, `rgba(255,255,255,${0.9 * Ca})`);
+              G.addColorStop(1, "rgba(56,189,248,0)");
+              Ctx.fillStyle = G;
+              Ctx.beginPath();
+              Ctx.arc(X, Y, 2.4, 0, Math.PI * 2);
+              Ctx.fill();
             }
             Ctx.restore();
           }
         }
         if (!Strike) {
           const P = At((Time * 260 * SpeedMul) % Len);
-          const G = Ctx.createRadialGradient(P.X, P.Y, 0, P.X, P.Y, 9);
-          G.addColorStop(0, "rgba(255,255,255,0.9)");
-          G.addColorStop(0.4, `rgba(56,189,248,0.6)`);
+          Ctx.save();
+          Ctx.globalCompositeOperation = "lighter";
+          const G = Ctx.createRadialGradient(P.X, P.Y, 0, P.X, P.Y, 14);
+          G.addColorStop(0, "rgba(255,255,255,0.95)");
+          G.addColorStop(0.35, "rgba(56,189,248,0.7)");
           G.addColorStop(1, "rgba(56,189,248,0)");
           Ctx.fillStyle = G;
           Ctx.beginPath();
-          Ctx.arc(P.X, P.Y, 9, 0, Math.PI * 2);
+          Ctx.arc(P.X, P.Y, 14, 0, Math.PI * 2);
           Ctx.fill();
+          Ctx.strokeStyle = "rgba(125,211,252,0.35)";
+          Ctx.lineWidth = 2;
+          Ctx.shadowColor = C;
+          Ctx.shadowBlur = 14;
+          Ctx.beginPath();
+          Ctx.arc(P.X, P.Y, 6, 0, Math.PI * 2);
+          Ctx.stroke();
+          Ctx.restore();
         }
       }
 
       if (T === "flowers") {
         for (const P of Parts) {
-          P.S += Dt * 26 * SpeedMul;
+          P.S += Dt * 18 * SpeedMul;
           const Q = At(P.S);
           const Bob = Math.sin(Time * 1.2 + P.Seed) * 3;
-          DrawFlower(Ctx, Q.X + Q.NX * (6 + Bob), Q.Y + Q.NY * (6 + Bob), 15, Time * 1.1 + P.Seed, C);
+          DrawFlower(Ctx, Q.X + Q.NX * (7 + Bob), Q.Y + Q.NY * (7 + Bob), P.Size, Time * 1.1 + P.Seed, C);
         }
       }
 
@@ -356,14 +431,10 @@ export function PanelTracer({ Type, Color, Speed }: { Type: string | null; Color
 
       if (T === "hearts") {
         for (const P of Parts) {
-          P.S += Dt * 30 * SpeedMul;
+          P.S += Dt * 24 * SpeedMul;
           const Q = At(P.S);
           const Bob = Math.sin(Time * 1.6 + P.Seed);
-          const A = 0.55 + 0.45 * Bob;
-          Ctx.save();
-          Ctx.globalAlpha = A;
-          DrawHeart(Ctx, Q.X + Q.NX * (9 + Bob * 3), Q.Y + Q.NY * (9 + Bob * 3), 7, C);
-          Ctx.restore();
+          DrawHeart(Ctx, Q.X + Q.NX * (10 + Bob * 3), Q.Y + Q.NY * (10 + Bob * 3), 11 + Rand(P.Seed) * 3, C, 0.75 + 0.25 * Bob);
         }
       }
 
