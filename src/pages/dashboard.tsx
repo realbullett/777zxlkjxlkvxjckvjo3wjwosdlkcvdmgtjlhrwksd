@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+﻿import { useEffect, useState, useRef } from "react";
 import { useNavigate, useSearchParams, Link as RouterLink, Link } from "react-router-dom";
 import { motion, AnimatePresence, LayoutGroup, useMotionValue } from "motion/react";
 import { User, Paintbrush, Link as LucideLink, Image, Crown, Layout, Shield, Home, AtSign, Hash, Eye, User as UserIcon, Volume2, X, Music, Play, Pause, Trash2, Upload, LogOut, Check, Database, Award, Copy, HardDrive, Layers, Type, Star, Clock, Search, TrendingUp, RefreshCw, Trophy, ChevronDown, LayoutTemplate, Palette } from "lucide-react";
@@ -339,7 +339,7 @@ return (
             {activeNotices.map((n, i) => (
               <div key={i} className="rounded-xl bg-white/[0.03] border border-white/[0.06] p-4 space-y-2">
                 <p className="text-sm text-white/80">Your {n.kind} have been reset for violating the terms of service.</p>
-                <p className="text-xs text-white/40">Moderator statement: <span className="text-white/70">“{n.reason}”</span></p>
+                <p className="text-xs text-white/40">Moderator statement: <span className="text-white/70">â€œ{n.reason}â€</span></p>
               </div>
             ))}
             <button onClick={dismissNotices} className="w-full rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-500 transition-colors">
@@ -562,7 +562,7 @@ function InsightPanel({ title, rows, flag }: { title: string; rows: { k: string;
     <div className="glass-card rounded-xl p-4">
       <p className="text-sm font-bold text-white mb-3">{title}</p>
       {rows.length === 0 ? (
-        <p className="text-xs text-white/35 py-2">No data yet — share your page to start collecting.</p>
+        <p className="text-xs text-white/35 py-2">No data yet â€” share your page to start collecting.</p>
       ) : (
         <div className="flex flex-col gap-1.5">
           {rows.map((r) => (
@@ -850,7 +850,7 @@ function AccountOverview({ user, onTab, onUpdateUser }: { user: User | null; onT
             </div>
           </div>
           <p className="relative mt-3 text-4xl font-bold tracking-tight text-white flex items-center gap-2">
-            {user?.display_name || user?.username || "—"}
+            {user?.display_name || user?.username || "â€”"}
             <svg className="w-6 h-6 shrink-0" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#3b82f6" /><path d="M8 12.5l2.7 2.7L16.5 9" stroke="#fff" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></svg>
           </p>
           <p className="relative text-xs text-white/35 font-mono mt-0.5">sire.lol/{user?.username}</p>
@@ -872,8 +872,8 @@ function AccountOverview({ user, onTab, onUpdateUser }: { user: User | null; onT
             <span className="text-white/60"><strong className="text-white font-semibold">{likes.toLocaleString("en-US")}</strong> likes</span>
           </div>
           <div className="flex items-center justify-center md:justify-start gap-2 mt-4">
-            <button onClick={() => onTab("customize")} className="text-xs font-semibold text-white bg-white/[0.12] px-3 py-1.5 rounded-lg transition-colors hover:bg-white/[0.2] cursor-pointer">✎ customize</button>
-            <button onClick={copyProfileLink} className="text-xs font-medium text-white/55 px-3 py-1.5 rounded-lg transition-all border border-white/10 hover:text-white hover:bg-white/[0.07] cursor-pointer">{copied ? "copied!" : "⧉ copy link"}</button>
+            <button onClick={() => onTab("customize")} className="text-xs font-semibold text-white bg-white/[0.12] px-3 py-1.5 rounded-lg transition-colors hover:bg-white/[0.2] cursor-pointer">âœŽ customize</button>
+            <button onClick={copyProfileLink} className="text-xs font-medium text-white/55 px-3 py-1.5 rounded-lg transition-all border border-white/10 hover:text-white hover:bg-white/[0.07] cursor-pointer">{copied ? "copied!" : "â§‰ copy link"}</button>
           </div>
         </div>
       </div>
@@ -903,7 +903,7 @@ function AccountOverview({ user, onTab, onUpdateUser }: { user: User | null; onT
             </div>
             {!isEditing ? (
               <>
-                <p className="text-sm font-semibold text-white">{user?.username || "—"}</p>
+                <p className="text-sm font-semibold text-white">{user?.username || "â€”"}</p>
                 <p className="text-xs text-white/35 mt-1">{2 - getRecentChanges().length} of 2 changes left this week</p>
               </>
             ) : (
@@ -954,7 +954,7 @@ function AccountOverview({ user, onTab, onUpdateUser }: { user: User | null; onT
             </div>
             {!isEditingAlias ? (
               <>
-                <p className="text-sm font-semibold text-white">{user?.alias || "—"}</p>
+                <p className="text-sm font-semibold text-white">{user?.alias || "â€”"}</p>
                 <p className="text-xs text-white/35 mt-1">custom link alias</p>
               </>
             ) : (
@@ -1002,7 +1002,7 @@ function AccountOverview({ user, onTab, onUpdateUser }: { user: User | null; onT
             </div>
             {!isEditingDisplayName ? (
               <>
-                <p className="text-sm font-semibold text-white">{user?.display_name || "—"}</p>
+                <p className="text-sm font-semibold text-white">{user?.display_name || "â€”"}</p>
                 <p className="text-xs text-white/35 mt-1">shown on your profile</p>
               </>
             ) : (
@@ -1030,7 +1030,7 @@ function AccountOverview({ user, onTab, onUpdateUser }: { user: User | null; onT
         <div className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-4 transition-colors hover:border-white/[0.14]">
           <p className="text-[11px] font-semibold tracking-[0.08em] uppercase text-white/35 mb-3">Profile link</p>
           <p className="text-sm font-mono font-semibold text-white truncate">sire.lol/{user?.username}</p>
-          <button onClick={copyProfileLink} className="text-xs font-medium text-white/55 px-3 py-1.5 rounded-lg transition-all border border-white/10 hover:text-white hover:bg-white/[0.07] w-full mt-2 cursor-pointer">{copied ? "copied!" : "⧉ copy link"}</button>
+          <button onClick={copyProfileLink} className="text-xs font-medium text-white/55 px-3 py-1.5 rounded-lg transition-all border border-white/10 hover:text-white hover:bg-white/[0.07] w-full mt-2 cursor-pointer">{copied ? "copied!" : "â§‰ copy link"}</button>
         </div>
       </div>
 
@@ -1107,7 +1107,7 @@ function AccountOverview({ user, onTab, onUpdateUser }: { user: User | null; onT
             <p className="text-xs text-white/35 mt-1">Your profile {chartMetric === "Views" ? "activity" : "likes"} over the selected range.</p>
             {chartRange === "custom" && customFrom && customTo ? (
               <button onClick={() => setChartRange("7d")} className="mt-1.5 text-[11px] text-blue-300/80 hover:text-blue-300 cursor-pointer">
-                {customFrom} → {customTo} ×
+                {customFrom} â†’ {customTo} Ã—
               </button>
             ) : null}
           </div>
@@ -1121,7 +1121,7 @@ function AccountOverview({ user, onTab, onUpdateUser }: { user: User | null; onT
                 <div className="absolute right-0 z-20 mt-1 w-32 overflow-hidden rounded-lg border border-white/10 bg-[#141416] shadow-xl">
                   {(["Views", "Likes"] as const).map((m) => (
                     <button key={m} onClick={() => { setChartMetric(m); setMetricOpen(false); }} className={`flex w-full items-center justify-between px-3 py-2 text-xs cursor-pointer hover:bg-white/5 ${chartMetric === m ? "text-white" : "text-white/60"}`}>
-                      {m}<span className={chartMetric === m ? "text-blue-400" : "hidden"}>✓</span>
+                      {m}<span className={chartMetric === m ? "text-blue-400" : "hidden"}>âœ“</span>
                     </button>
                   ))}
                 </div>
@@ -1391,7 +1391,7 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
   const linkedDiscordId = user?.discord_id || (user?.provider === "discord" ? user?.provider_id : null) || null;
   const [savedMsg, setSavedMsg] = useState<string | null>(null);
   const showSaved = (msg: string, delayNote = true) => {
-    setSavedMsg(delayNote ? `${msg} — can take a few seconds for changes to take place` : msg);
+    setSavedMsg(delayNote ? `${msg} â€” can take a few seconds for changes to take place` : msg);
     setTimeout(() => setSavedMsg(null), 3500);
   };
 
@@ -1771,7 +1771,7 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
             <svg className="shrink-0 relative vfx-flicker" xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
             <div className="relative vfx-flicker">
               <h3 className="text-lg font-bold text-white">Heads up!</h3>
-              <p className="text-sm text-white/75 mt-1">saving can take a few seconds — wait a moment after clicking save before checking your page</p>
+              <p className="text-sm text-white/75 mt-1">saving can take a few seconds â€” wait a moment after clicking save before checking your page</p>
             </div>
           </div>
         </div>
@@ -1867,7 +1867,7 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
             className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl px-4 py-3 text-sm text-white outline-none placeholder:text-white/10 focus:border-blue-500/30 transition-colors"
           />
           <div className="flex justify-between items-center mt-3">
-            <p className="text-xs text-white/20">shown as the name on your biolink — leave empty to use your username</p>
+            <p className="text-xs text-white/20">shown as the name on your biolink â€” leave empty to use your username</p>
             <button onClick={saveDisplayName} disabled={savingDisplayName} className="text-xs bg-blue-600 hover:bg-blue-500 disabled:opacity-40 px-3 py-1 rounded-lg text-white transition-colors">
               {savingDisplayName ? "saving..." : "save"}
             </button>
@@ -1997,7 +1997,7 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
                     onClick={() => setDescLines(descLines.filter((_, i) => i !== idx))}
                     className="text-xs text-red-400 hover:text-red-300 px-2"
                   >
-                    ✕
+                    âœ•
                   </button>
                 </div>
               ))}
@@ -2446,7 +2446,7 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
             style={customFontUrl ? { fontFamily: CUSTOM_FONT_FAMILY } : undefined}
             title={customFontUrl ? "custom font file stored" : "no font file uploaded yet"}
           >
-            Custom{customFontUrl ? (font === CUSTOM_FONT_NAME ? " ✓" : "") : "*"}
+            Custom{customFontUrl ? (font === CUSTOM_FONT_NAME ? " âœ“" : "") : "*"}
           </button>
         </div>
         {font === CUSTOM_FONT_NAME || customFontUrl ? (
@@ -2485,7 +2485,7 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
               <div className="mb-3 p-3 rounded-xl bg-emerald-500/[0.06] border border-emerald-500/20">
                 <p className="text-[11px] text-white/60">Uploaded file:</p>
                 <p className="text-xs text-white font-semibold truncate" style={customFontUrl ? { fontFamily: CUSTOM_FONT_FAMILY } : undefined}>{customFontName || "custom font file"}</p>
-                <p className="text-[11px] mt-1">{font === CUSTOM_FONT_NAME ? <span className="text-emerald-400/90">currently using this font ✓</span> : <span className="text-amber-400/90">stored but not equipped — click Custom above + save to use it</span>}</p>
+                <p className="text-[11px] mt-1">{font === CUSTOM_FONT_NAME ? <span className="text-emerald-400/90">currently using this font âœ“</span> : <span className="text-amber-400/90">stored but not equipped â€” click Custom above + save to use it</span>}</p>
                 <FontLoadStatus url={customFontUrl} />
               </div>
             ) : (
@@ -3020,7 +3020,7 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
                     const file = videoBgRef.current?.files?.[0];
                     if (!file) return;
                     const vcap = myBadges.includes("premium") ? 10 : 5;
-                    if (file.size > vcap * 1024 * 1024) { showSaved(`video too large (max ${vcap}MB) — compress your video and try again`, false); return; }
+                    if (file.size > vcap * 1024 * 1024) { showSaved(`video too large (max ${vcap}MB) â€” compress your video and try again`, false); return; }
                     await uploadAsset("video_background", file);
                     setIsBgModalOpen(false);
                   }} />
@@ -3112,9 +3112,9 @@ function FontLoadStatus({ url }: { url: string }) {
     run();
     return () => { alive = false; };
   }, [url]);
-  if (state === "loaded") return <p className="text-[11px] text-emerald-400/80 mt-1">font file loads ✓</p>;
-  if (state === "failed") return <p className="text-[11px] text-red-400/90 mt-1">font file failed to load — try re-uploading the .ttf/.otf</p>;
-  return <p className="text-[11px] text-white/30 mt-1">checking font file…</p>;
+  if (state === "loaded") return <p className="text-[11px] text-emerald-400/80 mt-1">font file loads âœ“</p>;
+  if (state === "failed") return <p className="text-[11px] text-red-400/90 mt-1">font file failed to load â€” try re-uploading the .ttf/.otf</p>;
+  return <p className="text-[11px] text-white/30 mt-1">checking font fileâ€¦</p>;
 }
 
 function Toggle({ checked, onChange, className = "" }: { checked: boolean; onChange: (v: boolean) => void; className?: string }) {  return (
@@ -3774,7 +3774,7 @@ function AdminBadges() {
     if (!targetUser) return;
     const reason = prompt(`Reason for resetting ALL ${kind} on @${targetUser.username}? This will be shown to them.`);
     if (reason === null) return;
-    if (!reason.trim()) { alert("Add a reason — it will be shown to the user."); return; }
+    if (!reason.trim()) { alert("Add a reason â€” it will be shown to the user."); return; }
     if (!confirm(`Reset ALL ${kind} on @${targetUser.username}? This wipes the counter to zero and cannot be undone.`)) return;
     const r = await apiCall(kind === "views" ? "admin_reset_views" : kind === "likes" ? "admin_reset_likes" : "admin_reset_dislikes", { targetUid: targetUser.id, reason: reason.trim().slice(0, 200) });
     if (r.error) { alert(r.error || "Failed"); return; }
@@ -3826,7 +3826,7 @@ function AdminBadges() {
 
   return (
     <div>
-      <h1 className="text-lg font-semibold text-white/40 mb-8 lowercase">admin — badge management</h1>
+      <h1 className="text-lg font-semibold text-white/40 mb-8 lowercase">admin â€” badge management</h1>
 
       <div className="glass-card rounded-2xl p-6 space-y-6">
         <div className="flex items-center gap-3">
@@ -3853,7 +3853,7 @@ function AdminBadges() {
               </div>
               <div>
                 <p className="text-sm font-semibold text-white">{targetUser.alias || targetUser.username}</p>
-                <p className="text-xs text-white/40">@{targetUser.username} — uid #{targetUser.id}{Number(targetUser.is_admin || 0) === 1 && <span className="ml-2 text-[10px] font-bold uppercase tracking-widest text-amber-300/80">admin</span>}</p>
+                <p className="text-xs text-white/40">@{targetUser.username} â€” uid #{targetUser.id}{Number(targetUser.is_admin || 0) === 1 && <span className="ml-2 text-[10px] font-bold uppercase tracking-widest text-amber-300/80">admin</span>}</p>
               </div>
               {targetUser.id !== 1 && (
                 <button
@@ -3913,7 +3913,7 @@ function AdminBadges() {
                         : "bg-white/[0.02] border-white/[0.06] text-white/60 hover:border-white/20"
                     }`}
                   >
-                    {Number(targetUser.suspended || 0) === 1 ? "suspended — click to unsuspend" : "suspend account"}
+                    {Number(targetUser.suspended || 0) === 1 ? "suspended â€” click to unsuspend" : "suspend account"}
                   </button>
                   <button
                     onClick={() => toggleFlag("hidden")}
@@ -3923,7 +3923,7 @@ function AdminBadges() {
                         : "bg-white/[0.02] border-white/[0.06] text-white/60 hover:border-white/20"
                     }`}
                   >
-                    {Number(targetUser.hidden || 0) === 1 ? "hidden — click to unhide" : "hide page + leaderboard"}
+                    {Number(targetUser.hidden || 0) === 1 ? "hidden â€” click to unhide" : "hide page + leaderboard"}
                   </button>
                 </>
               )}
@@ -3969,7 +3969,7 @@ function AdminBadges() {
                   <p className="text-xs text-white/30">no other accounts on this ip</p>
                 ) : (
                   alts.map((a) => (
-                    <p key={a.id} className="text-xs text-white/60 py-0.5">@{a.username} — uid #{a.id} <span className="text-white/25">{a.created_at?.slice(0, 10)}</span></p>
+                    <p key={a.id} className="text-xs text-white/60 py-0.5">@{a.username} â€” uid #{a.id} <span className="text-white/25">{a.created_at?.slice(0, 10)}</span></p>
                   ))
                 )}
               </div>
@@ -4051,7 +4051,7 @@ function AdminBanUser() {
 
   return (
     <div>
-      <h1 className="text-lg font-semibold text-white/40 mb-8 lowercase">admin — ban user</h1>
+      <h1 className="text-lg font-semibold text-white/40 mb-8 lowercase">admin â€” ban user</h1>
       <div className="glass-card rounded-2xl p-6 space-y-6 max-w-md">
         <div className="flex items-center gap-3">
           <input
@@ -4077,20 +4077,20 @@ function AdminBanUser() {
               </div>
               <div>
                 <p className="text-base font-semibold text-white">{targetUser.alias || targetUser.username}</p>
-                <p className="text-xs text-white/40">@{targetUser.username} — uid #{targetUser.id}</p>
+                <p className="text-xs text-white/40">@{targetUser.username} â€” uid #{targetUser.id}</p>
               </div>
             </div>
             <p className="text-sm text-white/60 mb-4">
               This will permanently delete the user and ALL associated data:
             </p>
             <ul className="text-xs text-white/40 space-y-1 mb-4">
-              <li>• Profile (alias, bio, avatar, banner, settings)</li>
-              <li>• All links</li>
-              <li>• All badges</li>
-              <li>• Page views & analytics</li>
-              <li>• Saved templates</li>
-              <li>• Song settings</li>
-              <li>• Username becomes available</li>
+              <li>â€¢ Profile (alias, bio, avatar, banner, settings)</li>
+              <li>â€¢ All links</li>
+              <li>â€¢ All badges</li>
+              <li>â€¢ Page views & analytics</li>
+              <li>â€¢ Saved templates</li>
+              <li>â€¢ Song settings</li>
+              <li>â€¢ Username becomes available</li>
             </ul>
             <button
               onClick={handleBanUser}
@@ -4115,15 +4115,15 @@ function AdminStats() {
   const maxDay = Math.max(1, ...(stats?.signups30d || []).map((s) => s.count));
   return (
     <div className="mb-10">
-      <h1 className="text-lg font-semibold text-white/40 mb-8 lowercase">admin — site stats</h1>
+      <h1 className="text-lg font-semibold text-white/40 mb-8 lowercase">admin â€” site stats</h1>
       <div className="glass-card rounded-2xl p-6 space-y-6">
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
           {[
-            { label: "users", value: String(stats?.users ?? "…") },
-            { label: "total views", value: String(stats?.views ?? "…") },
-            { label: "views 7d", value: String(stats?.views7d ?? "…") },
-            { label: "files", value: String(stats?.files ?? "…") },
-            { label: "storage", value: stats ? fmtBytes(stats.bytes) : "…" },
+            { label: "users", value: String(stats?.users ?? "â€¦") },
+            { label: "total views", value: String(stats?.views ?? "â€¦") },
+            { label: "views 7d", value: String(stats?.views7d ?? "â€¦") },
+            { label: "files", value: String(stats?.files ?? "â€¦") },
+            { label: "storage", value: stats ? fmtBytes(stats.bytes) : "â€¦" },
           ].map((s) => (
             <div key={s.label} className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] text-center">
               <p className="text-xl font-black text-white">{s.value}</p>
@@ -4178,15 +4178,15 @@ function AdminStorage() {
   };
   return (
     <div className="mb-10">
-      <h1 className="text-lg font-semibold text-white/40 mb-8 lowercase">admin — storage</h1>
+      <h1 className="text-lg font-semibold text-white/40 mb-8 lowercase">admin â€” storage</h1>
       <div className="glass-card rounded-2xl p-6 space-y-3">
         {rows.length === 0 && <p className="text-xs text-white/20">no stored files</p>}
         {rows.map((r) => (
           <div key={r.user_id} className="rounded-xl bg-white/[0.02] border border-white/[0.06] overflow-hidden">
             <div className="flex items-center gap-3 p-3">
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-white truncate">@{r.username || "?"} <span className="text-white/30 font-normal">— uid #{r.user_id}</span></p>
-                <p className="text-xs text-white/40">{r.files} files · {fmtBytes(Number(r.bytes))}</p>
+                <p className="text-sm font-semibold text-white truncate">@{r.username || "?"} <span className="text-white/30 font-normal">â€” uid #{r.user_id}</span></p>
+                <p className="text-xs text-white/40">{r.files} files Â· {fmtBytes(Number(r.bytes))}</p>
               </div>
               <button onClick={() => openFiles(r.user_id)} className="px-4 py-1.5 rounded-lg text-[10px] font-bold tracking-widest uppercase bg-white/[0.04] text-white/50 border border-white/[0.08] hover:text-white transition-colors cursor-pointer">
                 {openUid === r.user_id ? "close" : "files"}
@@ -4199,7 +4199,7 @@ function AdminStorage() {
               <div className="border-t border-white/[0.06] px-3 py-2 space-y-1">
                 {files.map((f) => (
                   <div key={f.id} className="flex items-center gap-2 py-1">
-                    <p className="text-xs text-white/60 truncate flex-1 font-mono">{f.filename} <span className="text-white/25">({f.kind} · {fmtBytes(Number(f.bytes))})</span></p>
+                    <p className="text-xs text-white/60 truncate flex-1 font-mono">{f.filename} <span className="text-white/25">({f.kind} Â· {fmtBytes(Number(f.bytes))})</span></p>
                     <button onClick={() => delFile(f.id, f.filename)} className="text-[11px] text-red-400/60 hover:text-red-400 transition-colors cursor-pointer">delete</button>
                   </div>
                 ))}
@@ -4220,7 +4220,7 @@ function AdminLog() {
   }, []);
   return (
     <div className="mb-10">
-      <h1 className="text-lg font-semibold text-white/40 mb-8 lowercase">admin — action log</h1>
+      <h1 className="text-lg font-semibold text-white/40 mb-8 lowercase">admin â€” action log</h1>
       <div className="glass-card rounded-2xl p-6 space-y-1 max-h-96 overflow-y-auto">
         {log.length === 0 && <p className="text-xs text-white/20">no admin actions yet</p>}
         {log.map((e) => (
@@ -4228,7 +4228,7 @@ function AdminLog() {
             <span className="text-white/80 font-semibold">@{e.admin_name || `#${e.admin_id}`}</span>
             <span className="mx-1.5 px-1.5 py-0.5 rounded bg-white/[0.05] font-mono text-white/70">{e.action}</span>
             {e.target_uid !== null && <span>@{e.target_name || `#${e.target_uid}`}</span>}
-            {e.detail && <span className="text-white/30"> — {e.detail}</span>}
+            {e.detail && <span className="text-white/30"> â€” {e.detail}</span>}
             <span className="text-white/20 ml-2">{e.created_at?.replace("T", " ").slice(0, 19)}</span>
           </p>
         ))}
@@ -4361,7 +4361,7 @@ function Links({ user }: { user: User | null }) {
               ))}
             </div>
           ) : (
-            <p className="text-xs text-white/20">No custom links yet — add your own site, shop, or anything else.</p>
+            <p className="text-xs text-white/20">No custom links yet â€” add your own site, shop, or anything else.</p>
           )}
         </div>
       </div>
@@ -5044,7 +5044,7 @@ function ProfileLayouts({ user, onUpdateUser }: { user: User | null; onUpdateUse
         ))}
       </div>
 
-      {JustSaved && <p className="text-[11px] text-emerald-400/80 mt-4">layout saved — refresh your page to see it.</p>}
+      {JustSaved && <p className="text-[11px] text-emerald-400/80 mt-4">layout saved â€” refresh your page to see it.</p>}
     </div>
   );
 }
@@ -5075,6 +5075,12 @@ function PanelDesign({ user, onUpdateUser }: { user: User | null; onUpdateUser?:
   const [Cursor, setCursor] = useState<string | null>(null);
   const [AudioAsset, setAudioAsset] = useState<string | null>(null);
   const [Banner, setBanner] = useState<string | null>(null);
+  const [Toast, setToast] = useState<string | null>(null);
+  useEffect(() => {
+    if (!Toast) return;
+    const T = window.setTimeout(() => setToast(null), 2500);
+    return () => window.clearTimeout(T);
+  }, [Toast]);
   useEffect(() => {
     if (!user?.username) return;
     (async () => {
@@ -5136,7 +5142,7 @@ function PanelDesign({ user, onUpdateUser }: { user: User | null; onUpdateUser?:
     if (error) alert(error);
     else {
       if (onUpdateUser) onUpdateUser({ ...user, ...Data } as User);
-      showSaved("colors saved!");
+      setToast("colors saved!");
     }
     setSavingColors(false);
   };
@@ -5183,7 +5189,7 @@ function PanelDesign({ user, onUpdateUser }: { user: User | null; onUpdateUser?:
     if (!user) return;
     setSavingPanel(true);
     const { error } = await apiCall("update", { data: { panel_opacity: panelOpacity, panel_hidden: panelHidden } });
-    if (!error) showSaved("panel saved!");
+    if (!error) setToast("panel saved!");
     setSavingPanel(false);
   };
   return (
@@ -5337,6 +5343,9 @@ function PanelDesign({ user, onUpdateUser }: { user: User | null; onUpdateUser?:
       <div className="lg:w-[55%] flex-1 space-y-6">
         <Preview user={user} desc={user?.description || ""} descEffect={(user as any)?.desc_effect || "none"} descSpeed={user?.desc_effect_speed ?? 50} descLines={user?.desc_lines?.length ? user.desc_lines : (user?.description ? [user.description] : [])} background={Bg} audio={AudioAsset} profileAvatar={Avatar} customCursor={Cursor} displayEffect={user?.display_effect ?? "none"} sparkleIntensity={user?.sparkle_intensity ?? 14} font={user?.font ?? "Inter"} customFontUrl={(user as any)?.custom_font_url ?? null} customFontName={(user as any)?.custom_font_name ?? null} fontScope={(user as any)?.custom_font_scope ?? "all"} videoBg={VideoBg} videoAudio={null} bgEffect={(user as any)?.bg_effect ?? "none"} avatarShape={(user as any)?.avatar_shape ?? "circle"} avatarSize={(user as any)?.avatar_size ?? 48} avatarOffsetX={(user as any)?.avatar_offset_x ?? 0} avatarOffsetY={(user as any)?.avatar_offset_y ?? 0} onAvatarOffsetChange={() => {}} banner={Banner} bannerEnabled={user?.banner_enabled ?? true} entryText={user?.entry_text || "click anywhere to enter"} entryFont={user?.entry_font || "Inter"} entryColor={user?.entry_color || "rgba(255,255,255,0.5)"} entryEffect={user?.entry_effect || "none"} songPlatform={(user as any)?.song_platform ?? ""} songId={(user as any)?.song_id ?? ""} showUsername={user?.show_username !== false} primaryColor={primaryColor} secondaryColor={secondaryColor} accentColor={accentColor} textColor={textColor} backgroundColor={backgroundColor} iconColor={iconColor} bgEffectColor={bgEffectColor} panelMouseFollow={!!user?.panel_mouse_follow} cursorEffect={user?.cursor_effect || "none"} nameOffsetX={(user as any)?.name_offset_x ?? 0} nameOffsetY={(user as any)?.name_offset_y ?? 0} onNameOffsetChange={() => {}} badgeOffsetX={(user as any)?.badge_offset_x ?? 0} badgeOffsetY={(user as any)?.badge_offset_y ?? 0} onBadgeOffsetChange={() => {}} descOffsetX={(user as any)?.desc_offset_x ?? 0} descOffsetY={(user as any)?.desc_offset_y ?? 0} onDescOffsetChange={() => {}} songOffsetX={(user as any)?.song_offset_x ?? 0} songOffsetY={(user as any)?.song_offset_y ?? 0} onSongOffsetChange={() => {}} rpcOffsetX={(user as any)?.rpc_offset_x ?? 0} rpcOffsetY={(user as any)?.rpc_offset_y ?? 0} onRpcOffsetChange={() => {}} badges={[]} panelOpacity={panelOpacity} panelHidden={panelHidden} glowMode={glowMode} glowColor={glowColor} glowColor2={glowColor2} glowSpread={glowSpread} pulseEnabled={pulseOn} pulseColor={pulseColor} pulseSpeed={pulseSpeed} pulseType={pulseType} discordId={null} discordRpcEnabled={false} />
       </div>
+    {Toast ? (
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[300] bg-black/85 border border-white/10 text-white/90 text-xs px-4 py-2 rounded-lg shadow-lg">{Toast}</div>
+    ) : null}
     </div>
   );
 }
@@ -5864,7 +5873,7 @@ function HostManager({
                   <div className="p-3">
                     <p className="text-xs text-white/70 truncate">{item.filename}</p>
                     <p className="text-[10px] text-white/30 mt-1">
-                      {formatSize(item.size)} · {item.views} view{item.views === 1 ? "" : "s"} · {new Date(item.created_at).toLocaleDateString()}
+                      {formatSize(item.size)} Â· {item.views} view{item.views === 1 ? "" : "s"} Â· {new Date(item.created_at).toLocaleDateString()}
                     </p>
                     <div className="flex items-center gap-2 mt-3">
                       <button
@@ -5900,7 +5909,7 @@ function MediaHost({ user }: { user: User | null }) {
       kind="media"
       title="media host"
       accept="image/png,image/jpeg,image/gif,image/webp,image/avif,image/bmp,video/mp4,video/webm,video/quicktime,video/x-matroska,audio/mpeg,audio/wav,audio/ogg,audio/mp4,audio/flac"
-      hint="png, jpg, gif, webp, avif, bmp, mp4, webm, mov, mkv, mp3, wav, ogg, m4a, flac — max 10mb"
+      hint="png, jpg, gif, webp, avif, bmp, mp4, webm, mov, mkv, mp3, wav, ogg, m4a, flac â€” max 10mb"
       emptyText="no media hosted yet"
       lockedDesc="media host lets you upload images and videos and get a sire.lol link for each one. only premium users can use it."
     />
@@ -5914,7 +5923,7 @@ function FileHost({ user }: { user: User | null }) {
       kind="file"
       title="file host"
       accept="*/*"
-      hint="any type of file — max 10mb"
+      hint="any type of file â€” max 10mb"
       emptyText="no files hosted yet"
       lockedDesc="file host lets you upload any file up to 30mb and share it with a sire.lol link. only premium users can use it."
     />
@@ -5949,7 +5958,7 @@ function Widgets({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (u:
     setSaving(false);
     if (d.error) { alert(d.error); return; }
     if (d.user) onUpdateUser?.(d.user);
-    setSavedMsg("widgets saved — can take a few seconds for changes to take place");
+    setSavedMsg("widgets saved â€” can take a few seconds for changes to take place");
     setTimeout(() => setSavedMsg(""), 3500);
   };
 
@@ -6047,7 +6056,7 @@ function Widgets({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (u:
             </span>
           ) : (
             <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-300 bg-emerald-600/15 border border-emerald-500/30 rounded-full px-2.5 py-1">
-              free · up to 2 pages
+              free Â· up to 2 pages
             </span>
           )}
         </div>
@@ -6064,7 +6073,7 @@ function Widgets({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (u:
         </div>
 
         <div className="glass-card rounded-2xl p-6 mb-6 border-blue-500/10">
-          <p className="text-[11px] text-white/40 mb-3">number of pages on your biolink{premium ? "" : " · premium unlocks pages 3–4"}</p>
+          <p className="text-[11px] text-white/40 mb-3">number of pages on your biolink{premium ? "" : " Â· premium unlocks pages 3â€“4"}</p>
           <div className="flex gap-2">
             {[1, 2, 3, 4].map((n) => {
               const locked = !premium && n > 2;
@@ -6074,7 +6083,7 @@ function Widgets({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (u:
                   onClick={() => { if (!locked) setPages(n); }}
                   disabled={locked}
                   className={`h-10 w-10 rounded-xl text-sm font-bold transition-all border ${widgets.pages === n ? "bg-gradient-to-br from-blue-600 to-blue-500 text-white border-blue-400 shadow-[0_0_15px_rgba(37,99,235,0.4)]" : locked ? "bg-white/[0.02] text-white/20 border-white/5 cursor-not-allowed" : "bg-white/[0.03] text-white/50 border-white/10 hover:border-blue-500/40 hover:text-white/80 cursor-pointer"}`}
-                  title={locked ? "premium unlocks pages 3–4" : `${n} page${n > 1 ? "s" : ""}`}
+                  title={locked ? "premium unlocks pages 3â€“4" : `${n} page${n > 1 ? "s" : ""}`}
                 >
                   {n}
                 </button>
@@ -6083,14 +6092,14 @@ function Widgets({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (u:
           </div>
           <p className="text-[10px] text-white/30 mt-3">
             {widgets.pages === 1
-              ? "page 1 · glasscard"
-              : `pages 1–${widgets.pages} · glasscard, about, ${widgets.pages >= 3 ? "song, " : ""}${widgets.pages >= 4 ? "projects" : ""}`}
+              ? "page 1 Â· glasscard"
+              : `pages 1â€“${widgets.pages} Â· glasscard, about, ${widgets.pages >= 3 ? "song, " : ""}${widgets.pages >= 4 ? "projects" : ""}`}
           </p>
         </div>
 
         {widgets.pages >= 2 && widgets.about && (
           <div className="glass-card rounded-2xl p-6 mb-6 border-blue-500/10">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-blue-300/80 mb-4">page 2 · about me</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-blue-300/80 mb-4">page 2 Â· about me</p>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="space-y-4">
                 <div>
@@ -6259,7 +6268,7 @@ function Widgets({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (u:
                     <label className="text-[11px] font-semibold text-white/60">pin to main panel</label>
                     <span className="text-[10px] font-mono text-white/40">{(widgets.about.side || []).length}/{MAX_SIDE_WIDGETS}</span>
                   </div>
-                  <p className="text-[10px] text-white/30 mb-3 leading-relaxed">pick up to 2 widgets to dock on the right side of your main page, next to your info. off by default — pinned widgets stay on your about page too. hit save below when done.</p>
+                  <p className="text-[10px] text-white/30 mb-3 leading-relaxed">pick up to 2 widgets to dock on the right side of your main page, next to your info. off by default â€” pinned widgets stay on your about page too. hit save below when done.</p>
                   <div className="flex gap-1.5 mb-3">
                     <div className="flex-1 rounded-lg border border-white/10 bg-white/[0.03] px-2 py-2 text-center text-[10px] text-white/50">profile info</div>
                     {(widgets.about.side || []).map((k) => (
@@ -6292,7 +6301,7 @@ function Widgets({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (u:
                               setPinHint("");
                               return;
                             }
-                            if (full) { setPinHint("max 3 — unpin one first"); return; }
+                            if (full) { setPinHint("max 3 â€” unpin one first"); return; }
                             if (!ready) { setPinHint(`set up your ${SIDE_WIDGET_LABELS[k].toLowerCase()} above first`); return; }
                             patchAbout({ side: [...side, k] });
                             setPinHint("");
@@ -6305,8 +6314,8 @@ function Widgets({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (u:
                                 : "bg-white/[0.03] border-white/10 text-white/40 hover:text-white/60"
                           }`}
                         >
-                          {selected ? `${side.indexOf(k) + 1} · ` : null}{SIDE_WIDGET_LABELS[k]}
-                          {!ready && !selected ? <span className="text-white/20">· off</span> : null}
+                          {selected ? `${side.indexOf(k) + 1} Â· ` : null}{SIDE_WIDGET_LABELS[k]}
+                          {!ready && !selected ? <span className="text-white/20">Â· off</span> : null}
                         </button>
                       );
                     })}
@@ -6323,7 +6332,7 @@ function Widgets({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (u:
 
         {widgets.pages >= 3 && widgets.song && (
           <div className="glass-card rounded-2xl p-6 mb-6 border-blue-500/10">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-blue-300/80 mb-4">page 3 · song + live lyrics</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-blue-300/80 mb-4">page 3 Â· song + live lyrics</p>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="space-y-4">
                 <div>
@@ -6337,7 +6346,7 @@ function Widgets({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (u:
                   />
                 </div>
                 <p className="text-[11px] text-white/30 leading-relaxed">
-                  paste a spotify track link — the page will show the track embed plus live synced lyrics below it.
+                  paste a spotify track link â€” the page will show the track embed plus live synced lyrics below it.
                 </p>
               </div>
               <div className="flex items-center justify-center rounded-2xl border border-white/[0.06] bg-black/20 p-6">
@@ -6351,7 +6360,7 @@ function Widgets({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (u:
           <div className="glass-card rounded-2xl p-6 mb-6 border-blue-500/10">
             <div className="flex items-center justify-between mb-4">
               <p className="text-[10px] font-bold uppercase tracking-widest text-blue-300/80">
-                page 4 · my projects ({widgets.projects.projects.length}/{MAX_PROJECTS})
+                page 4 Â· my projects ({widgets.projects.projects.length}/{MAX_PROJECTS})
               </p>
               <button
                 onClick={addProject}
