@@ -106,7 +106,6 @@ const tabs = [
   { id: "customize", label: "customize", icon: Paintbrush },
   { id: "layouts", label: "profile layouts", icon: LayoutTemplate },
   { id: "design", label: "panel design", icon: Palette },
-  { id: "design", label: "panel design", icon: Palette },
   { id: "visibility", label: "visibility", icon: Eye },
   { id: "links", label: "links", icon: LucideLink },
   { id: "templates", label: "templates", icon: Layout },
