@@ -69,6 +69,9 @@ type User = {
   panel_glow_color: string | null;
   panel_glow_color_2: string | null;
   panel_glow_spread: number | null;
+  panel_pulse_enabled: boolean | null;
+  panel_pulse_color: string | null;
+  panel_pulse_speed: number | null;
   show_votes: boolean | null;
   custom_font_scope: string | null;
   description: string | null;
@@ -920,6 +923,18 @@ export default function Biolink() {
                 return `0 0 ${B}px ${T}px ${Col}`;
               })(),
             }}>
+            {!user?.panel_hidden && user?.panel_pulse_enabled && user?.panel_pulse_color ? (
+              <div className="pointer-events-none absolute inset-0 rounded-3xl">
+                <span
+                  className="pulse-dot"
+                  style={{
+                    backgroundColor: user.panel_pulse_color || "",
+                    boxShadow: `0 0 8px 2px ${user.panel_pulse_color}, 0 0 18px 6px ${user.panel_pulse_color}`,
+                    animationDuration: `${(100 - (user?.panel_pulse_speed ?? 50)) * 0.12 + 3}s, 1.2s`,
+                  }}
+                />
+              </div>
+            ) : null}
             <motion.div variants={dropContainer} initial="hidden" animate={entered ? "show" : "hidden"} className={`min-w-0 ${IsGrid ? "grid grid-cols-[auto_minmax(0,1fr)] gap-x-5 items-start" : `flex flex-col ${IsLeft ? "items-start" : "items-center"}`}`}>
             {user.banner_enabled && banner && (
               <div className={`pointer-events-none absolute inset-x-0 top-0 z-[1] ${IsCover ? "h-44" : "h-32"} overflow-hidden rounded-t-3xl`}>

@@ -31,7 +31,7 @@ const USER_FIELDS = new Set([
   "name_offset_x", "name_offset_y", "badge_offset_x", "badge_offset_y",
   "desc_offset_x", "desc_offset_y", "song_offset_x", "song_offset_y",
   "discord_rpc_offset_x", "discord_rpc_offset_y",
-  "panel_opacity", "panel_hidden", "discord_rpc_enabled",
+  "panel_opacity", "panel_hidden", "discord_rpc_enabled", "panel_pulse_enabled",
   "widgets", "onboarding_done", "use_case", "show_joindate", "show_views", "show_votes", "custom_font_scope",
   "embed_buttons", "click_sound", "profile_layout", "country", "panel_glow_mode", "panel_glow_color", "panel_glow_color_2", "panel_glow_spread",
 ]);
@@ -159,7 +159,7 @@ function ParseJson(V, Fallback) {
 const BOOL_COLS = new Set([
   "show_username", "video_audio", "monochrome_icons", "monochrome_badges",
   "banner_enabled", "panel_mouse_follow", "audio_autoplay", "audio_loop",
-  "audio_shuffle", "panel_hidden", "discord_rpc_enabled", "views_blacklisted",
+  "audio_shuffle", "panel_hidden", "discord_rpc_enabled", "panel_pulse_enabled", "views_blacklisted",
   "onboarding_done", "show_joindate", "show_views", "show_votes",
 ]);
 
@@ -227,7 +227,10 @@ async function EnsureSchema() {
     D.execute("ALTER TABLE users ADD COLUMN panel_glow_mode TEXT NOT NULL DEFAULT 'none'"),
     D.execute("ALTER TABLE users ADD COLUMN panel_glow_color TEXT NOT NULL DEFAULT ''"),
     D.execute("ALTER TABLE users ADD COLUMN panel_glow_color_2 TEXT NOT NULL DEFAULT ''"),
-    D.execute("ALTER TABLE users ADD COLUMN panel_glow_spread INTEGER NOT NULL DEFAULT 50"),
+    D.execute("ALTER TABLE users ADD COLUMN panel_glow_spread INTEGER NOT NULL DEFAULT 50").catch(() => {}),
+    D.execute("ALTER TABLE users ADD COLUMN panel_pulse_enabled INTEGER NOT NULL DEFAULT 0"),
+    D.execute("ALTER TABLE users ADD COLUMN panel_pulse_color TEXT NOT NULL DEFAULT ''"),
+    D.execute("ALTER TABLE users ADD COLUMN panel_pulse_speed INTEGER NOT NULL DEFAULT 50"),
     D.execute("ALTER TABLE users ADD COLUMN country TEXT NOT NULL DEFAULT ''"),
     D.execute("CREATE TABLE IF NOT EXISTS admin_log (id INTEGER PRIMARY KEY AUTOINCREMENT, admin_id INTEGER NOT NULL, action TEXT NOT NULL, target_uid INTEGER, detail TEXT, created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')))"),
     D.execute("CREATE INDEX IF NOT EXISTS idx_admin_log_time ON admin_log (created_at DESC)"),

@@ -41,6 +41,9 @@ type User = {
   panel_glow_color: string | null;
   panel_glow_color_2: string | null;
   panel_glow_spread: number | null;
+  panel_pulse_enabled: boolean | null;
+  panel_pulse_color: string | null;
+  panel_pulse_speed: number | null;
   display_effect: string | null;
   sparkle_intensity?: number | null;
   font: string | null;
@@ -1320,6 +1323,9 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
   const [glowColor, setGlowColor] = useState(user?.panel_glow_color || "");
   const [glowColor2, setGlowColor2] = useState(user?.panel_glow_color_2 || "");
   const [glowSpread, setGlowSpread] = useState(user?.panel_glow_spread ?? 50);
+  const [pulseOn, setPulseOn] = useState(!!user?.panel_pulse_enabled);
+  const [pulseColor, setPulseColor] = useState(user?.panel_pulse_color || "");
+  const [pulseSpeed, setPulseSpeed] = useState(user?.panel_pulse_speed ?? 50);
   const [savingColors, setSavingColors] = useState(false);
   const [displayEffect, setDisplayEffect] = useState(user?.display_effect || "none");
   const [sparkleIntensity, setSparkleIntensity] = useState(user?.sparkle_intensity ?? 14);
@@ -1448,6 +1454,9 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
     setGlowColor(user.panel_glow_color || "");
     setGlowColor2(user.panel_glow_color_2 || "");
     setGlowSpread(user.panel_glow_spread ?? 50);
+  setPulseOn(!!user.panel_pulse_enabled);
+  setPulseColor(user.panel_pulse_color || "");
+  setPulseSpeed(user.panel_pulse_speed ?? 50);
     setDisplayEffect(user.display_effect || "none");
     setSparkleIntensity(user.sparkle_intensity ?? 14);
     setFont(user.font || "Inter");
@@ -1555,6 +1564,9 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
         panel_glow_color: glowColor,
         panel_glow_color_2: glowColor2,
         panel_glow_spread: glowSpread,
+  panel_pulse_enabled: pulseOn,
+  panel_pulse_color: pulseColor,
+  panel_pulse_speed: pulseSpeed,
       },
     });
     if (error) console.error("saveColors error:", error);
@@ -1574,6 +1586,9 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
     setGlowColor("");
     setGlowColor2("");
     setGlowSpread(50);
+  setPulseOn(false);
+  setPulseColor("");
+  setPulseSpeed(50);
     if (!user) return;
     setSavingColors(true);
     const { error } = await apiCall("update", {
@@ -1589,6 +1604,9 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
         panel_glow_color: "",
         panel_glow_color_2: "",
         panel_glow_spread: 50,
+  panel_pulse_enabled: false,
+  panel_pulse_color: "",
+  panel_pulse_speed: 50,
       },
     });
     if (error) console.error("reset error:", error);
@@ -2285,6 +2303,32 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
                 <p className="text-[10.5px] text-white/30">spread controls how far the glow bleeds out. hit save colors to apply.</p>
               </>
             )}
+            <div className="pt-4 border-t border-white/[0.06] space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-semibold text-white/80">edge pulse</p>
+                  <p className="text-[10.5px] text-white/30">heartbeat dot travels around the panel edge.</p>
+                </div>
+                <Toggle checked={pulseOn} onChange={(V) => setPulseOn(V)} />
+              </div>
+              {pulseOn && (
+                <>
+                  <div className="flex items-center gap-3">
+                    <span className="w-20 shrink-0 text-xs text-white/55">color</span>
+                    <input type="color" value={pulseColor.startsWith("#") ? pulseColor : "#3b82f6"} onChange={(e) => setPulseColor(e.target.value)} className="h-8 w-10 shrink-0 rounded-lg border border-white/[0.1] bg-white/[0.03] cursor-pointer p-0 overflow-hidden" />
+                    <input type="text" value={pulseColor} onChange={(e) => setPulseColor(e.target.value)} placeholder="#3b82f6" className="flex-1 min-w-0 bg-white/[0.03] border border-white/[0.06] rounded-lg px-2.5 py-1.5 text-white/80 outline-none focus:border-blue-500/40 transition-colors font-mono text-xs" />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-white/55">pulse speed</span>
+                    <div className="flex items-center gap-2">
+                      <input type="range" min={0} max={100} value={pulseSpeed} onChange={(e) => setPulseSpeed(Number(e.target.value))} className="w-28 h-1 accent-blue-500 cursor-pointer" />
+                      <span className="text-[10px] font-mono text-white/40 w-8 text-right">{pulseSpeed}%</span>
+                    </div>
+                  </div>
+                  <p className="text-[10.5px] text-white/30">higher speed = faster laps around the panel. hit save colors to apply.</p>
+                </>
+              )}
+            </div>
           </div>
           <div className="mt-4 flex justify-end gap-3">
             <button onClick={resetToGlassy} disabled={savingColors} className="text-xs bg-white/[0.05] hover:bg-white/[0.1] border border-white/[0.1] disabled:opacity-40 px-4 py-2 rounded-lg text-white transition-colors cursor-pointer">
@@ -2299,7 +2343,7 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
     </div>
 
     <div className="lg:w-[55%] flex-1 space-y-6">
-      <Preview user={user} desc={desc} descEffect={descEffect} descSpeed={descSpeed} descLines={descLines} background={background} audio={audio1 || audio2} profileAvatar={profileAvatar} customCursor={customCursor} displayEffect={displayEffect} sparkleIntensity={sparkleIntensity} font={font} customFontUrl={customFontUrl} customFontName={customFontName} fontScope={fontScope} videoBg={videoBg} videoAudio={videoAudio} bgEffect={bgEffect} avatarShape={avatarShape} avatarSize={avatarSize} avatarOffsetX={avatarOffsetX} avatarOffsetY={avatarOffsetY} onAvatarOffsetChange={(x, y) => { setAvatarOffsetX(Math.round(x)); setAvatarOffsetY(Math.round(y)); }} banner={banner} bannerEnabled={bannerEnabled} entryText={entryText} entryFont={entryFont} entryColor={entryColor} entryEffect={entryEffect} songPlatform={songPlatform} songId={songId} showUsername={showUsername} primaryColor={primaryColor} secondaryColor={secondaryColor} accentColor={accentColor} textColor={textColor} backgroundColor={backgroundColor} iconColor={iconColor} bgEffectColor={bgEffectColor} panelMouseFollow={panelMouseFollow} cursorEffect={cursorEffect} nameOffsetX={nameOffsetX} nameOffsetY={nameOffsetY} onNameOffsetChange={(x, y) => { setNameOffsetX(Math.round(x)); setNameOffsetY(Math.round(y)); }} badgeOffsetX={badgeOffsetX} badgeOffsetY={badgeOffsetY} onBadgeOffsetChange={(x, y) => { setBadgeOffsetX(Math.round(x)); setBadgeOffsetY(Math.round(y)); }} descOffsetX={descOffsetX} descOffsetY={descOffsetY} onDescOffsetChange={(x, y) => { setDescOffsetX(Math.round(x)); setDescOffsetY(Math.round(y)); }} songOffsetX={songOffsetX} songOffsetY={songOffsetY} onSongOffsetChange={(x, y) => { setSongOffsetX(Math.round(x)); setSongOffsetY(Math.round(y)); }} rpcOffsetX={rpcOffsetX} rpcOffsetY={rpcOffsetY} onRpcOffsetChange={(x, y) => { setRpcOffsetX(Math.round(x)); setRpcOffsetY(Math.round(y)); }} badges={myBadges} panelOpacity={panelOpacity} panelHidden={panelHidden} glowMode={glowMode} glowColor={glowColor} glowColor2={glowColor2} glowSpread={glowSpread} discordId={linkedDiscordId} discordRpcEnabled={discordRpcEnabled} />
+      <Preview user={user} desc={desc} descEffect={descEffect} descSpeed={descSpeed} descLines={descLines} background={background} audio={audio1 || audio2} profileAvatar={profileAvatar} customCursor={customCursor} displayEffect={displayEffect} sparkleIntensity={sparkleIntensity} font={font} customFontUrl={customFontUrl} customFontName={customFontName} fontScope={fontScope} videoBg={videoBg} videoAudio={videoAudio} bgEffect={bgEffect} avatarShape={avatarShape} avatarSize={avatarSize} avatarOffsetX={avatarOffsetX} avatarOffsetY={avatarOffsetY} onAvatarOffsetChange={(x, y) => { setAvatarOffsetX(Math.round(x)); setAvatarOffsetY(Math.round(y)); }} banner={banner} bannerEnabled={bannerEnabled} entryText={entryText} entryFont={entryFont} entryColor={entryColor} entryEffect={entryEffect} songPlatform={songPlatform} songId={songId} showUsername={showUsername} primaryColor={primaryColor} secondaryColor={secondaryColor} accentColor={accentColor} textColor={textColor} backgroundColor={backgroundColor} iconColor={iconColor} bgEffectColor={bgEffectColor} panelMouseFollow={panelMouseFollow} cursorEffect={cursorEffect} nameOffsetX={nameOffsetX} nameOffsetY={nameOffsetY} onNameOffsetChange={(x, y) => { setNameOffsetX(Math.round(x)); setNameOffsetY(Math.round(y)); }} badgeOffsetX={badgeOffsetX} badgeOffsetY={badgeOffsetY} onBadgeOffsetChange={(x, y) => { setBadgeOffsetX(Math.round(x)); setBadgeOffsetY(Math.round(y)); }} descOffsetX={descOffsetX} descOffsetY={descOffsetY} onDescOffsetChange={(x, y) => { setDescOffsetX(Math.round(x)); setDescOffsetY(Math.round(y)); }} songOffsetX={songOffsetX} songOffsetY={songOffsetY} onSongOffsetChange={(x, y) => { setSongOffsetX(Math.round(x)); setSongOffsetY(Math.round(y)); }} rpcOffsetX={rpcOffsetX} rpcOffsetY={rpcOffsetY} onRpcOffsetChange={(x, y) => { setRpcOffsetX(Math.round(x)); setRpcOffsetY(Math.round(y)); }} badges={myBadges} panelOpacity={panelOpacity} panelHidden={panelHidden} glowMode={glowMode} glowColor={glowColor} glowColor2={glowColor2} glowSpread={glowSpread} pulseEnabled={pulseOn} pulseColor={pulseColor} pulseSpeed={pulseSpeed} discordId={linkedDiscordId} discordRpcEnabled={discordRpcEnabled} />
 
       <div className="glass-card rounded-2xl p-5 space-y-4">
         <div className="flex items-center justify-between">
@@ -3214,7 +3258,7 @@ function Toggle({ checked, onChange, className = "" }: { checked: boolean; onCha
   );
 }
 
-function Preview({ user, desc, background, audio, profileAvatar, customCursor, displayEffect, sparkleIntensity, font, customFontUrl, customFontName, fontScope, videoBg, videoAudio, bgEffect, descEffect, descSpeed, descLines, avatarShape, avatarSize, avatarOffsetX, avatarOffsetY, onAvatarOffsetChange, banner, bannerEnabled, entryText, entryFont, entryColor, entryEffect, songPlatform, songId, showUsername, primaryColor, secondaryColor, accentColor, textColor, backgroundColor, iconColor, bgEffectColor, panelMouseFollow, cursorEffect: cursorEffectType, nameOffsetX, nameOffsetY, onNameOffsetChange, badgeOffsetX, badgeOffsetY, onBadgeOffsetChange, descOffsetX, descOffsetY, onDescOffsetChange, songOffsetX, songOffsetY, onSongOffsetChange, rpcOffsetX, rpcOffsetY, onRpcOffsetChange, badges, panelOpacity, panelHidden, glowMode, glowColor, glowColor2, glowSpread, discordId, discordRpcEnabled }: { 
+function Preview({ user, desc, background, audio, profileAvatar, customCursor, displayEffect, sparkleIntensity, font, customFontUrl, customFontName, fontScope, videoBg, videoAudio, bgEffect, descEffect, descSpeed, descLines, avatarShape, avatarSize, avatarOffsetX, avatarOffsetY, onAvatarOffsetChange, banner, bannerEnabled, entryText, entryFont, entryColor, entryEffect, songPlatform, songId, showUsername, primaryColor, secondaryColor, accentColor, textColor, backgroundColor, iconColor, bgEffectColor, panelMouseFollow, cursorEffect: cursorEffectType, nameOffsetX, nameOffsetY, onNameOffsetChange, badgeOffsetX, badgeOffsetY, onBadgeOffsetChange, descOffsetX, descOffsetY, onDescOffsetChange, songOffsetX, songOffsetY, onSongOffsetChange, rpcOffsetX, rpcOffsetY, onRpcOffsetChange, badges, panelOpacity, panelHidden, glowMode, glowColor, glowColor2, glowSpread, pulseEnabled, pulseColor, pulseSpeed, discordId, discordRpcEnabled }: { 
   user: User | null; 
   desc?: string;
   background: string | null; 
@@ -3278,6 +3322,9 @@ function Preview({ user, desc, background, audio, profileAvatar, customCursor, d
   glowColor?: string;
   glowColor2?: string;
   glowSpread?: number;
+  pulseEnabled?: boolean;
+  pulseColor?: string;
+  pulseSpeed?: number;
   discordId?: string | null;
   discordRpcEnabled?: boolean;
 }) {
@@ -3462,6 +3509,18 @@ function Preview({ user, desc, background, audio, profileAvatar, customCursor, d
                 })(),
               }}
             >
+                {pulseEnabled && pulseColor && !panelHidden ? (
+                  <div className="pointer-events-none absolute inset-0 rounded-3xl">
+                    <span
+                      className="pulse-dot"
+                      style={{
+                        backgroundColor: pulseColor,
+                        boxShadow: `0 0 8px 2px ${pulseColor}, 0 0 18px 6px ${pulseColor}`,
+                        animationDuration: `${(100 - (pulseSpeed ?? 50)) * 0.12 + 3}s, 1.2s`,
+                      }}
+                    />
+                  </div>
+                ) : null}
                 {bannerEnabled && banner && (
                   <div className="pointer-events-none absolute inset-x-0 top-0 z-[1] h-32 overflow-hidden rounded-t-3xl">
                     <img
