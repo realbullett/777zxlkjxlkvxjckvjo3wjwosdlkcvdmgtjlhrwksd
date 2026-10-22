@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useNavigate, useSearchParams, Link as RouterLink, Link } from "react-router-dom";
 import { motion, AnimatePresence, LayoutGroup, useMotionValue } from "motion/react";
-import { User, Paintbrush, Link as LucideLink, Image, Crown, Layout, Shield, Home, AtSign, Hash, Eye, User as UserIcon, Volume2, X, Music, Play, Pause, Trash2, Upload, LogOut, Check, Database, Award, Copy, HardDrive, Layers, Type, Star, Clock, Search, TrendingUp, RefreshCw, Trophy, ChevronDown, LayoutTemplate } from "lucide-react";
+import { User, Paintbrush, Link as LucideLink, Image, Crown, Layout, Shield, Home, AtSign, Hash, Eye, User as UserIcon, Volume2, X, Music, Play, Pause, Trash2, Upload, LogOut, Check, Database, Award, Copy, HardDrive, Layers, Type, Star, Clock, Search, TrendingUp, RefreshCw, Trophy, ChevronDown, LayoutTemplate, Palette } from "lucide-react";
 import { PLATFORMS } from "../lib/platforms";
 import { FONTS, CUSTOM_FONT_FAMILY, CUSTOM_FONT_NAME, ResolveFontFamily, CustomFontFace, ToSameOriginUrl } from "../lib/fonts";
 import { SparkleText } from "../components/SparkleText";
@@ -105,6 +105,8 @@ const tabs = [
   { id: "overview", label: "account overview", icon: User },
   { id: "customize", label: "customize", icon: Paintbrush },
   { id: "layouts", label: "profile layouts", icon: LayoutTemplate },
+  { id: "design", label: "panel design", icon: Palette },
+  { id: "design", label: "panel design", icon: Palette },
   { id: "visibility", label: "visibility", icon: Eye },
   { id: "links", label: "links", icon: LucideLink },
   { id: "templates", label: "templates", icon: Layout },
@@ -149,7 +151,8 @@ const Countries = [
 
 const TAB_SUBS: Record<string, string[]> = {
   overview: ["profile info", "security", "danger zone"],
-  customize: ["colors", "fonts", "element positions", "name effects", "entry overlay", "background effects", "banner & audio", "other"],
+  customize: ["fonts", "element positions", "name effects", "entry overlay", "background effects", "banner & audio", "other"],
+  design: ["color customization", "panel opacity"],
   visibility: ["seo", "discord buttons", "counters"],
   links: ["my links", "platforms"],
   templates: ["my template", "gallery", "favorites"],
@@ -499,6 +502,7 @@ return (
                 {activeTab === "overview" && <AccountOverview user={user} onTab={setActiveTab} onUpdateUser={setUser} />}
                 {activeTab === "customize" && <Customize user={user} onUpdateUser={setUser} />}
                 {activeTab === "layouts" && <ProfileLayouts user={user} onUpdateUser={setUser} />}
+                {activeTab === "design" && <PanelDesign user={user} onUpdateUser={setUser} />}
                 {activeTab === "visibility" && <Visibility user={user} />}
                 {activeTab === "links" && <Links user={user} />}
                 {activeTab === "imagehost" && <MediaHost user={user} />}
@@ -2226,119 +2230,6 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
             )}
           </div>
         </div>
-
-        <div>
-          <p className="text-sm font-semibold text-white/80 mb-4">Color Customization</p>
-          <div className="rounded-2xl bg-white/[0.02] border border-white/[0.06] overflow-hidden divide-y divide-white/[0.04]">
-            {[
-              { label: "accent color", value: accentColor, onChange: setAccentColor },
-              { label: "text color", value: textColor, onChange: setTextColor },
-              { label: "background color", value: backgroundColor, onChange: setBackgroundColor },
-              { label: "icon color", value: iconColor, onChange: setIconColor },
-              { label: "bg effect color", value: bgEffectColor, onChange: setBgEffectColor },
-              { label: "primary color", value: primaryColor, onChange: setPrimaryColor },
-              { label: "secondary color", value: secondaryColor, onChange: setSecondaryColor },
-            ].map((c) => (
-              <div key={c.label} className="flex items-center gap-3 p-3.5">
-                <span className="w-28 shrink-0 text-xs text-white/55 font-medium">{c.label}</span>
-                <input
-                  type="color"
-                  value={c.value.startsWith("#") ? c.value : "#ffffff"}
-                  onChange={(e) => c.onChange(e.target.value)}
-                  className="h-8 w-10 shrink-0 rounded-lg border border-white/[0.1] bg-white/[0.03] cursor-pointer p-0 overflow-hidden"
-                />
-                <input
-                  type="text"
-                  value={c.value}
-                  onChange={(e) => c.onChange(e.target.value)}
-                  className="flex-1 min-w-0 bg-white/[0.03] border border-white/[0.06] rounded-lg px-2.5 py-1.5 text-white/80 outline-none focus:border-blue-500/40 transition-colors font-mono text-xs"
-                />
-              </div>
-            ))}
-          </div>
-          <div className="mt-6 rounded-2xl bg-white/[0.02] border border-white/[0.06] p-4 space-y-4">
-            <div>
-              <p className="text-sm font-semibold text-white/80">panel glow</p>
-              <p className="text-[10.5px] text-white/30 mt-0.5">glowing edge around your glass panel.</p>
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              {["none", "solid", "gradient"].map((M) => (
-                <button key={M} onClick={() => setGlowMode(M)} className={`py-2 rounded-xl text-xs font-medium border transition-all cursor-pointer ${glowMode === M ? "bg-blue-600/20 border-blue-500/40 text-blue-300" : "bg-white/[0.03] border-white/[0.06] text-white/45 hover:text-white/70 hover:bg-white/[0.06]"}`}>
-                  {M}
-                </button>
-              ))}
-            </div>
-            {glowMode !== "none" && (
-              <>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {glowMode === "solid" && (
-                    <div className="flex items-center gap-3">
-                      <span className="w-20 shrink-0 text-xs text-white/55">color</span>
-                      <input type="color" value={glowColor.startsWith("#") ? glowColor : "#3b82f6"} onChange={(e) => setGlowColor(e.target.value)} className="h-8 w-10 shrink-0 rounded-lg border border-white/[0.1] bg-white/[0.03] cursor-pointer p-0 overflow-hidden" />
-                      <input type="text" value={glowColor} onChange={(e) => setGlowColor(e.target.value)} placeholder="#3b82f6" className="flex-1 min-w-0 bg-white/[0.03] border border-white/[0.06] rounded-lg px-2.5 py-1.5 text-white/80 outline-none focus:border-blue-500/40 transition-colors font-mono text-xs" />
-                    </div>
-                  )}
-                  {glowMode === "gradient" && (
-                    <>
-                      <div className="flex items-center gap-3">
-                        <span className="w-20 shrink-0 text-xs text-white/55">color 1</span>
-                        <input type="color" value={glowColor.startsWith("#") ? glowColor : "#3b82f6"} onChange={(e) => setGlowColor(e.target.value)} className="h-8 w-10 shrink-0 rounded-lg border border-white/[0.1] bg-white/[0.03] cursor-pointer p-0 overflow-hidden" />
-                        <input type="text" value={glowColor} onChange={(e) => setGlowColor(e.target.value)} placeholder="#3b82f6" className="flex-1 min-w-0 bg-white/[0.03] border border-white/[0.06] rounded-lg px-2.5 py-1.5 text-white/80 outline-none focus:border-blue-500/40 transition-colors font-mono text-xs" />
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="w-20 shrink-0 text-xs text-white/55">color 2</span>
-                        <input type="color" value={glowColor2.startsWith("#") ? glowColor2 : "#a855f7"} onChange={(e) => setGlowColor2(e.target.value)} className="h-8 w-10 shrink-0 rounded-lg border border-white/[0.1] bg-white/[0.03] cursor-pointer p-0 overflow-hidden" />
-                        <input type="text" value={glowColor2} onChange={(e) => setGlowColor2(e.target.value)} placeholder="#a855f7" className="flex-1 min-w-0 bg-white/[0.03] border border-white/[0.06] rounded-lg px-2.5 py-1.5 text-white/80 outline-none focus:border-blue-500/40 transition-colors font-mono text-xs" />
-                      </div>
-                    </>
-                  )}
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-white/55">glow spread</span>
-                  <div className="flex items-center gap-2">
-                    <input type="range" min={0} max={100} value={glowSpread} onChange={(e) => setGlowSpread(Number(e.target.value))} className="w-28 h-1 accent-blue-500 cursor-pointer" />
-                    <span className="text-[10px] font-mono text-white/40 w-8 text-right">{glowSpread}%</span>
-                  </div>
-                </div>
-                <p className="text-[10.5px] text-white/30">spread controls how far the glow bleeds out. hit save colors to apply.</p>
-              </>
-            )}
-            <div className="pt-4 border-t border-white/[0.06] space-y-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-semibold text-white/80">edge pulse</p>
-                  <p className="text-[10.5px] text-white/30">heartbeat dot travels around the panel edge.</p>
-                </div>
-                <Toggle checked={pulseOn} onChange={(V) => setPulseOn(V)} />
-              </div>
-              {pulseOn && (
-                <>
-                  <div className="flex items-center gap-3">
-                    <span className="w-20 shrink-0 text-xs text-white/55">color</span>
-                    <input type="color" value={pulseColor.startsWith("#") ? pulseColor : "#3b82f6"} onChange={(e) => setPulseColor(e.target.value)} className="h-8 w-10 shrink-0 rounded-lg border border-white/[0.1] bg-white/[0.03] cursor-pointer p-0 overflow-hidden" />
-                    <input type="text" value={pulseColor} onChange={(e) => setPulseColor(e.target.value)} placeholder="#3b82f6" className="flex-1 min-w-0 bg-white/[0.03] border border-white/[0.06] rounded-lg px-2.5 py-1.5 text-white/80 outline-none focus:border-blue-500/40 transition-colors font-mono text-xs" />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-white/55">pulse speed</span>
-                    <div className="flex items-center gap-2">
-                      <input type="range" min={0} max={100} value={pulseSpeed} onChange={(e) => setPulseSpeed(Number(e.target.value))} className="w-28 h-1 accent-blue-500 cursor-pointer" />
-                      <span className="text-[10px] font-mono text-white/40 w-8 text-right">{pulseSpeed}%</span>
-                    </div>
-                  </div>
-                  <p className="text-[10.5px] text-white/30">higher speed = faster laps around the panel. hit save colors to apply.</p>
-                </>
-              )}
-            </div>
-          </div>
-          <div className="mt-4 flex justify-end gap-3">
-            <button onClick={resetToGlassy} disabled={savingColors} className="text-xs bg-white/[0.05] hover:bg-white/[0.1] border border-white/[0.1] disabled:opacity-40 px-4 py-2 rounded-lg text-white transition-colors cursor-pointer">
-              reset to glassy
-            </button>
-            <button onClick={saveColors} disabled={savingColors} className="text-xs bg-blue-600 hover:bg-blue-500 disabled:opacity-40 px-4 py-2 rounded-lg text-white transition-colors cursor-pointer">
-              {savingColors ? "saving..." : "save colors"}
-            </button>
-          </div>
-        </div>
       </div>
     </div>
 
@@ -2368,20 +2259,6 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
             <input type="range" min="48" max="200" value={avatarSize} onChange={(e) => setAvatarSize(Number(e.target.value))} className="w-24 h-1 accent-blue-500 cursor-pointer" />
             <span className="text-xs text-white/40 w-10 text-right">{avatarSize}px</span>
           </div>
-        </div>
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-white/50 font-semibold uppercase tracking-wider">Panel Opacity</span>
-          <div className="flex items-center gap-3">
-            <input type="range" min="0" max="100" value={panelOpacity} onChange={(e) => setPanelOpacity(Number(e.target.value))} className="w-24 h-1 accent-blue-500 cursor-pointer" />
-            <span className="text-xs text-white/40 w-10 text-right">{panelOpacity}%</span>
-          </div>
-        </div>
-        <div className="flex items-center gap-3 pt-2 border-t border-white/[0.04]">
-          <p className="text-[10px] text-white/30">0% = fully transparent, 100% = opaque</p>
-          <label className="flex items-center gap-2 text-xs text-white/50 cursor-pointer">
-            <Toggle checked={panelHidden} onChange={setPanelHidden} />
-            Hide panel completely
-          </label>
         </div>
         <div className="pt-3 border-t border-white/[0.04]">
           <h3 className="text-xs text-white/50 font-semibold uppercase tracking-wider mb-3">Position</h3>
@@ -2419,8 +2296,6 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
               setSongOffsetY(0);
               setRpcOffsetX(0);
               setRpcOffsetY(0);
-              setPanelOpacity(100);
-              setPanelHidden(false);
               const { error } = await apiCall("update", {
                 data: {
                   avatar_shape: avatarShape,
@@ -2437,8 +2312,6 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
                   song_offset_y: 0,
                   discord_rpc_offset_x: 0,
                   discord_rpc_offset_y: 0,
-                  panel_opacity: 100,
-                  panel_hidden: false,
                 },
               });
               if (!error) showSaved("positions reset");
@@ -2464,8 +2337,6 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
                   song_offset_y: songOffsetY,
                   discord_rpc_offset_x: rpcOffsetX,
                   discord_rpc_offset_y: rpcOffsetY,
-                  panel_opacity: panelOpacity,
-                  panel_hidden: panelHidden,
                 },
               });
               if (!error) showSaved("saved!");
@@ -5177,6 +5048,286 @@ function ProfileLayouts({ user, onUpdateUser }: { user: User | null; onUpdateUse
       </div>
 
       {JustSaved && <p className="text-[11px] text-emerald-400/80 mt-4">layout saved — refresh your page to see it.</p>}
+    </div>
+  );
+}
+
+function PanelDesign({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (u: User) => void }) {
+  const [accentColor, setAccentColor] = useState(user?.accent_color || "rgba(255, 255, 255, 0.05)");
+  const [textColor, setTextColor] = useState(user?.text_color || "#ffffff");
+  const [backgroundColor, setBackgroundColor] = useState(user?.background_color || "#080808");
+  const [iconColor, setIconColor] = useState(user?.icon_color || "#ffffff");
+  const [bgEffectColor, setBgEffectColor] = useState(user?.bg_effect_color || "rgba(255, 255, 255, 0.08)");
+  const [primaryColor, setPrimaryColor] = useState(user?.primary_color || "rgba(255, 255, 255, 0.1)");
+  const [secondaryColor, setSecondaryColor] = useState(user?.secondary_color || "rgba(255, 255, 255, 0.15)");
+  const [glowMode, setGlowMode] = useState(user?.panel_glow_mode || "none");
+  const [glowColor, setGlowColor] = useState(user?.panel_glow_color || "");
+  const [glowColor2, setGlowColor2] = useState(user?.panel_glow_color_2 || "");
+  const [glowSpread, setGlowSpread] = useState(user?.panel_glow_spread ?? 50);
+  const [pulseOn, setPulseOn] = useState(!!user?.panel_pulse_enabled);
+  const [pulseColor, setPulseColor] = useState(user?.panel_pulse_color || "#3b82f6");
+  const [pulseSpeed, setPulseSpeed] = useState(user?.panel_pulse_speed ?? 50);
+  const [panelOpacity, setPanelOpacity] = useState(user?.panel_opacity ?? 100);
+  const [panelHidden, setPanelHidden] = useState(!!user?.panel_hidden);
+  const [savingColors, setSavingColors] = useState(false);
+  const [savingPanel, setSavingPanel] = useState(false);
+  const [Bg, setBg] = useState<string | null>(null);
+  const [VideoBg, setVideoBg] = useState<string | null>(null);
+  const [Avatar, setAvatar] = useState<string | null>(null);
+  const [Cursor, setCursor] = useState<string | null>(null);
+  const [AudioAsset, setAudioAsset] = useState<string | null>(null);
+  const [Banner, setBanner] = useState<string | null>(null);
+  useEffect(() => {
+    if (!user?.username) return;
+    (async () => {
+      try {
+        const R = await fetch(`/api/profile?username=${encodeURIComponent(user.username)}`, { cache: "no-store" });
+        const J = await R.json();
+        for (const a of J?.assets || []) {
+          if (a.type === "background") setBg(a.url);
+          if (a.type === "video_background") setVideoBg(a.url);
+          if (a.type === "profile_avatar") setAvatar(a.url);
+          if (a.type === "custom_cursor") setCursor(a.url);
+          if (a.type === "audio" || a.type === "audio_1") setAudioAsset(a.url);
+          if (a.type === "banner") setBanner(a.url);
+        }
+      } catch {}
+    })();
+  }, [user?.username]);
+  useEffect(() => {
+    if (!user) return;
+    setAccentColor(user.accent_color || "rgba(255, 255, 255, 0.05)");
+    setTextColor(user.text_color || "#ffffff");
+    setBackgroundColor(user.background_color || "#080808");
+    setIconColor(user.icon_color || "#ffffff");
+    setBgEffectColor(user.bg_effect_color || "rgba(255, 255, 255, 0.08)");
+    setPrimaryColor(user.primary_color || "rgba(255, 255, 255, 0.1)");
+    setSecondaryColor(user.secondary_color || "rgba(255, 255, 255, 0.15)");
+    setGlowMode(user.panel_glow_mode || "none");
+    setGlowColor(user.panel_glow_color || "");
+    setGlowColor2(user.panel_glow_color_2 || "");
+    setGlowSpread(user.panel_glow_spread ?? 50);
+    setPulseOn(!!user.panel_pulse_enabled);
+    setPulseColor(user.panel_pulse_color || "#3b82f6");
+    setPulseSpeed(user.panel_pulse_speed ?? 50);
+    setPanelOpacity(user.panel_opacity ?? 100);
+    setPanelHidden(!!user.panel_hidden);
+  }, [user]);
+  const SaveColors = async () => {
+    if (!user) return;
+    setSavingColors(true);
+    const Data = {
+      accent_color: accentColor,
+      text_color: textColor,
+      background_color: backgroundColor,
+      icon_color: iconColor,
+      bg_effect_color: bgEffectColor,
+      primary_color: primaryColor,
+      secondary_color: secondaryColor,
+      panel_glow_mode: glowMode,
+      panel_glow_color: glowColor,
+      panel_glow_color_2: glowColor2,
+      panel_glow_spread: glowSpread,
+      panel_pulse_enabled: pulseOn,
+      panel_pulse_color: pulseColor,
+      panel_pulse_speed: pulseSpeed,
+    };
+    const { error } = await apiCall("update", { data: Data });
+    if (error) alert(error);
+    else {
+      if (onUpdateUser) onUpdateUser({ ...user, ...Data } as User);
+      showSaved("colors saved!");
+    }
+    setSavingColors(false);
+  };
+  const ResetToGlassy = async () => {
+    setAccentColor("rgba(255, 255, 255, 0.05)");
+    setTextColor("#ffffff");
+    setBackgroundColor("#080808");
+    setIconColor("#ffffff");
+    setBgEffectColor("rgba(255, 255, 255, 0.08)");
+    setPrimaryColor("rgba(255, 255, 255, 0.1)");
+    setSecondaryColor("rgba(255, 255, 255, 0.15)");
+    setGlowMode("none");
+    setGlowColor("");
+    setGlowColor2("");
+    setGlowSpread(50);
+    setPulseOn(false);
+    setPulseColor("");
+    setPulseSpeed(50);
+    if (!user) return;
+    setSavingColors(true);
+    const Data = {
+      accent_color: "rgba(255, 255, 255, 0.05)",
+      text_color: "#ffffff",
+      background_color: "#080808",
+      icon_color: "#ffffff",
+      bg_effect_color: "rgba(255, 255, 255, 0.08)",
+      primary_color: "rgba(255, 255, 255, 0.1)",
+      secondary_color: "rgba(255, 255, 255, 0.15)",
+      panel_glow_mode: "none",
+      panel_glow_color: "",
+      panel_glow_color_2: "",
+      panel_glow_spread: 50,
+      panel_pulse_enabled: false,
+      panel_pulse_color: "",
+      panel_pulse_speed: 50,
+    };
+    const { error } = await apiCall("update", { data: Data });
+    if (!error && onUpdateUser) onUpdateUser({ ...user, ...Data } as User);
+    setSavingColors(false);
+  };
+  const SavePanel = async () => {
+    if (!user) return;
+    setSavingPanel(true);
+    const { error } = await apiCall("update", { data: { panel_opacity: panelOpacity, panel_hidden: panelHidden } });
+    if (!error) showSaved("panel saved!");
+    setSavingPanel(false);
+  };
+  return (
+    <div className="flex flex-col lg:flex-row lg:gap-8 min-h-[calc(100vh-100px)]">
+      <div className="lg:w-[45%] flex-1">
+        <h1 className="text-lg font-semibold text-white/40 mb-8 lowercase">panel design</h1>
+        <div>
+          <h3 className="text-sm font-semibold text-white/80 mb-4">Panel Opacity</h3>
+          <div className="glass-card rounded-2xl p-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-white/50 font-semibold uppercase tracking-wider">Panel Opacity</span>
+              <div className="flex items-center gap-3">
+                <input type="range" min="0" max="100" value={panelOpacity} onChange={(e) => setPanelOpacity(Number(e.target.value))} className="w-24 h-1 accent-blue-500 cursor-pointer" />
+                <span className="text-xs text-white/40 w-10 text-right">{panelOpacity}%</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 pt-2 border-t border-white/[0.04]">
+              <p className="text-[10px] text-white/30">0% = fully transparent, 100% = opaque</p>
+              <label className="flex items-center gap-2 text-xs text-white/50 cursor-pointer">
+                <Toggle checked={panelHidden} onChange={setPanelHidden} />
+                Hide panel completely
+              </label>
+            </div>
+            <div className="flex justify-end">
+              <button onClick={SavePanel} disabled={savingPanel} className="text-xs bg-blue-600 hover:bg-blue-500 disabled:opacity-40 px-4 py-2 rounded-lg text-white font-semibold transition-colors cursor-pointer">
+                {savingPanel ? "saving..." : "save panel"}
+              </button>
+            </div>
+          </div>
+        </div>
+        <div className="mt-8">
+          <h3 className="text-sm font-semibold text-white/80 mb-4">Color Customization</h3>
+          <div className="rounded-2xl bg-white/[0.02] border border-white/[0.06] overflow-hidden divide-y divide-white/[0.04]">
+            {[
+              { label: "accent color", value: accentColor, onChange: setAccentColor },
+              { label: "text color", value: textColor, onChange: setTextColor },
+              { label: "background color", value: backgroundColor, onChange: setBackgroundColor },
+              { label: "icon color", value: iconColor, onChange: setIconColor },
+              { label: "bg effect color", value: bgEffectColor, onChange: setBgEffectColor },
+              { label: "primary color", value: primaryColor, onChange: setPrimaryColor },
+              { label: "secondary color", value: secondaryColor, onChange: setSecondaryColor },
+            ].map((c) => (
+              <div key={c.label} className="flex items-center gap-3 p-3.5">
+                <span className="w-28 shrink-0 text-xs text-white/55 font-medium">{c.label}</span>
+                <input
+                  type="color"
+                  value={c.value.startsWith("#") ? c.value : "#ffffff"}
+                  onChange={(e) => c.onChange(e.target.value)}
+                  className="h-8 w-10 shrink-0 rounded-lg border border-white/[0.1] bg-white/[0.03] cursor-pointer p-0 overflow-hidden"
+                />
+                <input
+                  type="text"
+                  value={c.value}
+                  onChange={(e) => c.onChange(e.target.value)}
+                  className="flex-1 min-w-0 bg-white/[0.03] border border-white/[0.06] rounded-lg px-2.5 py-1.5 text-white/80 outline-none focus:border-blue-500/40 transition-colors font-mono text-xs"
+                />
+              </div>
+            ))}
+          </div>
+          <div className="mt-6 rounded-2xl bg-white/[0.02] border border-white/[0.06] p-4 space-y-4">
+            <div>
+              <p className="text-sm font-semibold text-white/80">panel glow</p>
+              <p className="text-[10.5px] text-white/30 mt-0.5">glowing edge around your glass panel.</p>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {["none", "solid", "gradient"].map((M) => (
+                <button key={M} onClick={() => setGlowMode(M)} className={`py-2 rounded-xl text-xs font-medium border transition-all cursor-pointer ${glowMode === M ? "bg-blue-600/20 border-blue-500/40 text-blue-300" : "bg-white/[0.03] border-white/[0.06] text-white/45 hover:text-white/70 hover:bg-white/[0.06]"}`}>
+                  {M}
+                </button>
+              ))}
+            </div>
+            {glowMode !== "none" && (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {glowMode === "solid" && (
+                    <div className="flex items-center gap-3">
+                      <span className="w-20 shrink-0 text-xs text-white/55">color</span>
+                      <input type="color" value={glowColor.startsWith("#") ? glowColor : "#3b82f6"} onChange={(e) => setGlowColor(e.target.value)} className="h-8 w-10 shrink-0 rounded-lg border border-white/[0.1] bg-white/[0.03] cursor-pointer p-0 overflow-hidden" />
+                      <input type="text" value={glowColor} onChange={(e) => setGlowColor(e.target.value)} placeholder="#3b82f6" className="flex-1 min-w-0 bg-white/[0.03] border border-white/[0.06] rounded-lg px-2.5 py-1.5 text-white/80 outline-none focus:border-blue-500/40 transition-colors font-mono text-xs" />
+                    </div>
+                  )}
+                  {glowMode === "gradient" && (
+                    <>
+                      <div className="flex items-center gap-3">
+                        <span className="w-20 shrink-0 text-xs text-white/55">color 1</span>
+                        <input type="color" value={glowColor.startsWith("#") ? glowColor : "#3b82f6"} onChange={(e) => setGlowColor(e.target.value)} className="h-8 w-10 shrink-0 rounded-lg border border-white/[0.1] bg-white/[0.03] cursor-pointer p-0 overflow-hidden" />
+                        <input type="text" value={glowColor} onChange={(e) => setGlowColor(e.target.value)} placeholder="#3b82f6" className="flex-1 min-w-0 bg-white/[0.03] border border-white/[0.06] rounded-lg px-2.5 py-1.5 text-white/80 outline-none focus:border-blue-500/40 transition-colors font-mono text-xs" />
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="w-20 shrink-0 text-xs text-white/55">color 2</span>
+                        <input type="color" value={glowColor2.startsWith("#") ? glowColor2 : "#a855f7"} onChange={(e) => setGlowColor2(e.target.value)} className="h-8 w-10 shrink-0 rounded-lg border border-white/[0.1] bg-white/[0.03] cursor-pointer p-0 overflow-hidden" />
+                        <input type="text" value={glowColor2} onChange={(e) => setGlowColor2(e.target.value)} placeholder="#a855f7" className="flex-1 min-w-0 bg-white/[0.03] border border-white/[0.06] rounded-lg px-2.5 py-1.5 text-white/80 outline-none focus:border-blue-500/40 transition-colors font-mono text-xs" />
+                      </div>
+                    </>
+                  )}
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-white/55">glow spread</span>
+                  <div className="flex items-center gap-2">
+                    <input type="range" min={0} max={100} value={glowSpread} onChange={(e) => setGlowSpread(Number(e.target.value))} className="w-28 h-1 accent-blue-500 cursor-pointer" />
+                    <span className="text-[10px] font-mono text-white/40 w-8 text-right">{glowSpread}%</span>
+                  </div>
+                </div>
+                <p className="text-[10.5px] text-white/30">spread controls how far the glow bleeds out. hit save colors to apply.</p>
+              </>
+            )}
+            <div className="pt-4 border-t border-white/[0.06] space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-semibold text-white/80">edge pulse</p>
+                  <p className="text-[10.5px] text-white/30">heartbeat dot travels around the panel edge.</p>
+                </div>
+                <Toggle checked={pulseOn} onChange={(V) => setPulseOn(V)} />
+              </div>
+              {pulseOn && (
+                <>
+                  <div className="flex items-center gap-3">
+                    <span className="w-20 shrink-0 text-xs text-white/55">color</span>
+                    <input type="color" value={pulseColor.startsWith("#") ? pulseColor : "#3b82f6"} onChange={(e) => setPulseColor(e.target.value)} className="h-8 w-10 shrink-0 rounded-lg border border-white/[0.1] bg-white/[0.03] cursor-pointer p-0 overflow-hidden" />
+                    <input type="text" value={pulseColor} onChange={(e) => setPulseColor(e.target.value)} placeholder="#3b82f6" className="flex-1 min-w-0 bg-white/[0.03] border border-white/[0.06] rounded-lg px-2.5 py-1.5 text-white/80 outline-none focus:border-blue-500/40 transition-colors font-mono text-xs" />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-white/55">pulse speed</span>
+                    <div className="flex items-center gap-2">
+                      <input type="range" min={0} max={100} value={pulseSpeed} onChange={(e) => setPulseSpeed(Number(e.target.value))} className="w-28 h-1 accent-blue-500 cursor-pointer" />
+                      <span className="text-[10px] font-mono text-white/40 w-8 text-right">{pulseSpeed}%</span>
+                    </div>
+                  </div>
+                  <p className="text-[10.5px] text-white/30">higher speed = faster laps around the panel. hit save colors to apply.</p>
+                </>
+              )}
+            </div>
+          </div>
+          <div className="mt-4 flex justify-end gap-3">
+            <button onClick={ResetToGlassy} disabled={savingColors} className="text-xs bg-white/[0.05] hover:bg-white/[0.1] border border-white/[0.1] disabled:opacity-40 px-4 py-2 rounded-lg text-white transition-colors cursor-pointer">
+              reset to glassy
+            </button>
+            <button onClick={SaveColors} disabled={savingColors} className="text-xs bg-blue-600 hover:bg-blue-500 disabled:opacity-40 px-4 py-2 rounded-lg text-white transition-colors cursor-pointer">
+              {savingColors ? "saving..." : "save colors"}
+            </button>
+          </div>
+        </div>
+      </div>
+      <div className="lg:w-[55%] flex-1 space-y-6">
+        <Preview user={user} desc={user?.description || ""} descEffect={(user as any)?.desc_effect || "none"} descSpeed={user?.desc_effect_speed ?? 50} descLines={user?.desc_lines?.length ? user.desc_lines : (user?.description ? [user.description] : [])} background={Bg} audio={AudioAsset} profileAvatar={Avatar} customCursor={Cursor} displayEffect={user?.display_effect ?? "none"} sparkleIntensity={user?.sparkle_intensity ?? 14} font={user?.font ?? "Inter"} customFontUrl={(user as any)?.custom_font_url ?? null} customFontName={(user as any)?.custom_font_name ?? null} fontScope={(user as any)?.custom_font_scope ?? "all"} videoBg={VideoBg} videoAudio={null} bgEffect={(user as any)?.bg_effect ?? "none"} avatarShape={(user as any)?.avatar_shape ?? "circle"} avatarSize={(user as any)?.avatar_size ?? 48} avatarOffsetX={(user as any)?.avatar_offset_x ?? 0} avatarOffsetY={(user as any)?.avatar_offset_y ?? 0} onAvatarOffsetChange={() => {}} banner={Banner} bannerEnabled={user?.banner_enabled ?? true} entryText={user?.entry_text || "click anywhere to enter"} entryFont={user?.entry_font || "Inter"} entryColor={user?.entry_color || "rgba(255,255,255,0.5)"} entryEffect={user?.entry_effect || "none"} songPlatform={(user as any)?.song_platform ?? ""} songId={(user as any)?.song_id ?? ""} showUsername={user?.show_username !== false} primaryColor={primaryColor} secondaryColor={secondaryColor} accentColor={accentColor} textColor={textColor} backgroundColor={backgroundColor} iconColor={iconColor} bgEffectColor={bgEffectColor} panelMouseFollow={!!user?.panel_mouse_follow} cursorEffect={user?.cursor_effect || "none"} nameOffsetX={(user as any)?.name_offset_x ?? 0} nameOffsetY={(user as any)?.name_offset_y ?? 0} onNameOffsetChange={() => {}} badgeOffsetX={(user as any)?.badge_offset_x ?? 0} badgeOffsetY={(user as any)?.badge_offset_y ?? 0} onBadgeOffsetChange={() => {}} descOffsetX={(user as any)?.desc_offset_x ?? 0} descOffsetY={(user as any)?.desc_offset_y ?? 0} onDescOffsetChange={() => {}} songOffsetX={(user as any)?.song_offset_x ?? 0} songOffsetY={(user as any)?.song_offset_y ?? 0} onSongOffsetChange={() => {}} rpcOffsetX={(user as any)?.rpc_offset_x ?? 0} rpcOffsetY={(user as any)?.rpc_offset_y ?? 0} onRpcOffsetChange={() => {}} badges={[]} panelOpacity={panelOpacity} panelHidden={panelHidden} glowMode={glowMode} glowColor={glowColor} glowColor2={glowColor2} glowSpread={glowSpread} pulseEnabled={pulseOn} pulseColor={pulseColor} pulseSpeed={pulseSpeed} discordId={null} discordRpcEnabled={false} />
+      </div>
     </div>
   );
 }
