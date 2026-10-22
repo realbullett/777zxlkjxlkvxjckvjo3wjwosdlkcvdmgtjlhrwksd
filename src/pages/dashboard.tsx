@@ -17,6 +17,7 @@ import ProjectsPage from "../components/ProjectsPage";
 import { TIMEZONE_PRESETS, MAX_PROJECTS, MAX_TAGS, LANGUAGE_TAGS, SIDE_WIDGET_KEYS, SIDE_WIDGET_LABELS, MAX_SIDE_WIDGETS, defaultLabel, defaultAboutPage, defaultProjectsPage, defaultSongPage, emptyProject, emptyWidgets, findMyTimeZone, normalizeWidgets, parseInviteCode, tzOffsetHours, type AboutPageConfig, type ClockWidgetConfig, type ProjectItem, type SideWidgetKey, type SongPageConfig, type WidgetsConfig } from "../lib/widgets";
 import TagIcon from "../components/TagIcon";
 import { CLICK_SOUNDS, PlayClickSound } from "../lib/click-sounds";
+import { PanelTracer } from "../components/PanelTracer";
 
 type User = {
   id: number;
@@ -44,6 +45,7 @@ type User = {
   panel_pulse_enabled: boolean | null;
   panel_pulse_color: string | null;
   panel_pulse_speed: number | null;
+  panel_pulse_type: string | null;
   display_effect: string | null;
   sparkle_intensity?: number | null;
   font: string | null;
@@ -1329,6 +1331,7 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
   const [pulseOn, setPulseOn] = useState(!!user?.panel_pulse_enabled);
   const [pulseColor, setPulseColor] = useState(user?.panel_pulse_color || "#3b82f6");
   const [pulseSpeed, setPulseSpeed] = useState(user?.panel_pulse_speed ?? 50);
+  const [pulseType, setPulseType] = useState<string>(user?.panel_pulse_type || "pulse");
   const [savingColors, setSavingColors] = useState(false);
   const [displayEffect, setDisplayEffect] = useState(user?.display_effect || "none");
   const [sparkleIntensity, setSparkleIntensity] = useState(user?.sparkle_intensity ?? 14);
@@ -1460,6 +1463,7 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
   setPulseOn(!!user.panel_pulse_enabled);
   setPulseColor(user.panel_pulse_color || "#3b82f6");
   setPulseSpeed(user.panel_pulse_speed ?? 50);
+  setPulseType(user.panel_pulse_type || "pulse");
     setDisplayEffect(user.display_effect || "none");
     setSparkleIntensity(user.sparkle_intensity ?? 14);
     setFont(user.font || "Inter");
@@ -3128,7 +3132,7 @@ function Toggle({ checked, onChange, className = "" }: { checked: boolean; onCha
   );
 }
 
-function Preview({ user, desc, background, audio, profileAvatar, customCursor, displayEffect, sparkleIntensity, font, customFontUrl, customFontName, fontScope, videoBg, videoAudio, bgEffect, descEffect, descSpeed, descLines, avatarShape, avatarSize, avatarOffsetX, avatarOffsetY, onAvatarOffsetChange, banner, bannerEnabled, entryText, entryFont, entryColor, entryEffect, songPlatform, songId, showUsername, primaryColor, secondaryColor, accentColor, textColor, backgroundColor, iconColor, bgEffectColor, panelMouseFollow, cursorEffect: cursorEffectType, nameOffsetX, nameOffsetY, onNameOffsetChange, badgeOffsetX, badgeOffsetY, onBadgeOffsetChange, descOffsetX, descOffsetY, onDescOffsetChange, songOffsetX, songOffsetY, onSongOffsetChange, rpcOffsetX, rpcOffsetY, onRpcOffsetChange, badges, panelOpacity, panelHidden, glowMode, glowColor, glowColor2, glowSpread, pulseEnabled, pulseColor, pulseSpeed, discordId, discordRpcEnabled }: { 
+function Preview({ user, desc, background, audio, profileAvatar, customCursor, displayEffect, sparkleIntensity, font, customFontUrl, customFontName, fontScope, videoBg, videoAudio, bgEffect, descEffect, descSpeed, descLines, avatarShape, avatarSize, avatarOffsetX, avatarOffsetY, onAvatarOffsetChange, banner, bannerEnabled, entryText, entryFont, entryColor, entryEffect, songPlatform, songId, showUsername, primaryColor, secondaryColor, accentColor, textColor, backgroundColor, iconColor, bgEffectColor, panelMouseFollow, cursorEffect: cursorEffectType, nameOffsetX, nameOffsetY, onNameOffsetChange, badgeOffsetX, badgeOffsetY, onBadgeOffsetChange, descOffsetX, descOffsetY, onDescOffsetChange, songOffsetX, songOffsetY, onSongOffsetChange, rpcOffsetX, rpcOffsetY, onRpcOffsetChange, badges, panelOpacity, panelHidden, glowMode, glowColor, glowColor2, glowSpread, pulseEnabled, pulseColor, pulseSpeed, pulseType, discordId, discordRpcEnabled }: { 
   user: User | null; 
   desc?: string;
   background: string | null; 
@@ -3195,6 +3199,7 @@ function Preview({ user, desc, background, audio, profileAvatar, customCursor, d
   pulseEnabled?: boolean;
   pulseColor?: string;
   pulseSpeed?: number;
+  pulseType?: string;
   discordId?: string | null;
   discordRpcEnabled?: boolean;
 }) {
@@ -3381,14 +3386,7 @@ function Preview({ user, desc, background, audio, profileAvatar, customCursor, d
             >
                 {pulseEnabled && pulseColor && !panelHidden ? (
                   <div className="pointer-events-none absolute inset-0 rounded-3xl">
-                    <span
-                      className="pulse-dot"
-                      style={{
-                        backgroundColor: pulseColor,
-                        boxShadow: `0 0 8px 2px ${pulseColor}, 0 0 18px 6px ${pulseColor}`,
-                        animationDuration: `${(100 - (pulseSpeed ?? 50)) * 0.12 + 3}s, 1.2s`,
-                      }}
-                    />
+                    <PanelTracer Type={pulseType || null} Color={pulseColor} Speed={pulseSpeed ?? null} />
                   </div>
                 ) : null}
                 {bannerEnabled && banner && (
@@ -5066,6 +5064,7 @@ function PanelDesign({ user, onUpdateUser }: { user: User | null; onUpdateUser?:
   const [pulseOn, setPulseOn] = useState(!!user?.panel_pulse_enabled);
   const [pulseColor, setPulseColor] = useState(user?.panel_pulse_color || "#3b82f6");
   const [pulseSpeed, setPulseSpeed] = useState(user?.panel_pulse_speed ?? 50);
+  const [pulseType, setPulseType] = useState<string>(user?.panel_pulse_type || "pulse");
   const [panelOpacity, setPanelOpacity] = useState(user?.panel_opacity ?? 100);
   const [panelHidden, setPanelHidden] = useState(!!user?.panel_hidden);
   const [savingColors, setSavingColors] = useState(false);
@@ -5109,6 +5108,7 @@ function PanelDesign({ user, onUpdateUser }: { user: User | null; onUpdateUser?:
     setPulseOn(!!user.panel_pulse_enabled);
     setPulseColor(user.panel_pulse_color || "#3b82f6");
     setPulseSpeed(user.panel_pulse_speed ?? 50);
+    setPulseType(user.panel_pulse_type || "pulse");
     setPanelOpacity(user.panel_opacity ?? 100);
     setPanelHidden(!!user.panel_hidden);
   }, [user]);
@@ -5130,6 +5130,7 @@ function PanelDesign({ user, onUpdateUser }: { user: User | null; onUpdateUser?:
       panel_pulse_enabled: pulseOn,
       panel_pulse_color: pulseColor,
       panel_pulse_speed: pulseSpeed,
+  panel_pulse_type: pulseType,
     };
     const { error } = await apiCall("update", { data: Data });
     if (error) alert(error);
@@ -5154,6 +5155,7 @@ function PanelDesign({ user, onUpdateUser }: { user: User | null; onUpdateUser?:
     setPulseOn(false);
     setPulseColor("");
     setPulseSpeed(50);
+    setPulseType("pulse");
     if (!user) return;
     setSavingColors(true);
     const Data = {
@@ -5171,6 +5173,7 @@ function PanelDesign({ user, onUpdateUser }: { user: User | null; onUpdateUser?:
       panel_pulse_enabled: false,
       panel_pulse_color: "",
       panel_pulse_speed: 50,
+      panel_pulse_type: "pulse",
     };
     const { error } = await apiCall("update", { data: Data });
     if (!error && onUpdateUser) onUpdateUser({ ...user, ...Data } as User);
@@ -5291,12 +5294,19 @@ function PanelDesign({ user, onUpdateUser }: { user: User | null; onUpdateUser?:
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs font-semibold text-white/80">edge pulse</p>
-                  <p className="text-[10.5px] text-white/30">heartbeat dot travels around the panel edge.</p>
+                  <p className="text-[10.5px] text-white/30">pick an effect and it travels around the panel edge.</p>
                 </div>
                 <Toggle checked={pulseOn} onChange={(V) => setPulseOn(V)} />
               </div>
               {pulseOn && (
                 <>
+                  <div className="grid grid-cols-4 sm:grid-cols-7 gap-1.5">
+                    {["pulse", "lightning", "flowers", "snow", "fire", "stars", "hearts"].map((E) => (
+                      <button key={E} onClick={() => setPulseType(E)} className={`py-1.5 rounded-lg text-[10px] font-medium border transition-all cursor-pointer ${pulseType === E ? "bg-blue-600/20 border-blue-500/40 text-blue-300" : "bg-white/[0.03] border-white/[0.06] text-white/45 hover:text-white/70 hover:bg-white/[0.06]"}`}>
+                        {E}
+                      </button>
+                    ))}
+                  </div>
                   <div className="flex items-center gap-3">
                     <span className="w-20 shrink-0 text-xs text-white/55">color</span>
                     <input type="color" value={pulseColor.startsWith("#") ? pulseColor : "#3b82f6"} onChange={(e) => setPulseColor(e.target.value)} className="h-8 w-10 shrink-0 rounded-lg border border-white/[0.1] bg-white/[0.03] cursor-pointer p-0 overflow-hidden" />
@@ -5325,7 +5335,7 @@ function PanelDesign({ user, onUpdateUser }: { user: User | null; onUpdateUser?:
         </div>
       </div>
       <div className="lg:w-[55%] flex-1 space-y-6">
-        <Preview user={user} desc={user?.description || ""} descEffect={(user as any)?.desc_effect || "none"} descSpeed={user?.desc_effect_speed ?? 50} descLines={user?.desc_lines?.length ? user.desc_lines : (user?.description ? [user.description] : [])} background={Bg} audio={AudioAsset} profileAvatar={Avatar} customCursor={Cursor} displayEffect={user?.display_effect ?? "none"} sparkleIntensity={user?.sparkle_intensity ?? 14} font={user?.font ?? "Inter"} customFontUrl={(user as any)?.custom_font_url ?? null} customFontName={(user as any)?.custom_font_name ?? null} fontScope={(user as any)?.custom_font_scope ?? "all"} videoBg={VideoBg} videoAudio={null} bgEffect={(user as any)?.bg_effect ?? "none"} avatarShape={(user as any)?.avatar_shape ?? "circle"} avatarSize={(user as any)?.avatar_size ?? 48} avatarOffsetX={(user as any)?.avatar_offset_x ?? 0} avatarOffsetY={(user as any)?.avatar_offset_y ?? 0} onAvatarOffsetChange={() => {}} banner={Banner} bannerEnabled={user?.banner_enabled ?? true} entryText={user?.entry_text || "click anywhere to enter"} entryFont={user?.entry_font || "Inter"} entryColor={user?.entry_color || "rgba(255,255,255,0.5)"} entryEffect={user?.entry_effect || "none"} songPlatform={(user as any)?.song_platform ?? ""} songId={(user as any)?.song_id ?? ""} showUsername={user?.show_username !== false} primaryColor={primaryColor} secondaryColor={secondaryColor} accentColor={accentColor} textColor={textColor} backgroundColor={backgroundColor} iconColor={iconColor} bgEffectColor={bgEffectColor} panelMouseFollow={!!user?.panel_mouse_follow} cursorEffect={user?.cursor_effect || "none"} nameOffsetX={(user as any)?.name_offset_x ?? 0} nameOffsetY={(user as any)?.name_offset_y ?? 0} onNameOffsetChange={() => {}} badgeOffsetX={(user as any)?.badge_offset_x ?? 0} badgeOffsetY={(user as any)?.badge_offset_y ?? 0} onBadgeOffsetChange={() => {}} descOffsetX={(user as any)?.desc_offset_x ?? 0} descOffsetY={(user as any)?.desc_offset_y ?? 0} onDescOffsetChange={() => {}} songOffsetX={(user as any)?.song_offset_x ?? 0} songOffsetY={(user as any)?.song_offset_y ?? 0} onSongOffsetChange={() => {}} rpcOffsetX={(user as any)?.rpc_offset_x ?? 0} rpcOffsetY={(user as any)?.rpc_offset_y ?? 0} onRpcOffsetChange={() => {}} badges={[]} panelOpacity={panelOpacity} panelHidden={panelHidden} glowMode={glowMode} glowColor={glowColor} glowColor2={glowColor2} glowSpread={glowSpread} pulseEnabled={pulseOn} pulseColor={pulseColor} pulseSpeed={pulseSpeed} discordId={null} discordRpcEnabled={false} />
+        <Preview user={user} desc={user?.description || ""} descEffect={(user as any)?.desc_effect || "none"} descSpeed={user?.desc_effect_speed ?? 50} descLines={user?.desc_lines?.length ? user.desc_lines : (user?.description ? [user.description] : [])} background={Bg} audio={AudioAsset} profileAvatar={Avatar} customCursor={Cursor} displayEffect={user?.display_effect ?? "none"} sparkleIntensity={user?.sparkle_intensity ?? 14} font={user?.font ?? "Inter"} customFontUrl={(user as any)?.custom_font_url ?? null} customFontName={(user as any)?.custom_font_name ?? null} fontScope={(user as any)?.custom_font_scope ?? "all"} videoBg={VideoBg} videoAudio={null} bgEffect={(user as any)?.bg_effect ?? "none"} avatarShape={(user as any)?.avatar_shape ?? "circle"} avatarSize={(user as any)?.avatar_size ?? 48} avatarOffsetX={(user as any)?.avatar_offset_x ?? 0} avatarOffsetY={(user as any)?.avatar_offset_y ?? 0} onAvatarOffsetChange={() => {}} banner={Banner} bannerEnabled={user?.banner_enabled ?? true} entryText={user?.entry_text || "click anywhere to enter"} entryFont={user?.entry_font || "Inter"} entryColor={user?.entry_color || "rgba(255,255,255,0.5)"} entryEffect={user?.entry_effect || "none"} songPlatform={(user as any)?.song_platform ?? ""} songId={(user as any)?.song_id ?? ""} showUsername={user?.show_username !== false} primaryColor={primaryColor} secondaryColor={secondaryColor} accentColor={accentColor} textColor={textColor} backgroundColor={backgroundColor} iconColor={iconColor} bgEffectColor={bgEffectColor} panelMouseFollow={!!user?.panel_mouse_follow} cursorEffect={user?.cursor_effect || "none"} nameOffsetX={(user as any)?.name_offset_x ?? 0} nameOffsetY={(user as any)?.name_offset_y ?? 0} onNameOffsetChange={() => {}} badgeOffsetX={(user as any)?.badge_offset_x ?? 0} badgeOffsetY={(user as any)?.badge_offset_y ?? 0} onBadgeOffsetChange={() => {}} descOffsetX={(user as any)?.desc_offset_x ?? 0} descOffsetY={(user as any)?.desc_offset_y ?? 0} onDescOffsetChange={() => {}} songOffsetX={(user as any)?.song_offset_x ?? 0} songOffsetY={(user as any)?.song_offset_y ?? 0} onSongOffsetChange={() => {}} rpcOffsetX={(user as any)?.rpc_offset_x ?? 0} rpcOffsetY={(user as any)?.rpc_offset_y ?? 0} onRpcOffsetChange={() => {}} badges={[]} panelOpacity={panelOpacity} panelHidden={panelHidden} glowMode={glowMode} glowColor={glowColor} glowColor2={glowColor2} glowSpread={glowSpread} pulseEnabled={pulseOn} pulseColor={pulseColor} pulseSpeed={pulseSpeed} pulseType={pulseType} discordId={null} discordRpcEnabled={false} />
       </div>
     </div>
   );

@@ -8,6 +8,7 @@ import { SparkleText } from "../components/SparkleText";
 import { RainEffect, SnowEffect, AuroraEffect, TvStaticEffect, ParticlesEffect, GalaxyEffect, MatrixEffect, SpotlightEffect } from "../components/BackgroundEffect";
 import SongPlayer from "../components/SongPlayer";
 import VolumeControl from "../components/VolumeControl";
+import { PanelTracer } from "../components/PanelTracer";
 import DiscordRPC from "../components/DiscordRPC";
 import DiscordServerCard from "../components/DiscordServerCard";
 import RobloxCard from "../components/RobloxCard";
@@ -72,6 +73,7 @@ type User = {
   panel_pulse_enabled: boolean | null;
   panel_pulse_color: string | null;
   panel_pulse_speed: number | null;
+  panel_pulse_type: string | null;
   show_votes: boolean | null;
   custom_font_scope: string | null;
   description: string | null;
@@ -923,16 +925,9 @@ export default function Biolink() {
                 return `0 0 ${B}px ${T}px ${Col}`;
               })(),
             }}>
-            {!user?.panel_hidden && user?.panel_pulse_enabled && user?.panel_pulse_color ? (
+            {!user?.panel_hidden && user?.panel_pulse_enabled && (user?.panel_pulse_color || user?.panel_pulse_type) ? (
               <div className="pointer-events-none absolute inset-0 rounded-3xl">
-                <span
-                  className="pulse-dot"
-                  style={{
-                    backgroundColor: user.panel_pulse_color || "",
-                    boxShadow: `0 0 8px 2px ${user.panel_pulse_color}, 0 0 18px 6px ${user.panel_pulse_color}`,
-                    animationDuration: `${(100 - (user?.panel_pulse_speed ?? 50)) * 0.12 + 3}s, 1.2s`,
-                  }}
-                />
+                <PanelTracer Type={user?.panel_pulse_type || null} Color={user?.panel_pulse_color || null} Speed={user?.panel_pulse_speed ?? null} />
               </div>
             ) : null}
             <motion.div variants={dropContainer} initial="hidden" animate={entered ? "show" : "hidden"} className={`min-w-0 ${IsGrid ? "grid grid-cols-[auto_minmax(0,1fr)] gap-x-5 items-start" : `flex flex-col ${IsLeft ? "items-start" : "items-center"}`}`}>
