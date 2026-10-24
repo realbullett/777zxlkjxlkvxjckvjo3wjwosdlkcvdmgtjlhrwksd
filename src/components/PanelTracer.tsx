@@ -631,48 +631,49 @@ export function PanelTracer({ Type, Color, Speed }: { Type: string | null; Color
         const UY = DirY / DirLen;
         const Depth = Math.min(Size.W, Size.H) * 0.3;
         if (Local > 0.45 && Local < 5) {
-          const CrackFade = Math.max(0, 1 - (Local - 0.45) / 3.8);
+          const CrackFade = Math.max(0, 1 - (Local - 0.45) / 4.6);
           Ctx.save();
           Ctx.globalCompositeOperation = "lighter";
           Ctx.lineCap = "round";
-          Ctx.shadowColor = "#7dd3fc";
-          Ctx.shadowBlur = 12;
-          for (let I = 0; I < 9; I++) {
-            const Ang = (I / 9) * Math.PI * 2 + Rand(Seed + I) * 0.5;
-            const Reach = 18 + Rand(Seed + I * 2.1) * 48;
+          Ctx.shadowColor = "#bae6fd";
+          Ctx.shadowBlur = 28;
+          for (let I = 0; I < 16; I++) {
+            const Ang = (I / 16) * Math.PI * 2 + Rand(Seed + I) * 0.8;
+            const Reach = 56 + Rand(Seed + I * 2.1) * 112;
             let Px = Spot.X;
             let Py = Spot.Y;
             Ctx.beginPath();
             Ctx.moveTo(Px, Py);
-            for (let K = 1; K <= 5; K++) {
-              const D = (Reach * K) / 5;
-              const Jit = (Rand(Seed + I * 9 + K) - 0.5) * 13;
+            for (let K = 1; K <= 8; K++) {
+              const D = (Reach * K) / 8;
+              const Jit = (Rand(Seed + I * 9 + K) - 0.5) * 22;
               Px = Spot.X + Math.cos(Ang) * D + Math.cos(Ang + Math.PI / 2) * Jit;
               Py = Spot.Y + Math.sin(Ang) * D + Math.sin(Ang + Math.PI / 2) * Jit;
               Ctx.lineTo(Px, Py);
-              if (K === 2 || K === 4) {
-                Ctx.lineTo(Px + Math.cos(Ang + 0.85) * Reach * 0.26, Py + Math.sin(Ang + 0.85) * Reach * 0.26);
+              if (K % 2 === 0) {
+                Ctx.lineTo(Px + Math.cos(Ang + 1.1) * Reach * 0.42, Py + Math.sin(Ang + 1.1) * Reach * 0.42);
                 Ctx.moveTo(Px, Py);
               }
             }
-            Ctx.strokeStyle = `rgba(224,245,255,${0.75 * CrackFade})`;
-            Ctx.lineWidth = I % 3 === 0 ? 2 : 1.1;
+            Ctx.strokeStyle = `rgba(240,249,255,${0.98 * CrackFade})`;
+            Ctx.lineWidth = I % 3 === 0 ? 3.8 : 2.2;
             Ctx.stroke();
           }
-          const Flash = Math.max(0, 1 - (Local - 0.45) / 0.5);
+          const Flash = Math.max(0, 1 - (Local - 0.45) / 0.42);
           if (Flash > 0) {
-            const G = Ctx.createRadialGradient(Spot.X, Spot.Y, 0, Spot.X, Spot.Y, 46);
-            G.addColorStop(0, `rgba(255,255,255,${0.85 * Flash})`);
-            G.addColorStop(0.4, `rgba(186,230,253,${0.5 * Flash})`);
-            G.addColorStop(1, "rgba(125,211,252,0)");
+            const G = Ctx.createRadialGradient(Spot.X, Spot.Y, 0, Spot.X, Spot.Y, 118);
+            G.addColorStop(0, `rgba(255,255,255,${0.99 * Flash})`);
+            G.addColorStop(0.18, `rgba(224,242,254,${0.78 * Flash})`);
+            G.addColorStop(0.55, `rgba(125,211,252,${0.28 * Flash})`);
+            G.addColorStop(1, "rgba(14,165,233,0)");
             Ctx.fillStyle = G;
             Ctx.beginPath();
-            Ctx.arc(Spot.X, Spot.Y, 46, 0, Math.PI * 2);
+            Ctx.arc(Spot.X, Spot.Y, 118, 0, Math.PI * 2);
             Ctx.fill();
-            Ctx.strokeStyle = `rgba(224,245,255,${0.8 * Flash})`;
-            Ctx.lineWidth = 2.4;
+            Ctx.strokeStyle = `rgba(240,249,255,${0.98 * Flash})`;
+            Ctx.lineWidth = 5.2;
             Ctx.beginPath();
-            Ctx.arc(Spot.X, Spot.Y, 10 + (1 - Flash) * 44, 0, Math.PI * 2);
+            Ctx.arc(Spot.X, Spot.Y, 22 + (1 - Flash) * 88, 0, Math.PI * 2);
             Ctx.stroke();
           }
           Ctx.restore();
