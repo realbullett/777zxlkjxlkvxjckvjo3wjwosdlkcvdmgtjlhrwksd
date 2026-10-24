@@ -1,4 +1,5 @@
 ﻿import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 type Pt = { X: number; Y: number; NX: number; NY: number };
 
@@ -274,6 +275,7 @@ export function PanelTracer({ Type, Color, Speed }: { Type: string | null; Color
   const T = Type || "pulse";
   const BoxRef = useRef<HTMLDivElement>(null);
   const CanvasRef = useRef<HTMLCanvasElement>(null);
+  const OverlayRef = useRef<HTMLCanvasElement>(null);
   const [Size, setSize] = useState({ W: 0, H: 0 });
   const [Radius, setRadius] = useState(24);
 
@@ -296,7 +298,11 @@ export function PanelTracer({ Type, Color, Speed }: { Type: string | null; Color
   }, []);
 
   useEffect(() => {
-    if (T === "pulse") return;
+    if (T === "pulse") {
+      const Ov = OverlayRef.current;
+      if (Ov) Ov.getContext("2d")?.clearRect(0, 0, Ov.width, Ov.height);
+      return;
+    }
     const Canvas = CanvasRef.current;
     if (!Canvas || !Size.W || !Size.H) return;
     const Ctx = Canvas.getContext("2d");
@@ -691,6 +697,62 @@ export function PanelTracer({ Type, Color, Speed }: { Type: string | null; Color
         }
       }
 
+      const Overlay = OverlayRef.current;
+      if (Overlay) {
+        const OCtx = Overlay.getContext("2d");
+        const Vw = window.innerWidth;
+        const Vh = window.innerHeight;
+        if (OCtx && Vw > 0 && Vh > 0) {
+          if (Overlay.width !== Vw || Overlay.height !== Vh) {
+            Overlay.width = Vw;
+            Overlay.height = Vh;
+          }
+          OCtx.clearRect(0, 0, Vw, Vh);
+          if (T === "halloween") {
+            const Box = BoxRef.current;
+            const Rect = Box ? Box.getBoundingClientRect() : null;
+            if (Rect && Rect.width > 0) {
+              const SeqLen = 6.5;
+              const SeqIdx = Math.floor(Time / SeqLen);
+              const L = Time % SeqLen;
+              const Sp = At(((SeqIdx * 0.37 + 0.13) % 1) * Len);
+              const Bx = Rect.left + Sp.X;
+              const By = Rect.top + Sp.Y;
+              const Cx = Vw / 2;
+              const Cy = Vh * 0.46;
+              if (L > 0.45 && L < 4.1) {
+                let S = 0;
+                let X = Bx;
+                let Y = By;
+                let Alpha = 1;
+                if (L < 2.0) {
+                  const P = (L - 0.45) / 1.55;
+                  const Ease = P * P * P;
+                  S = 5 + Ease * 175;
+                  X = Bx + (Cx - Bx) * Math.min(1, P * 0.75) + Math.sin(Time * 13) * 12 * P;
+                  Y = By + (Cy - By) * Math.min(1, P * 0.75) + Math.cos(Time * 11) * 12 * P;
+                } else if (L < 2.5) {
+                  const Flash = 1 - (L - 2.0) / 0.5;
+                  S = 180 + (L - 2.0) * 30;
+                  X = Cx + (Math.random() - 0.5) * 22 * Flash;
+                  Y = Cy + (Math.random() - 0.5) * 22 * Flash;
+                  OCtx.fillStyle = `rgba(255,255,255,${0.5 * Flash})`;
+                  OCtx.fillRect(0, 0, Vw, Vh);
+                } else {
+                  const R = Math.min(1, (L - 2.5) / 1.6);
+                  const Ease = R * R;
+                  S = 195 * (1 - Ease);
+                  X = Cx + (Bx - Cx) * Ease;
+                  Y = Cy + (By - Cy) * Ease;
+                  Alpha = 1 - R * 0.85;
+                }
+                if (S > 0.5) DrawBat(OCtx, X, Y, S, Math.sin(Time * 30), Alpha);
+              }
+            }
+          }
+        }
+      }
+
       Rq = requestAnimationFrame(Frame);
     };
     Rq = requestAnimationFrame(Frame);
@@ -703,9 +765,15 @@ export function PanelTracer({ Type, Color, Speed }: { Type: string | null; Color
   }
 
   return (
-    <div ref={BoxRef} className="pointer-events-none absolute inset-0">
-      <canvas ref={CanvasRef} className="pointer-events-none absolute left-0 top-0" style={{ borderRadius: `${Radius}px` }} />
-    </div>
+    <>
+      <div ref={BoxRef} className="pointer-events-none absolute inset-0">
+        <canvas ref={CanvasRef} className="pointer-events-none absolute left-0 top-0" style={{ borderRadius: `${Radius}px` }} />
+      </div>
+      {createPortal(
+        <canvas ref={OverlayRef} className="pointer-events-none fixed inset-0 z-[9998]" />,
+        document.body
+      )}
+    </>
   );
 }
 
