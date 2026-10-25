@@ -784,7 +784,6 @@ export default function Biolink() {
   const IsCompact = ProfileLayout === "compact";
   const IsGrid = IsSplit || IsCompact;
   const IsLeft = ProfileLayout === "left" || IsGrid;
-  const IsCover = ProfileLayout === "cover";
   const IsBadgesFirst = ProfileLayout === "badges";
   const FlowMeta = ProfileLayout !== "classic";
 
@@ -941,8 +940,8 @@ export default function Biolink() {
               </div>
             ) : null}
             <motion.div variants={dropContainer} initial="hidden" animate={entered ? "show" : "hidden"} className={`min-w-0 ${IsGrid ? "grid grid-cols-[auto_minmax(0,1fr)] gap-x-5 items-start" : `flex flex-col ${IsLeft ? "items-start" : "items-center"}`}`}>
-            {user.banner_enabled && banner && (
-              <div className={`pointer-events-none absolute inset-x-0 top-0 z-[1] ${IsCover ? "h-44" : "h-32"} overflow-hidden rounded-t-3xl`}>
+            {user.banner_enabled && banner ? (
+              <div className="pointer-events-none absolute inset-x-0 top-0 z-[1] h-32 overflow-hidden rounded-t-3xl">
                 <img
                   src={banner}
                   className="h-full w-full object-cover"
@@ -953,8 +952,8 @@ export default function Biolink() {
                 />
                 <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/45" />
               </div>
-            )}
-            <motion.div variants={dropItem} className={IsGrid ? "col-start-1 row-start-1 row-span-3 self-start" : IsBadgesFirst ? "order-2" : IsCover ? (user.banner_enabled && banner ? "relative z-10 pt-24" : "") : (user.banner_enabled && banner ? "pt-24" : "")}>
+            ) : null}
+            <motion.div variants={dropItem} className={IsGrid ? "col-start-1 row-start-1 row-span-3 self-start" : IsBadgesFirst ? "order-2" : (user.banner_enabled && banner ? "pt-24" : "")}>
               {(() => {
                 const shape = user.avatar_shape || "circle";
                 const size = IsCompact ? Math.min(user.avatar_size || 96, 64) : (user.avatar_size || 96);

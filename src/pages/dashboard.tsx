@@ -5026,15 +5026,15 @@ function Templates({ user, onTab, onUpdateUser }: { user: User | null; onTab: (t
 function ProfileLayouts({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (u: User) => void }) {
   const [Saving, SetSaving] = useState<string | null>(null);
   const [JustSaved, SetJustSaved] = useState<string | null>(null);
+  const [Hovered, SetHovered] = useState<string | null>(null);
   const Active = user?.profile_layout || "classic";
 
   const LAYOUTS = [
-    { id: "classic", label: "classic", desc: "centered avatar with name, badges and bio stacked underneath" },
-    { id: "left", label: "left aligned", desc: "identity and bio hug the left edge of the panel" },
-    { id: "split", label: "split", desc: "avatar on the left, name, username and badges beside it" },
-    { id: "cover", label: "cover", desc: "banner strip on top with the avatar overlapping it" },
-    { id: "compact", label: "compact", desc: "small inline avatar beside your identity, tighter spacing" },
-    { id: "badges", label: "badges first", desc: "badge row above the avatar, name and bio below" },
+    { id: "classic", label: "classic", desc: "centered avatar with name, badges and bio stacked underneath", tag: "default" },
+    { id: "left", label: "left aligned", desc: "identity and bio hug the left edge of the panel", tag: "clean" },
+    { id: "split", label: "split", desc: "avatar on the left, name, username and badges beside it", tag: "wide" },
+    { id: "compact", label: "compact", desc: "small inline avatar beside your identity, tighter spacing", tag: "minimal" },
+    { id: "badges", label: "badges first", desc: "badge row above the avatar, name and bio below", tag: "flex" },
   ];
 
   const Pick = async (Id: string) => {
@@ -5048,97 +5048,233 @@ function ProfileLayouts({ user, onUpdateUser }: { user: User | null; onUpdateUse
     setTimeout(() => SetJustSaved(null), 1800);
   };
 
-  const Bar = ({ W, H = "h-1.5", C = "bg-white/20" }: { W: string; H?: string; C?: string }) => (
-    <span className={`${H} ${W} ${C} rounded`} />
-  );
-  const BadgeRow = (
-    <div className="flex gap-1">
-      <span className="h-2.5 w-2.5 rounded bg-white/30" />
-      <span className="h-2.5 w-2.5 rounded bg-blue-400/40" />
-      <span className="h-2.5 w-2.5 rounded bg-white/20" />
+  const Shown = Hovered || Active;
+  const Name = user?.display_name || user?.username || "your name";
+  const Handle = user?.username || "username";
+  const Avatar = user?.avatar_url;
+  const Bio = user?.description || "your bio goes here";
+  const Tc = user?.text_color || "#ffffff";
+  const Bc = user?.badge_color || "#3b82f6";
+
+  const AvatarEl = ({ size = 40 }: { size?: number }) => (
+    <div
+      className="rounded-full overflow-hidden border border-white/20 shrink-0 bg-white/10 flex items-center justify-center"
+      style={{ width: size, height: size }}
+    >
+      {Avatar ? (
+        <img src={Avatar} alt="" className="w-full h-full object-cover" />
+      ) : (
+        <span className="text-white/40 text-xs font-bold">{(Name || "?").charAt(0).toUpperCase()}</span>
+      )}
     </div>
   );
 
-  const Preview = (Id: string) => {
-    if (Id === "classic" || Id === "left" || Id === "badges") {
+  const BadgeDots = ({ size = "h-2.5 w-2.5" }: { size?: string }) => (
+    <div className="flex gap-1">
+      <span className={`${size} rounded bg-white/40`} />
+      <span className={`${size} rounded`} style={{ backgroundColor: Bc }} />
+      <span className={`${size} rounded bg-white/20`} />
+    </div>
+  );
+
+  const Bar = ({ w = "w-20", h = "h-1.5", c = "bg-white/30" }: { w?: string; h?: string; c?: string }) => (
+    <span className={`${h} ${w} ${c} rounded`} />
+  );
+
+  const LivePreview = ({ layout }: { layout: string }) => {
+    if (layout === "split") {
       return (
-        <div className={`flex w-full flex-col gap-2 ${Id === "left" ? "items-start px-5" : "items-center"}`}>
-          {Id === "badges" && BadgeRow}
-          <span className="h-9 w-9 rounded-full bg-blue-500/40 border border-white/20" />
-          <Bar W="w-20" H="h-2" C="bg-white/40" />
-          <Bar W="w-28" />
-          <Bar W="w-24" />
-        </div>
-      );
-    }
-    if (Id === "split") {
-      return (
-        <div className="flex w-full items-center gap-3 px-5">
-          <span className="h-10 w-10 shrink-0 rounded-full bg-blue-500/40 border border-white/20" />
-          <div className="flex flex-col items-start gap-1.5">
-            <Bar W="w-20" H="h-2" C="bg-white/40" />
-            <Bar W="w-12" />
-            {BadgeRow}
+        <div className="flex items-start gap-5 w-full max-w-md">
+          <AvatarEl size={80} />
+          <div className="flex flex-col items-start gap-2 min-w-0 flex-1">
+            <span className="text-2xl font-black truncate" style={{ color: Tc }}>{Name}</span>
+            <span className="text-sm opacity-40" style={{ color: Tc }}>@{Handle}</span>
+            <BadgeDots size="h-3.5 w-3.5" />
+            <span className="text-sm opacity-50 mt-1 line-clamp-2" style={{ color: Tc }}>{Bio}</span>
           </div>
         </div>
       );
     }
-    if (Id === "cover") {
+    if (layout === "compact") {
       return (
-        <div className="flex h-full w-full flex-col items-center">
-          <div className="h-9 w-full bg-gradient-to-r from-blue-500/40 via-indigo-500/30 to-purple-500/30" />
-          <span className="-mt-4 h-10 w-10 rounded-full bg-[#18181b] border border-blue-500/50" />
-          <div className="mt-2 flex flex-col items-center gap-1.5">
-            <Bar W="w-16" H="h-2" C="bg-white/40" />
-            <Bar W="w-20" />
+        <div className="flex items-start gap-4 w-full max-w-md">
+          <AvatarEl size={56} />
+          <div className="flex flex-col items-start gap-1 min-w-0 flex-1">
+            <span className="text-xl font-black truncate" style={{ color: Tc }}>{Name}</span>
+            <span className="text-sm opacity-40" style={{ color: Tc }}>@{Handle}</span>
+            <BadgeDots size="h-3 w-3" />
+            <span className="text-sm opacity-50 mt-1 line-clamp-2" style={{ color: Tc }}>{Bio}</span>
           </div>
+        </div>
+      );
+    }
+    if (layout === "badges") {
+      return (
+        <div className="flex flex-col items-center gap-3 w-full max-w-md">
+          <BadgeDots size="h-4 w-4" />
+          <AvatarEl size={72} />
+          <span className="text-2xl font-black" style={{ color: Tc }}>{Name}</span>
+          <span className="text-sm opacity-40" style={{ color: Tc }}>@{Handle}</span>
+          <span className="text-sm opacity-50 line-clamp-2 text-center" style={{ color: Tc }}>{Bio}</span>
         </div>
       );
     }
     return (
-      <div className="flex w-full items-center gap-2.5 px-5">
-        <span className="h-7 w-7 shrink-0 rounded-full bg-blue-500/40 border border-white/20" />
-        <div className="flex flex-col items-start gap-1">
-          <Bar W="w-16" H="h-2" C="bg-white/40" />
-          <Bar W="w-10" />
+      <div className={`flex flex-col gap-3 w-full max-w-md ${layout === "left" ? "items-start" : "items-center"}`}>
+        <AvatarEl size={76} />
+        <span className="text-2xl font-black" style={{ color: Tc }}>{Name}</span>
+        <span className="text-sm opacity-40" style={{ color: Tc }}>@{Handle}</span>
+        <BadgeDots size="h-3.5 w-3.5" />
+        <span className="text-sm opacity-50 line-clamp-2 text-center" style={{ color: Tc }}>{Bio}</span>
+      </div>
+    );
+  };
+
+  const ThumbPreview = ({ id }: { id: string }) => {
+    if (id === "split") {
+      return (
+        <div className="flex items-center gap-2">
+          <span className="h-8 w-8 shrink-0 rounded-full bg-blue-500/40 border border-white/20" />
+          <div className="flex flex-col items-start gap-1">
+            <Bar w="w-14" h="h-1.5" c="bg-white/40" />
+            <Bar w="w-9" />
+            <div className="flex gap-0.5">
+              <span className="h-1.5 w-1.5 rounded bg-white/30" />
+              <span className="h-1.5 w-1.5 rounded bg-blue-400/40" />
+            </div>
+          </div>
         </div>
-        <div className="ml-auto">{BadgeRow}</div>
+      );
+    }
+    if (id === "compact") {
+      return (
+        <div className="flex items-center gap-2">
+          <span className="h-6 w-6 shrink-0 rounded-full bg-blue-500/40 border border-white/20" />
+          <div className="flex flex-col items-start gap-0.5 flex-1">
+            <Bar w="w-12" h="h-1.5" c="bg-white/40" />
+            <Bar w="w-8" />
+          </div>
+          <div className="flex gap-0.5">
+            <span className="h-1.5 w-1.5 rounded bg-white/30" />
+            <span className="h-1.5 w-1.5 rounded bg-blue-400/40" />
+          </div>
+        </div>
+      );
+    }
+    if (id === "badges") {
+      return (
+        <div className="flex flex-col items-center gap-1.5">
+          <div className="flex gap-1">
+            <span className="h-2 w-2 rounded bg-white/40" />
+            <span className="h-2 w-2 rounded bg-blue-400/40" />
+            <span className="h-2 w-2 rounded bg-white/20" />
+          </div>
+          <span className="h-7 w-7 rounded-full bg-blue-500/40 border border-white/20" />
+          <Bar w="w-14" h="h-1.5" c="bg-white/40" />
+          <Bar w="w-10" />
+        </div>
+      );
+    }
+    return (
+      <div className={`flex flex-col gap-1.5 ${id === "left" ? "items-start" : "items-center"}`}>
+        <span className="h-8 w-8 rounded-full bg-blue-500/40 border border-white/20" />
+        <Bar w="w-14" h="h-1.5" c="bg-white/40" />
+        <Bar w="w-10" />
+        <div className="flex gap-0.5">
+          <span className="h-1.5 w-1.5 rounded bg-white/30" />
+          <span className="h-1.5 w-1.5 rounded bg-blue-400/40" />
+        </div>
       </div>
     );
   };
 
   return (
     <div>
-      <h1 className="text-lg font-semibold text-white/40 mb-8 lowercase">profile layouts</h1>
-
-      <div className="glass-card rounded-2xl p-6 bg-blue-500/[0.04] border-blue-500/10 mb-6">
-        <p className="text-sm font-semibold text-white/80">pick a layout</p>
-        <p className="text-[11px] text-white/35 mt-1">changes how the main panel on your biolink arranges your avatar, name, badges and bio. saves instantly.</p>
+      <div className="flex items-end justify-between mb-6">
+        <div>
+          <h1 className="text-lg font-semibold text-white/80 lowercase">profile layouts</h1>
+          <p className="text-[11px] text-white/35 mt-1">pick a layout · hover to preview · saves instantly</p>
+        </div>
+        {JustSaved && (
+          <motion.p
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="text-[11px] text-emerald-400/80"
+          >
+            layout saved — refresh your page to see it.
+          </motion.p>
+        )}
       </div>
+
+      <motion.div
+        layout
+        className="glass-card rounded-2xl p-6 mb-6 border border-white/[0.08] relative overflow-hidden"
+      >
+        <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse at 50% 0%, rgba(59,130,246,0.12) 0%, transparent 70%)" }} />
+        <div className="relative flex items-center justify-between mb-4">
+          <span className="text-[10px] uppercase tracking-wider text-white/40 font-semibold">live preview · {Shown}</span>
+          <span className="text-[10px] text-white/25">{Active === Shown ? "selected" : "previewing"}</span>
+        </div>
+        <motion.div
+          key={Shown}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.22 }}
+          className="rounded-xl bg-black/40 border border-white/[0.06] p-8 min-h-[460px] flex items-center justify-center"
+        >
+          <LivePreview layout={Shown} />
+        </motion.div>
+      </motion.div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-        {LAYOUTS.map((L) => (
-          <button
-            key={L.id}
-            onClick={() => Pick(L.id)}
-            disabled={Saving === L.id}
-            className={`glass-card rounded-2xl p-4 text-left transition-all cursor-pointer ${
-              Active === L.id ? "border-blue-500/50 bg-blue-500/[0.06]" : "hover:border-white/20"
-            } ${Saving === L.id ? "opacity-60" : ""}`}
-          >
-            <div className="mb-4 h-32 rounded-xl bg-black/30 border border-white/[0.05] flex items-center justify-center overflow-hidden">
-              {Preview(L.id)}
-            </div>
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-semibold text-white/85 capitalize">{L.label}</p>
-              {Active === L.id ? <Check size={14} className="text-blue-400" /> : Saving === L.id ? <span className="text-[10px] text-white/40">saving...</span> : null}
-            </div>
-            <p className="mt-1 text-[11px] text-white/30 leading-relaxed">{L.desc}</p>
-          </button>
-        ))}
+        {LAYOUTS.map((L) => {
+          const isActive = Active === L.id;
+          const isSaving = Saving === L.id;
+          return (
+            <motion.button
+              key={L.id}
+              onClick={() => Pick(L.id)}
+              onMouseEnter={() => SetHovered(L.id)}
+              onMouseLeave={() => SetHovered(null)}
+              disabled={isSaving}
+              whileHover={{ y: -4, scale: 1.01 }}
+              whileTap={{ scale: 0.98 }}
+              transition={{ type: "spring", stiffness: 300, damping: 20 }}
+              className={`glass-card rounded-2xl p-4 text-left cursor-pointer relative overflow-hidden ${
+                isActive
+                  ? "border-blue-500/60 bg-blue-500/[0.08] shadow-[0_0_24px_-6px_rgba(59,130,246,0.5)]"
+                  : "border-white/[0.08] hover:border-white/20"
+              } ${isSaving ? "opacity-60" : ""}`}
+            >
+              {isActive && (
+                <motion.div
+                  layoutId="layout-active-glow"
+                  className="absolute inset-0 pointer-events-none"
+                  style={{ background: "radial-gradient(ellipse at 50% 0%, rgba(59,130,246,0.18) 0%, transparent 70%)" }}
+                />
+              )}
+              <div className="relative mb-4 h-28 rounded-xl bg-black/30 border border-white/[0.05] flex items-center justify-center overflow-hidden">
+                <ThumbPreview id={L.id} />
+              </div>
+              <div className="relative flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-semibold text-white/85 capitalize">{L.label}</p>
+                  <span className="text-[9px] uppercase tracking-wider text-white/25 border border-white/10 rounded px-1.5 py-0.5">{L.tag}</span>
+                </div>
+                {isActive ? (
+                  <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 400, damping: 15 }}>
+                    <Check size={15} className="text-blue-400" />
+                  </motion.span>
+                ) : isSaving ? (
+                  <span className="text-[10px] text-white/40">saving...</span>
+                ) : null}
+              </div>
+              <p className="relative mt-1 text-[11px] text-white/30 leading-relaxed">{L.desc}</p>
+            </motion.button>
+          );
+        })}
       </div>
-
-      {JustSaved && <p className="text-[11px] text-emerald-400/80 mt-4">layout saved â€” refresh your page to see it.</p>}
     </div>
   );
 }

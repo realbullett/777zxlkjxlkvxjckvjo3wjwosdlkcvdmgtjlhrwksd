@@ -81,7 +81,6 @@ const LAYOUTS = [
   { id: "classic", label: "classic" },
   { id: "left", label: "left aligned" },
   { id: "split", label: "split" },
-  { id: "cover", label: "cover" },
   { id: "compact", label: "compact" },
   { id: "badges", label: "badges first" },
 ];
@@ -111,15 +110,6 @@ const LayoutPreview = ({ Id }: { Id: string }) => (
           <div className="h-1 w-12 rounded bg-white/15" />
         </div>
       </div>
-    )}
-    {Id === "cover" && (
-      <>
-        <div className="absolute inset-x-0 top-0 h-7 bg-gradient-to-r from-blue-600/40 to-blue-400/30" />
-        <div className="mt-6 flex flex-col items-center gap-1.5">
-          <div className="h-5 w-5 rounded-full border-2 border-black/60 bg-blue-400/80" />
-          <div className="h-1 w-12 rounded bg-white/30" />
-        </div>
-      </>
     )}
     {Id === "compact" && (
       <div className="flex items-center gap-2">
