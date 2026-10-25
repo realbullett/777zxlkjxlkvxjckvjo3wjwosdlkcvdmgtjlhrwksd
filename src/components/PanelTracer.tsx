@@ -1,4 +1,4 @@
-﻿import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 type Pt = { X: number; Y: number; NX: number; NY: number };
@@ -148,6 +148,32 @@ function DrawFlake(Ctx: CanvasRenderingContext2D, X: number, Y: number, S: numbe
   Ctx.arc(0, 0, Math.max(1.4, S * 0.16), 0, Math.PI * 2);
   Ctx.fill();
   Ctx.restore();
+}
+
+const FLOWER_SIDE = 112;
+const FLOWER_REF = 20;
+const FlowerCache = new Map<string, HTMLCanvasElement>();
+function FlowerSprite(Base: string) {
+  const Cached = FlowerCache.get(Base);
+  if (Cached) return Cached;
+  const Spr = document.createElement("canvas");
+  Spr.width = Spr.height = FLOWER_SIDE;
+  const SC = Spr.getContext("2d");
+  if (SC) DrawFlower(SC, FLOWER_SIDE / 2, FLOWER_SIDE / 2, FLOWER_REF, 0, Base);
+  FlowerCache.set(Base, Spr);
+  return Spr;
+}
+
+const FLAKE_SIDE = 56;
+const FLAKE_REF = 12;
+let FlakeCanvas: HTMLCanvasElement | null = null;
+function FlakeSprite() {
+  if (FlakeCanvas) return FlakeCanvas;
+  FlakeCanvas = document.createElement("canvas");
+  FlakeCanvas.width = FlakeCanvas.height = FLAKE_SIDE;
+  const SC = FlakeCanvas.getContext("2d");
+  if (SC) DrawFlake(SC, FLAKE_SIDE / 2, FLAKE_SIDE / 2, FLAKE_REF, 0, 1);
+  return FlakeCanvas;
 }
 
 function DrawStar(Ctx: CanvasRenderingContext2D, X: number, Y: number, S: number, Spin: number, Alpha: number) {
@@ -345,10 +371,10 @@ export function PanelTracer({ Type, Color, Speed }: { Type: string | null; Color
     };
 
     if (T === "flowers") {
-      const N = Math.max(6, Math.round(Len / 55));
+      const N = Math.min(16, Math.max(6, Math.round(Len / 55)));
       for (let I = 0; I < N; I++) Parts.push(Make((I / N) * Len, 1e9, 12 + Math.random() * 8));
     } else if (T === "snow") {
-      const N = Math.max(14, Math.round(Len / 16));
+      const N = Math.min(48, Math.max(14, Math.round(Len / 16)));
       for (let I = 0; I < N; I++) {
         const P = Make(Math.random() * Len, 1e9, 0);
         P.Vs = (Math.random() - 0.5) * 0.05;
@@ -552,21 +578,40 @@ export function PanelTracer({ Type, Color, Speed }: { Type: string | null; Color
       }
 
       if (T === "flowers") {
+        const Spr = FlowerSprite(C);
+        const Half = FLOWER_SIDE / 2;
         for (const P of Parts) {
           P.S += Dt * 18 * SpeedMul;
           const Q = At(P.S);
           const Bob = Math.sin(Time * 1.2 + P.Seed) * 3;
-          DrawFlower(Ctx, Q.X - Q.NX * (3 + Bob), Q.Y - Q.NY * (3 + Bob), P.Size, Time * 1.1 + P.Seed, C);
+          const Spin = Time * 1.1 + P.Seed;
+          const Tilt = 0.55 + 0.45 * Math.abs(Math.sin(Spin * 0.7));
+          const K = P.Size / FLOWER_REF;
+          Ctx.save();
+          Ctx.translate(Q.X - Q.NX * (3 + Bob), Q.Y - Q.NY * (3 + Bob));
+          Ctx.rotate(Spin);
+          Ctx.scale(1, Tilt / 0.55);
+          Ctx.drawImage(Spr, -Half * K, -Half * K, FLOWER_SIDE * K, FLOWER_SIDE * K);
+          Ctx.restore();
         }
       }
 
       if (T === "snow") {
+        const Spr = FlakeSprite();
+        const Half = FLAKE_SIDE / 2;
         for (const P of Parts) {
           P.S += (P.Vs * 60 + 10) * Dt * SpeedMul;
           const Q = At(P.S);
           const Fl = 0.55 + 0.45 * Math.sin(Time * 2 + P.Seed);
-          DrawFlake(Ctx, Q.X - Q.NX * 2, Q.Y - Q.NY * 2, 6 + Fl * 6, Time * 0.8 + P.Seed, 0.6 + Fl * 0.4);
+          const K = (6 + Fl * 6) / FLAKE_REF;
+          Ctx.save();
+          Ctx.globalAlpha = 0.6 + Fl * 0.4;
+          Ctx.translate(Q.X - Q.NX * 2, Q.Y - Q.NY * 2);
+          Ctx.rotate(Time * 0.8 + P.Seed);
+          Ctx.drawImage(Spr, -Half * K, -Half * K, FLAKE_SIDE * K, FLAKE_SIDE * K);
+          Ctx.restore();
         }
+        Ctx.globalAlpha = 1;
       }
 
       if (T === "stars") {
@@ -699,7 +744,7 @@ export function PanelTracer({ Type, Color, Speed }: { Type: string | null; Color
       }
 
       const Overlay = OverlayRef.current;
-      if (Overlay) {
+      if (T === "halloween" && Overlay) {
         const OCtx = Overlay.getContext("2d");
         const Vw = window.innerWidth;
         const Vh = window.innerHeight;
@@ -770,7 +815,7 @@ export function PanelTracer({ Type, Color, Speed }: { Type: string | null; Color
       <div ref={BoxRef} className="pointer-events-none absolute inset-0">
         <canvas ref={CanvasRef} className="pointer-events-none absolute left-0 top-0" style={{ borderRadius: `${Radius}px` }} />
       </div>
-      {createPortal(
+      {T === "halloween" && createPortal(
         <canvas ref={OverlayRef} className="pointer-events-none fixed inset-0 z-[9998]" />,
         document.body
       )}
