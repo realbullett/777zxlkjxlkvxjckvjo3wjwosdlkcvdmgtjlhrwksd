@@ -5,7 +5,7 @@ import { Eye, Link as LinkIcon, ThumbsUp, ThumbsDown, Calendar, CheckCircle2, X,
 import { PLATFORMS } from "../lib/platforms";
 import { CUSTOM_FONT_FAMILY, ResolveFontFamily, CustomFontFace, ToSameOriginUrl } from "../lib/fonts";
 import { SparkleText } from "../components/SparkleText";
-import { RainEffect, SnowEffect, AuroraEffect, TvStaticEffect, ParticlesEffect, GalaxyEffect, MatrixEffect, SpotlightEffect } from "../components/BackgroundEffect";
+import { RainEffect, SnowEffect, AuroraEffect, TvStaticEffect, ParticlesEffect, GalaxyEffect, MatrixEffect, SpotlightEffect, FireEffect, StarsEffect, BubblesEffect, FogEffect, HeartsEffect, LeavesEffect, LightningEffect, WavesEffect } from "../components/BackgroundEffect";
 import SongPlayer from "../components/SongPlayer";
 import VolumeControl from "../components/VolumeControl";
 import { PanelTracer } from "../components/PanelTracer";
@@ -823,10 +823,18 @@ export default function Biolink() {
       {bgEffect === "snow" && <SnowEffect />}
       {bgEffect === "aurora" && <AuroraEffect />}
       {bgEffect === "tv" && <TvStaticEffect />}
+      {bgEffect === "fire" && <FireEffect />}
+      {bgEffect === "stars" && <StarsEffect />}
+      {bgEffect === "fog" && <FogEffect />}
+      {bgEffect === "waves" && <WavesEffect />}
       {bgEffect === "particles" && <ParticlesEffect />}
       {bgEffect === "galaxy" && <GalaxyEffect />}
       {bgEffect === "matrix" && <MatrixEffect />}
       {bgEffect === "spotlight" && <SpotlightEffect />}
+      {bgEffect === "bubbles" && <BubblesEffect />}
+      {bgEffect === "hearts" && <HeartsEffect />}
+      {bgEffect === "leaves" && <LeavesEffect />}
+      {bgEffect === "lightning" && <LightningEffect />}
       {user?.cursor_effect && user?.cursor_effect !== "none" && <CursorEffect type={user.cursor_effect} />}
       <div className="absolute inset-0 bg-black/30" />
 

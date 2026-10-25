@@ -6,7 +6,7 @@ import { PLATFORMS } from "../lib/platforms";
 import { FONTS, CUSTOM_FONT_FAMILY, CUSTOM_FONT_NAME, ResolveFontFamily, CustomFontFace, ToSameOriginUrl } from "../lib/fonts";
 import { SparkleText } from "../components/SparkleText";
 import { VerifiedIcon } from "../components/VerifiedIcon";
-import { RainEffect, SnowEffect, AuroraEffect, TvStaticEffect, ParticlesEffect, GalaxyEffect, MatrixEffect, SpotlightEffect } from "../components/BackgroundEffect";
+import { RainEffect, SnowEffect, AuroraEffect, TvStaticEffect, ParticlesEffect, GalaxyEffect, MatrixEffect, SpotlightEffect, FireEffect, StarsEffect, BubblesEffect, FogEffect, HeartsEffect, LeavesEffect, LightningEffect, WavesEffect } from "../components/BackgroundEffect";
 import { parseSongUrl } from "../lib/song";
 import SongPlayer from "../components/SongPlayer";
 import DiscordRPC from "../components/DiscordRPC";
@@ -2637,10 +2637,18 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
             { id: "snow", label: "Snow" },
             { id: "aurora", label: "Aurora" },
             { id: "tv", label: "TV Static" },
+            { id: "fire", label: "Fire" },
+            { id: "stars", label: "Stars" },
+            { id: "fog", label: "Fog" },
+            { id: "waves", label: "Waves" },
             { id: "particles", label: "Particles", premium: true },
             { id: "galaxy", label: "Galaxy", premium: true },
             { id: "matrix", label: "Matrix", premium: true },
             { id: "spotlight", label: "Spotlight", premium: true },
+            { id: "bubbles", label: "Bubbles", premium: true },
+            { id: "hearts", label: "Hearts", premium: true },
+            { id: "leaves", label: "Leaves", premium: true },
+            { id: "lightning", label: "Lightning", premium: true },
           ].map((e) => {
             const locked = !!e.premium && !myBadges.includes("premium");
             return (
@@ -2669,10 +2677,18 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
           {bgEffect === "snow" && <SnowEffect />}
           {bgEffect === "aurora" && <AuroraEffect />}
           {bgEffect === "tv" && <TvStaticEffect />}
+          {bgEffect === "fire" && <FireEffect />}
+          {bgEffect === "stars" && <StarsEffect />}
+          {bgEffect === "fog" && <FogEffect />}
+          {bgEffect === "waves" && <WavesEffect />}
           {bgEffect === "particles" && <ParticlesEffect />}
           {bgEffect === "galaxy" && <GalaxyEffect />}
           {bgEffect === "matrix" && <MatrixEffect />}
           {bgEffect === "spotlight" && <SpotlightEffect />}
+          {bgEffect === "bubbles" && <BubblesEffect />}
+          {bgEffect === "hearts" && <HeartsEffect />}
+          {bgEffect === "leaves" && <LeavesEffect />}
+          {bgEffect === "lightning" && <LightningEffect />}
           <span className="text-sm text-white/30 italic relative z-[2]">preview</span>
         </div>
         <div className="flex justify-end">
@@ -3298,10 +3314,18 @@ function Preview({ user, desc, background, audio, profileAvatar, customCursor, d
         {bgEffect === "snow" && <SnowEffect />}
         {bgEffect === "aurora" && <AuroraEffect />}
         {bgEffect === "tv" && <TvStaticEffect />}
+        {bgEffect === "fire" && <FireEffect />}
+        {bgEffect === "stars" && <StarsEffect />}
+        {bgEffect === "fog" && <FogEffect />}
+        {bgEffect === "waves" && <WavesEffect />}
         {bgEffect === "particles" && <ParticlesEffect />}
         {bgEffect === "galaxy" && <GalaxyEffect />}
         {bgEffect === "matrix" && <MatrixEffect />}
         {bgEffect === "spotlight" && <SpotlightEffect />}
+        {bgEffect === "bubbles" && <BubblesEffect />}
+        {bgEffect === "hearts" && <HeartsEffect />}
+        {bgEffect === "leaves" && <LeavesEffect />}
+        {bgEffect === "lightning" && <LightningEffect />}
         {cursorEffectType && cursorEffectType !== "none" && <CursorEffect type={cursorEffectType} />}
         <div className="absolute inset-0 bg-black/30" />
 
