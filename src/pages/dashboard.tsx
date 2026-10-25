@@ -61,6 +61,7 @@ type User = {
   desc_lines: string[] | null;
   monochrome_icons: boolean;
   monochrome_badges: boolean;
+  badge_color: string | null;
   banner_enabled: boolean;
   show_username: boolean;
   show_joindate: boolean;
@@ -3461,7 +3462,9 @@ function Preview({ user, desc, background, audio, profileAvatar, customCursor, d
                       {(badges || []).map((b) => {
                         if (b === "verified") {
                           return (
-                            <motion.span key={b} layout className="flex h-7 w-7 items-center justify-center text-white" whileHover={{ scale: 1.15 }} transition={{ type: "spring", stiffness: 300, damping: 15 }}>
+                            <motion.span key={b} layout className={`flex h-7 w-7 items-center justify-center ${user?.badge_color ? "" : "text-white"}`}
+                              style={user?.badge_color ? { color: user.badge_color, filter: `drop-shadow(0 0 4px ${user.badge_color}) drop-shadow(0 0 9px ${user.badge_color})` } : undefined}
+                              whileHover={{ scale: 1.15 }} transition={{ type: "spring", stiffness: 300, damping: 15 }}>
                               <VerifiedIcon className="h-7 w-7" />
                             </motion.span>
                           );
@@ -3469,7 +3472,17 @@ function Preview({ user, desc, background, audio, profileAvatar, customCursor, d
                         const src = BADGE_FILES[b] ? `/emojis/${BADGE_FILES[b]}` : null;
                         if (!src) return null;
                         return (
-                          <motion.img key={b} layout src={src} alt={b} className="h-7 w-7 object-contain" whileHover={{ scale: 1.15 }} transition={{ type: "spring", stiffness: 300, damping: 15 }} />
+                          user?.badge_color ? (
+                            <motion.div key={b} layout className="h-7 w-7" whileHover={{ scale: 1.15 }} transition={{ type: "spring", stiffness: 300, damping: 15 }}
+                              style={{ backgroundColor: user.badge_color,
+                                WebkitMaskImage: `url(${src})`, maskImage: `url(${src})`,
+                                WebkitMaskSize: "contain", maskSize: "contain",
+                                WebkitMaskRepeat: "no-repeat", maskRepeat: "no-repeat",
+                                WebkitMaskPosition: "center", maskPosition: "center",
+                                filter: `drop-shadow(0 0 4px ${user.badge_color}) drop-shadow(0 0 9px ${user.badge_color})` }} />
+                          ) : (
+                            <motion.img key={b} layout src={src} alt={b} className="h-7 w-7 object-contain" whileHover={{ scale: 1.15 }} transition={{ type: "spring", stiffness: 300, damping: 15 }} />
+                          )
                         );
                       })}
                     </motion.div>
@@ -3605,7 +3618,12 @@ function BadgeRow({ id, file, desc, action }: { key?: any; id: string; file: str
   );
 }
 
+const NEON_BADGE_COLORS = ["#ffffff", "#ff2bd1", "#ff0055", "#ff3b3b", "#ff8a00", "#ffe600", "#a6ff00", "#00ff88", "#00ffe1", "#00b3ff", "#5b6bff", "#b14bff", "#ff5cc8"];
+
 function UserBadges({ user, onTab }: { user: User | null; onTab?: (t: TabId) => void }) {
+  const [badgeColor, setBadgeColor] = useState<string>(user?.badge_color || "");
+  const [hexDraft, setHexDraft] = useState<string>(user?.badge_color || "");
+  const [colorErr, setColorErr] = useState("");
   const [myBadges, setMyBadges] = useState<string[]>([]);
   const [prefs, setPrefs] = useState<Record<string, { hidden: boolean; byName: boolean }>>({});
   const [loading, setLoading] = useState(true);
@@ -3651,6 +3669,19 @@ function UserBadges({ user, onTab }: { user: User | null; onTab?: (t: TabId) => 
 
   if (loading) return <div className="glass-card rounded-2xl p-6"><p className="text-sm text-white/40">loading...</p></div>;
 
+  const applyColor = async (Next: string) => {
+    const Prev = badgeColor;
+    setBadgeColor(Next);
+    setHexDraft(Next);
+    setColorErr("");
+    const J = await apiCall("update", { data: { badge_color: Next } });
+    if (J?.error) {
+      setBadgeColor(Prev);
+      setHexDraft(Prev);
+      setColorErr(String(J.error));
+    }
+  };
+
   const rowAction = (b: string) => {
     const has = myBadges.includes(b);
     if (b === "og") {
@@ -3689,6 +3720,45 @@ function UserBadges({ user, onTab }: { user: User | null; onTab?: (t: TabId) => 
         </button>
       </div>
       <p className="text-sm text-white/40 mb-6">Every badge you can earn on sire.lol. Some sync automatically, others you can claim below.</p>
+
+      <div className="glass-card rounded-2xl p-5 mb-6">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-sm font-semibold text-white/90">force badge color</p>
+            <p className="text-[11px] text-white/40">neon only — recolors every badge you own on your biolink</p>
+          </div>
+          {badgeColor ? <Pill kind="action" onClick={() => applyColor("")}>reset</Pill> : <Pill kind="muted">off</Pill>}
+        </div>
+        {myBadges.length === 0 ? (
+          <p className="text-xs text-white/30 mt-4">you don't own any badges yet — claim one below first</p>
+        ) : (
+          <>
+            <div className="flex flex-wrap gap-2 mt-4">
+              {NEON_BADGE_COLORS.map((C) => (
+                <button
+                  key={C}
+                  onClick={() => applyColor(C)}
+                  title={C}
+                  className={`h-8 w-8 rounded-lg transition-transform hover:scale-110 cursor-pointer ${badgeColor.toLowerCase() === C ? "ring-2 ring-white ring-offset-2 ring-offset-[#0b0b0f]" : ""}`}
+                  style={{ backgroundColor: C, boxShadow: `0 0 12px ${C}` }}
+                />
+              ))}
+            </div>
+            <div className="flex items-center gap-2 mt-4">
+              <input
+                value={hexDraft}
+                onChange={(E) => setHexDraft(E.target.value)}
+                placeholder="#ff2bd1"
+                maxLength={7}
+                className="w-28 rounded-lg bg-white/5 border border-white/10 px-3 py-1.5 text-xs font-mono text-white/80 outline-none focus:border-white/25"
+              />
+              <Pill kind="action" onClick={() => applyColor(hexDraft.trim().toLowerCase())}>apply</Pill>
+              {badgeColor && <span className="text-[11px] text-white/40">active <span style={{ color: badgeColor }}>{badgeColor}</span></span>}
+            </div>
+            {colorErr && <p className="text-[11px] text-red-400 mt-2">{colorErr}</p>}
+          </>
+        )}
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {BADGE_LIST.map((meta) => (

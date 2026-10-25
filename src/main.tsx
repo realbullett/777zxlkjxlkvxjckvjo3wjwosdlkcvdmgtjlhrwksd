@@ -1,6 +1,7 @@
 import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
 import {BrowserRouter, Routes, Route} from 'react-router-dom';
+import { Analytics } from '@vercel/analytics/react';
 import App from './App.tsx';
 import AuthPage from './pages/auth.tsx';
 import Dashboard from './pages/dashboard.tsx';
@@ -25,5 +26,6 @@ createRoot(document.getElementById('root')!).render(
         <Route path="/:username" element={<Biolink />} />
       </Routes>
     </BrowserRouter>
+    <Analytics />
   </StrictMode>,
 );

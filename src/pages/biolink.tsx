@@ -101,6 +101,7 @@ type User = {
   desc_lines: string[] | null;
   monochrome_icons: boolean;
   monochrome_badges: boolean;
+  badge_color: string | null;
   banner_enabled: boolean;
   seo_title: string | null;
   seo_description: string | null;
@@ -169,6 +170,7 @@ export default function Biolink() {
   const [badgePrefs, setBadgePrefs] = useState<Record<string, { hidden: boolean; byName: boolean }>>({});
   const visibleBadges = badges.filter((b) => !badgePrefs[b]?.hidden);
   const showVerifiedByName = badges.includes("verified") && !!badgePrefs.verified?.byName;
+  const BadgeTint = String(user?.badge_color || "").trim();
   const [links, setLinks] = useState<Record<string, string>>({});
   const [hoveredBadge, setHoveredBadge] = useState<string | null>(null);
   const [hoveredUid, setHoveredUid] = useState(false);
@@ -1014,7 +1016,8 @@ export default function Biolink() {
                                 className="relative flex items-center justify-center"
                               >
                                 <motion.span
-                                  className={`flex h-7 w-7 items-center justify-center text-white ${user?.monochrome_badges ? "opacity-70" : ""}`}
+                                  className={`flex h-7 w-7 items-center justify-center ${BadgeTint ? "" : "text-white"} ${user?.monochrome_badges ? "opacity-70" : ""}`}
+                                  style={BadgeTint ? { color: BadgeTint, filter: `drop-shadow(0 0 4px ${BadgeTint}) drop-shadow(0 0 9px ${BadgeTint})` } : undefined}
                                   whileHover={{ scale: 1.15 }}
                                   transition={{ type: "spring", stiffness: 300, damping: 15 }}
                                 >
@@ -1045,6 +1048,25 @@ export default function Biolink() {
                               onMouseEnter={() => setHoveredBadge(b)}
                               className="relative flex items-center justify-center"
                             >
+                              {BadgeTint ? (
+                                <motion.div
+                                  className="h-7 w-7"
+                                  style={{
+                                    backgroundColor: BadgeTint,
+                                    WebkitMaskImage: `url(${src})`,
+                                    maskImage: `url(${src})`,
+                                    WebkitMaskSize: "contain",
+                                    maskSize: "contain",
+                                    WebkitMaskRepeat: "no-repeat",
+                                    maskRepeat: "no-repeat",
+                                    WebkitMaskPosition: "center",
+                                    maskPosition: "center",
+                                    filter: `drop-shadow(0 0 4px ${BadgeTint}) drop-shadow(0 0 9px ${BadgeTint})`,
+                                  }}
+                                  whileHover={{ scale: 1.15 }}
+                                  transition={{ type: "spring", stiffness: 300, damping: 15 }}
+                                />
+                              ) : (
                               <motion.img
                                 src={src}
                                 alt={b}
@@ -1052,6 +1074,7 @@ export default function Biolink() {
                                 whileHover={{ scale: 1.15 }}
                                 transition={{ type: "spring", stiffness: 300, damping: 15 }}
                               />
+                              )}
                               {hoveredBadge === b && (
                           <motion.div
                             layoutId="tooltip"

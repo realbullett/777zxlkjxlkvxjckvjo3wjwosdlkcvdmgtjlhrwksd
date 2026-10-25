@@ -19,6 +19,17 @@ function unsignToken(token) {
   }
 }
 
+function IsNeonHex(Hex) {
+  const R = parseInt(Hex.slice(1, 3), 16);
+  const G = parseInt(Hex.slice(3, 5), 16);
+  const B = parseInt(Hex.slice(5, 7), 16);
+  const Max = Math.max(R, G, B);
+  const Min = Math.min(R, G, B);
+  if (Min >= 232) return true;
+  if (Max < 184) return false;
+  return (Max - Min) / Max >= 0.45;
+}
+
 const USER_FIELDS = new Set([
   "username", "alias", "display_name", "description", "accent_color", "text_color", "background_color",
   "icon_color", "bg_effect_color", "primary_color", "secondary_color", "show_username",
@@ -34,7 +45,7 @@ const USER_FIELDS = new Set([
   "panel_opacity", "panel_hidden", "discord_rpc_enabled", "panel_pulse_enabled", "panel_pulse_type",
   "widgets", "onboarding_done", "use_case", "show_joindate", "show_views", "show_votes", "custom_font_scope",
   "embed_buttons", "click_sound", "profile_layout", "country", "panel_glow_mode", "panel_glow_color", "panel_glow_color_2", "panel_glow_spread",
-  "panel_pulse_color", "panel_pulse_speed",
+  "panel_pulse_color", "panel_pulse_speed", "badge_color",
 ]);
 
 const PREMIUM_VALUES = {
@@ -233,6 +244,7 @@ async function EnsureSchema() {
     D.execute("ALTER TABLE users ADD COLUMN panel_pulse_type TEXT NOT NULL DEFAULT 'pulse'"),
     D.execute("ALTER TABLE users ADD COLUMN panel_pulse_color TEXT NOT NULL DEFAULT ''"),
     D.execute("ALTER TABLE users ADD COLUMN panel_pulse_speed INTEGER NOT NULL DEFAULT 50"),
+    D.execute("ALTER TABLE users ADD COLUMN badge_color TEXT NOT NULL DEFAULT ''"),
     D.execute("ALTER TABLE users ADD COLUMN country TEXT NOT NULL DEFAULT ''"),
     D.execute("CREATE TABLE IF NOT EXISTS admin_log (id INTEGER PRIMARY KEY AUTOINCREMENT, admin_id INTEGER NOT NULL, action TEXT NOT NULL, target_uid INTEGER, detail TEXT, created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')))"),
     D.execute("CREATE INDEX IF NOT EXISTS idx_admin_log_time ON admin_log (created_at DESC)"),
@@ -782,6 +794,14 @@ export default async function handler(req, res) {
       }
       if (data.font !== undefined) {
         data.font = String(data.font).slice(0, 64);
+      }
+      if (data.badge_color !== undefined) {
+        const Hex = String(data.badge_color || "").trim().toLowerCase();
+        if (!Hex) data.badge_color = "";
+        else if (!/^#[0-9a-f]{6}$/.test(Hex) || !IsNeonHex(Hex)) {
+          res.status(400).json({ error: "badge color has to be a bright neon hex" });
+          return;
+        } else data.badge_color = Hex;
       }
       if (data.embed_buttons !== undefined) {
         let eb = data.embed_buttons;

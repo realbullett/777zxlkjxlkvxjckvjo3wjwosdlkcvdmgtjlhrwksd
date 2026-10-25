@@ -40,6 +40,7 @@ CREATE TABLE IF NOT EXISTS users (
   desc_lines TEXT DEFAULT '[]',
   monochrome_icons INTEGER DEFAULT 0,
   monochrome_badges INTEGER DEFAULT 0,
+  badge_color TEXT DEFAULT '',
   banner_enabled INTEGER DEFAULT 0,
   seo_title TEXT,
   seo_description TEXT,
