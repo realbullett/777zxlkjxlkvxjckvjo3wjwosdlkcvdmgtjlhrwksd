@@ -355,7 +355,7 @@ function SpotifyPlayerLyrics({ id, autoPlay = false, bgImage }: { id: string; au
   return (
     <div
       ref={rootRef}
-      className="relative w-full overflow-hidden rounded-2xl border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.45)]"
+      className="relative w-full overflow-hidden rounded-2xl border border-white/10 font-sans shadow-[0_8px_32px_0_rgba(0,0,0,0.45)]"
       style={{
         background: bgImage
           ? "#0a0808"
@@ -381,49 +381,51 @@ function SpotifyPlayerLyrics({ id, autoPlay = false, bgImage }: { id: string; au
               </div>
             )}
           </div>
-          <div className="flex min-w-0 flex-col justify-center">
-            <p className="truncate text-[15px] font-bold text-white leading-tight">{info?.title || (error ? "lyrics unavailable" : "loading track...")}</p>
-            <p className="truncate text-[13px] text-white/50 mt-0.5">{info?.artist || "Spotify"}</p>
+          <div className="flex min-w-0 flex-col justify-center gap-0.5">
+            <p className="truncate text-[13.5px] font-semibold text-white leading-tight">{info?.title || (error ? "lyrics unavailable" : "loading track...")}</p>
+            <p className="truncate text-[11.5px] text-white/45">{info?.artist || "Spotify"}</p>
           </div>
         </div>
         {canPlay && (
-          <div className="flex items-center gap-3 px-5 pb-4">
+          <div className="flex items-center gap-2.5 px-5 pb-4">
             <button
               onClick={() => skipToLine(-1)}
-              className="shrink-0 text-white/70 hover:text-white transition-colors cursor-pointer"
+              className="shrink-0 text-white/50 hover:text-white transition-colors cursor-pointer"
               title="previous line"
             >
-              <SkipBack size={16} />
+              <SkipBack size={14} className="fill-current" />
             </button>
             <button
               onClick={toggle}
-              className="h-9 w-9 shrink-0 rounded-full bg-white hover:bg-white/85 flex items-center justify-center transition-colors cursor-pointer text-black"
+              className="h-8 w-8 shrink-0 rounded-full bg-white flex items-center justify-center transition-transform hover:scale-105 active:scale-95 cursor-pointer text-black"
               title={playing ? "pause" : "play"}
             >
-              {playing ? <Pause size={15} /> : <Play size={15} className="ml-0.5" />}
+              {playing ? <Pause size={14} /> : <Play size={14} className="ml-0.5" />}
             </button>
             <button
               onClick={() => skipToLine(1)}
-              className="shrink-0 text-white/70 hover:text-white transition-colors cursor-pointer"
+              className="shrink-0 text-white/50 hover:text-white transition-colors cursor-pointer"
               title="next line"
             >
-              <SkipForward size={16} />
+              <SkipForward size={14} className="fill-current" />
             </button>
-            <span className="shrink-0 text-[12px] tabular-nums text-white/60">{fmt(time)}</span>
-            <div className="relative h-1 flex-1 cursor-pointer rounded-full bg-white/20" onClick={onBarClick}>
-              <div className="absolute inset-y-0 left-0 rounded-full bg-white" style={{ width: `${pct}%` }} />
-              <div
-                className="absolute top-1/2 h-2.5 w-2.5 -translate-y-1/2 rounded-full bg-white"
-                style={{ left: `calc(${pct}% - 5px)` }}
-              />
+            <span className="shrink-0 text-[10.5px] tabular-nums text-white/50">{fmt(time)}</span>
+            <div className="group relative h-3 flex-1 cursor-pointer" onClick={onBarClick}>
+              <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 rounded-full bg-white/20" style={{ height: 3 }}>
+                <div className="absolute inset-y-0 left-0 rounded-full bg-white" style={{ width: `${pct}%` }} />
+                <div
+                  className="absolute top-1/2 h-2.5 w-2.5 -translate-y-1/2 -translate-x-1/2 rounded-full bg-white shadow transition-transform group-hover:scale-110"
+                  style={{ left: `${pct}%` }}
+                />
+              </div>
             </div>
-            <span className="shrink-0 text-[12px] tabular-nums text-white/60">{fmt(duration)}</span>
+            <span className="shrink-0 text-[10.5px] tabular-nums text-white/50">{fmt(duration)}</span>
             <button
               onClick={toggleMute}
-              className="shrink-0 text-white/70 hover:text-white transition-colors cursor-pointer"
+              className="shrink-0 text-white/50 hover:text-white transition-colors cursor-pointer"
               title={muted ? "unmute" : "mute"}
             >
-              {muted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+              {muted ? <VolumeX size={15} /> : <Volume2 size={15} />}
             </button>
           </div>
         )}
@@ -433,7 +435,7 @@ function SpotifyPlayerLyrics({ id, autoPlay = false, bgImage }: { id: string; au
             {!error && lines.length === 0 && (
               <p className="text-xs text-white/40 italic text-center">no synced lyrics found for this track.</p>
             )}
-            <div className="flex flex-col items-center gap-2 text-center">
+            <div className="flex flex-col items-center gap-2.5 text-center">
               {lines.map((line, i) => {
                 const text = line.replace(/\[.+?\]/g, "").trim();
                 const active = i === current;
@@ -441,7 +443,7 @@ function SpotifyPlayerLyrics({ id, autoPlay = false, bgImage }: { id: string; au
                   <p
                     key={i}
                     data-line={i}
-                    className={`text-[15px] leading-snug transition-all duration-200 ${active ? "text-white font-bold" : "text-white/25"}`}
+                    className={`text-[13.5px] leading-snug transition-all duration-200 ${active ? "text-white font-semibold" : "text-white/30"}`}
                   >
                     {text || "\u00a0"}
                   </p>

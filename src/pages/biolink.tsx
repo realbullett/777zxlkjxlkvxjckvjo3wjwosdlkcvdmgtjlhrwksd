@@ -885,7 +885,7 @@ export default function Biolink() {
               boxShadow: (() => {
                 const Mode = user?.panel_glow_mode;
                 const Col = user?.panel_glow_color;
-                if (user?.panel_hidden || !Mode || Mode === "none" || !Col) return "0 8px 32px 0 rgba(0, 0, 0, 0.37)";
+                if (user?.panel_hidden || !Mode || Mode === "none" || !Col) return "none";
                 const Sp = user?.panel_glow_spread ?? 50;
                 const B = 10 + Sp * 0.6;
                 const T = Sp * 0.6;
@@ -1093,7 +1093,7 @@ export default function Biolink() {
                     </div>
                   )}
                   {user.song_platform && user.song_id && (
-                    <div className="w-full max-w-xs" style={{ transform: `translate(${user.song_offset_x || 0}px, ${user.song_offset_y || 0}px)` }}>
+                    <div className={user.song_platform === "spotify" ? "w-full" : "w-full max-w-xs"} style={{ transform: `translate(${user.song_offset_x || 0}px, ${user.song_offset_y || 0}px)` }}>
                       <SongPlayer platform={user.song_platform as "youtube" | "spotify"} id={user.song_id} />
                     </div>
                   )}
