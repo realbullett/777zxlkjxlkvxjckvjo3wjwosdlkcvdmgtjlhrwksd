@@ -738,6 +738,14 @@ export default async function handler(req, res) {
 
   if (req.method === "GET") {
     const action = req.query.action;
+    if (action === "rev") {
+      const TUid = Number(req.query.uid);
+      if (!TUid) { res.status(400).json({ error: "missing uid" }); return; }
+      const Rs = await Db().execute({ sql: "SELECT updated_at FROM users WHERE id = ?", args: [TUid] });
+      res.setHeader("Cache-Control", "no-store");
+      res.status(200).json({ rev: String(Rs.rows?.[0]?.updated_at || "") });
+      return;
+    }
     if (action === "og") return ogImage(req, res);
     if (action === "hostList") return hostList(req, res);
     if (action === "serveMedia" || action === "serveFile" || req.params?.code) return hostServe(req, res);

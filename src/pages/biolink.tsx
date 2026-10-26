@@ -237,14 +237,14 @@ export default function Biolink() {
     });
   }, [username, Verified]);
 
-  // live rev poll — dashboard save bumps /api/live, we swap the profile in without a reload :sob:
+  // live rev poll — dashboard save bumps rev, we swap the profile in without a reload :sob:
   useEffect(() => {
     const Uid = user?.id;
     if (!Uid) return;
     let Last = "";
     const t = setInterval(() => {
       if (document.hidden) return;
-      fetch(`/api/live?uid=${Uid}`, { cache: "no-store" })
+      fetch(`/api/me?action=rev&uid=${Uid}`, { cache: "no-store" })
         .then((R) => (R.ok ? R.json() : null))
         .then((J) => {
           if (!J) return;
