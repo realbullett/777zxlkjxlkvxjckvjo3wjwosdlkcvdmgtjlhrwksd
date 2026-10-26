@@ -6,6 +6,15 @@
   --font-mono: "Space Mono", monospace;
 }
 
+@keyframes mq-left {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+@keyframes mq-right {
+  from { transform: translateX(-50%); }
+  to { transform: translateX(0); }
+}
+
 @layer base {
   html {
     scroll-behavior: smooth;
@@ -432,15 +441,6 @@
   }
   .marquee-track {
     animation: marquee 20s linear infinite;
-  }
-
-  @keyframes mq-left {
-    from { transform: translateX(0); }
-    to { transform: translateX(-50%); }
-  }
-  @keyframes mq-right {
-    from { transform: translateX(-50%); }
-    to { transform: translateX(0); }
   }
 
   .lb-bgfx { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }

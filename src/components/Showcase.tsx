@@ -15,15 +15,22 @@ const Fill = (Arr: Entry[], N: number): Entry[] => {
   return Out.slice(0, N);
 };
 
-const Card = ({ E }: { key?: any; E: Entry }) => (
-  <a href={`/${E.username}`} target="_blank" rel="noreferrer" className="group relative block w-[260px] shrink-0 overflow-hidden rounded-xl border border-white/[0.08] bg-white/[0.02] transition-colors hover:border-white/20">
+const Card = ({ E, Active, Dimmed, onEnter, onLeave }: { key?: any; E: Entry; Active?: boolean; Dimmed?: boolean; onEnter?: () => void; onLeave?: () => void }) => (
+  <a
+    href={`/${E.username}`}
+    target="_blank"
+    rel="noreferrer"
+    onMouseEnter={onEnter}
+    onMouseLeave={onLeave}
+    className={`group relative block shrink-0 overflow-hidden rounded-xl border bg-white/[0.02] transition-all duration-300 ${Active ? "w-[420px] border-white/30 shadow-[0_0_44px_rgba(255,255,255,0.09)]" : "w-[260px] hover:border-white/20"} ${Dimmed ? "opacity-30 grayscale" : "opacity-100"}`}
+  >
     <div className="flex items-center gap-1.5 border-b border-white/[0.06] bg-black/40 px-2.5 py-2">
       <span className="h-1.5 w-1.5 rounded-full bg-white/25" />
       <span className="h-1.5 w-1.5 rounded-full bg-white/25" />
       <span className="h-1.5 w-1.5 rounded-full bg-white/25" />
       <span className="ml-1.5 flex-1 truncate rounded-md bg-white/[0.05] px-2 py-0.5 font-mono text-[10px] text-white/45">sire.lol/{E.username}</span>
     </div>
-    <div className="relative h-[150px]">
+    <div className={`relative ${Active ? "h-[210px]" : "h-[150px]"} transition-all duration-300`}>
       {E.bg && (
         <img
           src={String(E.bg)}
@@ -65,13 +72,15 @@ const Card = ({ E }: { key?: any; E: Entry }) => (
 
 export const Showcase = () => {
   const [rows, setRows] = useState<Entry[][]>([]);
+  const [Hover, setHover] = useState<{ row: number; copy: number; i: number } | null>(null);
   useEffect(() => {
     fetch(`/api/leaderboard?period=all`)
       .then(async (R) => {
         const J = await R.json().catch(() => null);
         const Top = (((J?.entries || []) as Entry[]) || []).slice(0, 30);
-        const Seq1 = Fill(Top.slice(0, 15), 15);
-        const Seq2 = Fill(Top.slice(15, 30).length ? Top.slice(15, 30) : Top.slice(0, 15), 15);
+        const Ordered = [...Top.filter((E) => E.bg), ...Top.filter((E) => !E.bg)];
+        const Seq1 = Fill(Ordered.slice(0, 15), 15);
+        const Seq2 = Fill(Ordered.slice(15, 30).length ? Ordered.slice(15, 30) : Ordered.slice(0, 15), 15);
         setRows([Seq1, Seq2]);
       })
       .catch(() => {});
@@ -93,20 +102,34 @@ export const Showcase = () => {
       </div>
       <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} transition={{ duration: 0.6 }}>
         <div className="overflow-hidden">
-          <div className="flex w-max py-2 hover:[animation-play-state:paused]" style={{ marginLeft: -70, animation: "mq-left 55s linear infinite" }}>
+          <div className={`flex w-max py-2 transition-opacity duration-300 ${Hover && Hover.row !== 1 ? "opacity-40" : "opacity-100"} hover:[animation-play-state:paused]`} style={{ marginLeft: -70, animation: "mq-left 55s linear infinite" }}>
             {[0, 1].map((Copy) => (
               <div key={`c1-${Copy}`} className="flex gap-4 pr-4" aria-hidden={Copy === 1}>
                 {rows[0].map((E, i) => (
-                  <Card key={`r1-${Copy}-${i}`} E={E} />
+                  <Card
+                    key={`r1-${Copy}-${i}`}
+                    E={E}
+                    Active={Hover?.row === 1 && Hover.copy === Copy && Hover.i === i}
+                    Dimmed={Hover?.row === 1 && !(Hover.copy === Copy && Hover.i === i)}
+                    onEnter={() => setHover({ row: 1, copy: Copy, i })}
+                    onLeave={() => setHover(null)}
+                  />
                 ))}
               </div>
             ))}
           </div>
-          <div className="flex w-max py-2 hover:[animation-play-state:paused]" style={{ marginLeft: -160, animation: "mq-right 65s linear infinite" }}>
+          <div className={`flex w-max py-2 transition-opacity duration-300 ${Hover && Hover.row !== 2 ? "opacity-40" : "opacity-100"} hover:[animation-play-state:paused]`} style={{ marginLeft: -160, animation: "mq-right 65s linear infinite" }}>
             {[0, 1].map((Copy) => (
               <div key={`c2-${Copy}`} className="flex gap-4 pr-4" aria-hidden={Copy === 1}>
                 {rows[1].map((E, i) => (
-                  <Card key={`r2-${Copy}-${i}`} E={E} />
+                  <Card
+                    key={`r2-${Copy}-${i}`}
+                    E={E}
+                    Active={Hover?.row === 2 && Hover.copy === Copy && Hover.i === i}
+                    Dimmed={Hover?.row === 2 && !(Hover.copy === Copy && Hover.i === i)}
+                    onEnter={() => setHover({ row: 2, copy: Copy, i })}
+                    onLeave={() => setHover(null)}
+                  />
                 ))}
               </div>
             ))}
