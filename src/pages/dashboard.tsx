@@ -672,7 +672,7 @@ function AccountOverview({ user, onTab, onUpdateUser }: { user: User | null; onT
   const likeRate = likes + dislikes > 0 ? Math.round((likes / (likes + dislikes)) * 100) : 100;
 
   const hasAvatar = !!profileAvatar || (user?.avatar_url && user?.avatar_url !== "") || false;
-  const hasDescription = (user?.description && user?.description.trim() !== "") || false;
+  const hasDescription = (user?.description && user?.description.trim() !== "") || (user?.desc_effect === "typewriter" && !!user?.desc_lines?.some((l) => l.trim()));
   const hasDiscord = user?.provider === "discord" || !!user?.discord_id || false;
   const completion = [hasAvatar, hasDescription, hasDiscord].filter(Boolean).length * 33 + (user ? 1 : 0);
 
