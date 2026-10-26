@@ -54,6 +54,7 @@ const BADGE_FILES: Record<string, string> = {
   bug: "bug.png",
   corrupt: "corrupt.png",
   owner: "owner.webp",
+  halloween: "halloween.gif",
 };
 
 const BADGE_INFO: Record<string, [string, string]> = {
@@ -65,6 +66,7 @@ const BADGE_INFO: Record<string, [string, string]> = {
   bug: ["bug hunter", "reported bugs that made sire.lol better"],
   corrupt: ["Corrupt", "corrupted... don't ask questions"],
   owner: ["Owner", "the owner of sire.lol"],
+  halloween: ["Halloween", "limited time badge — claimed during halloween"],
 };
 
 type Tip = { x: number; top: number; name: string; desc: string } | null;

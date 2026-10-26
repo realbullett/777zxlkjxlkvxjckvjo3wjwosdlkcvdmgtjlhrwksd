@@ -73,7 +73,15 @@ const TEMPLATE_FIELDS = new Set([
 ]);
 
 const ASSET_TYPES = new Set(["background", "audio", "audio_1", "audio_2", "profile_avatar", "custom_cursor", "video_background", "banner", "custom_font", "click_sound"]);
-const BADGES = new Set(["og", "premium", "verified", "booster", "staff", "bug", "corrupt", "owner"]);
+const BADGES = new Set(["og", "premium", "verified", "booster", "staff", "bug", "corrupt", "owner", "halloween"]);
+const HALLOWEEN_END_MS = Date.parse("2026-11-02T00:00:00Z");
+const OG_MAX = 100;
+const OgClaimSlotOpen = async (id) => {
+  if (!(id > 0)) return false;
+  const row = await Db().execute({ sql: "SELECT EXISTS(SELECT 1 FROM (SELECT id FROM users WHERE id >= 1 ORDER BY id ASC LIMIT 100) t WHERE t.id = ?) AS ok", args: [id] });
+  const first = row?.rows?.[0];
+  return Number(first?.ok ?? first?.[0]) === 1;
+};
 const ADMIN_DELETE_TABLES = ["badges", "links", "page_views", "templates", "songs", "template_installs"];
 
 const HOST_MAX_BYTES = 10 * 1024 * 1024;
@@ -1021,9 +1029,21 @@ export default async function handler(req, res) {
         res.status(400).json({ error: "Invalid badge" });
         return;
       }
-      if (action === "badge_set" && badge !== "og") {
-        res.status(403).json({ error: "This badge can only be granted by an admin" });
-        return;
+      if (action === "badge_set") {
+        if (badge === "halloween") {
+          if (Date.now() >= HALLOWEEN_END_MS) {
+            res.status(403).json({ error: "the halloween event has ended" });
+            return;
+          }
+        } else if (badge === "og") {
+          if (!(await OgClaimSlotOpen(uid))) {
+            res.status(403).json({ error: "the OG badge is limited to the first 100 users" });
+            return;
+          }
+        } else {
+          res.status(403).json({ error: "This badge can only be granted by an admin" });
+          return;
+        }
       }
       if (action === "badge_set") {
         await Db().execute({ sql: "INSERT OR IGNORE INTO badges (user_id, badge) VALUES (?, ?)", args: [uid, badge] });
@@ -1185,6 +1205,10 @@ export default async function handler(req, res) {
       const badge = String(req.body.badge || "");
       if (!targetUid || !BADGES.has(badge)) {
         res.status(400).json({ error: "Invalid input" });
+        return;
+      }
+      if (action === "admin_badge_set" && badge === "og" && !(await OgClaimSlotOpen(targetUid))) {
+        res.status(403).json({ error: "the OG badge is limited to the first 100 users" });
         return;
       }
       if (action === "admin_badge_set") {

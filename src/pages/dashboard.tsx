@@ -3229,6 +3229,7 @@ function Preview({ user, desc, background, audio, profileAvatar, customCursor, d
     bug: "bug.png",
     corrupt: "corrupt.png",
     owner: "owner.webp",
+    halloween: "halloween.gif",
   };
   const BADGE_LABELS: Record<string, string> = {
     bug: "bug hunter",
@@ -3572,6 +3573,8 @@ function Preview({ user, desc, background, audio, profileAvatar, customCursor, d
   );
 }
 
+const HALLOWEEN_END = Date.parse("2026-11-02T00:00:00Z");
+
 const BADGE_LIST = [
   { id: "verified", file: "verified.png" },
   { id: "premium", file: "premium.webp" },
@@ -3581,6 +3584,7 @@ const BADGE_LIST = [
   { id: "bug", file: "bug.png", label: "bug hunter" },
   { id: "corrupt", file: "corrupt.png" },
   { id: "owner", file: "owner.webp" },
+  { id: "halloween", file: "halloween.gif", label: "halloween" },
 ];
 
 const BADGE_DESCS: Record<string, string> = {
@@ -3592,6 +3596,7 @@ const BADGE_DESCS: Record<string, string> = {
   bug: "reported bugs that made sire.lol better",
   corrupt: "corrupted... don't ask questions",
   owner: "the owner of sire.lol",
+  halloween: "limited time badge — claimed during halloween",
 };
 
 function BadgeLabel(id: string) {
@@ -3675,12 +3680,17 @@ function UserBadges({ user, onTab }: { user: User | null; onTab?: (t: TabId) => 
   const toggleBadge = async (badge: string) => {
     if (!user) return;
     const has = myBadges.includes(badge);
+    let J: any;
     if (has) {
-      await apiCall("badge_remove", { badge });
+      J = await apiCall("badge_remove", { badge });
       setMyBadges(myBadges.filter((b) => b !== badge));
     } else {
-      await apiCall("badge_set", { badge });
+      J = await apiCall("badge_set", { badge });
       setMyBadges([...myBadges, badge]);
+    }
+    if (J?.error) {
+      alert(J.error);
+      await load();
     }
   };
 
@@ -3708,8 +3718,12 @@ function UserBadges({ user, onTab }: { user: User | null; onTab?: (t: TabId) => 
 
   const rowAction = (b: string) => {
     const has = myBadges.includes(b);
+    if (b === "halloween") {
+      if (has || Date.now() < HALLOWEEN_END) return <Pill kind="action" onClick={() => toggleBadge("halloween")}>{has ? "unequip" : "claim"}</Pill>;
+    }
     if (b === "og") {
-      return <Pill kind="action" onClick={() => toggleBadge("og")}>{has ? "unequip" : "claim"}</Pill>;
+      if (has || (user.id && user.id <= 100)) return <Pill kind="action" onClick={() => toggleBadge("og")}>{has ? "unequip" : "claim"}</Pill>;
+      return <Pill kind="muted">first 100 only</Pill>;
     }
     if (b === "premium" && !has) {
       return <Pill kind="action" onClick={() => onTab && onTab("premium")}>get premium</Pill>;

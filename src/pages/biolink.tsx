@@ -33,6 +33,7 @@ const BADGE_FILES: Record<string, string> = {
   bug: "bug.png",
   corrupt: "corrupt.png",
   owner: "owner.webp",
+  halloween: "halloween.gif",
 };
 
 const BADGE_LABELS: Record<string, string> = {
@@ -1037,7 +1038,7 @@ export default function Biolink() {
                               <motion.img
                                 src={src}
                                 alt={b}
-                                className={`h-7 w-7 object-contain ${b !== "booster" ? "brightness-150" : ""} ${user?.monochrome_badges ? "grayscale brightness-150" : ""}`}
+                                className={`h-7 w-7 object-contain ${b !== "booster" && b !== "halloween" ? "brightness-150" : ""} ${user?.monochrome_badges ? "grayscale brightness-150" : ""}`}
                                 whileHover={{ scale: 1.15 }}
                                 transition={{ type: "spring", stiffness: 300, damping: 15 }}
                               />
