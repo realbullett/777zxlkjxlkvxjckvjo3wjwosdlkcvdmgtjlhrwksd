@@ -369,6 +369,11 @@ function SpotifyPlayerLyrics({ id, autoPlay = false, bgImage }: { id: string; au
           <img src={bgImage} alt="" aria-hidden className="pointer-events-none absolute inset-0 h-full w-full scale-125 object-cover blur-2xl opacity-50" />
           <div className="pointer-events-none absolute inset-0 bg-black/60" />
         </>
+      ) : info?.image ? (
+        <>
+          <img src={info.image} alt="" aria-hidden className="pointer-events-none absolute inset-0 h-full w-full scale-150 object-cover blur-3xl opacity-60" />
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/25 via-black/50 to-black/80" />
+        </>
       ) : null}
       <div className="relative">
         <div className="flex items-center gap-3 px-5 pt-5 pb-3">
