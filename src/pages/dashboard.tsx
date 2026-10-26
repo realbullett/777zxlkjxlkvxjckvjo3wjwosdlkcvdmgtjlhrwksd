@@ -3637,7 +3637,7 @@ function BadgeRow({ id, file, desc, action, claimFx }: { key?: any; id: string; 
       {id === "verified" ? (
         <span className="flex h-9 w-9 shrink-0 items-center justify-center text-white"><VerifiedIcon className="h-9 w-9" /></span>
       ) : (
-        <img src={`/emojis/${file}`} alt={id} className="h-9 w-9 object-contain" />
+        <img src={`/emojis/${file}`} alt={id} className={`${id === "halloween" ? "h-8 w-8" : "h-9 w-9"} object-contain`} />
       )}
       <div className="flex-1 min-w-0">
         <p className="text-[15px] font-bold text-white leading-tight">{BadgeLabel(id)}</p>
