@@ -126,7 +126,7 @@ export default function LastfmCard({ config, instant = false }: { config: Lastfm
               </p>
               <div className="grid grid-cols-1 gap-x-5 min-[420px]:grid-cols-2">
                 {info.tracks.map((t, i) => (
-                  <div key={i} className="flex items-center gap-2.5 py-1.5">
+                  <div key={i} className="flex min-w-0 items-center gap-2.5 py-1.5">
                     <SafeImg
                       src={t.image}
                       ClassName="h-8 w-8 shrink-0 rounded-lg object-cover"
@@ -140,7 +140,7 @@ export default function LastfmCard({ config, instant = false }: { config: Lastfm
                         {t.artist}
                       </p>
                     </div>
-                    <span className="shrink-0 text-[10px] font-medium" style={{ color: "var(--text-color, #ffffff)", opacity: 0.55 }}>
+                    <span className="min-w-0 shrink truncate text-right text-[10px] font-medium" style={{ color: "var(--text-color, #ffffff)", opacity: 0.55 }}>
                       {t.nowPlaying ? "now" : t.uts ? timeAgo(t.uts) : ""}
                     </span>
                   </div>
