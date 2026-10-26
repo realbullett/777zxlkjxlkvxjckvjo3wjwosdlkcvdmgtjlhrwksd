@@ -22,8 +22,7 @@ import ProjectsPage from "../components/ProjectsPage";
 import { normalizeWidgets } from "../lib/widgets";
 import { VerifiedIcon } from "../components/VerifiedIcon";
 import { PlayClickSound } from "../lib/click-sounds";
-
-const TurnstileSiteKey = (import.meta as any).env?.VITE_TURNSTILE_SITE_KEY || "";
+import VerificationGate from "../components/VerificationGate";
 
 const BADGE_FILES: Record<string, string> = {
   verified: "verified.png",
@@ -161,6 +160,11 @@ export default function Biolink() {
   const [user, setUser] = useState<User | null>(null);
   const [assets, setAssets] = useState<Asset[]>([]);
   const [notFound, setNotFound] = useState(false);
+  const [Verified, SetVerified] = useState(() => {
+    if (localStorage.getItem("sl_verified") !== "1") return false;
+    const At = Number(localStorage.getItem("sl_verified_at") || 0);
+    return !!At && Date.now() - At < 30 * 24 * 60 * 60 * 1000;
+  });
   const [entered, setEntered] = useState(new URLSearchParams(window.location.search).get("entry") === "skip");
   const [viewCount, setViewCount] = useState<number | null>(null);
   const [likes, setLikes] = useState(0);
@@ -202,7 +206,7 @@ export default function Biolink() {
     window.scrollTo({ top: 0, behavior: "instant" });
     activePageRef.current = 0;
     setActivePage(0);
-    if (!username) return;
+    if (!username || !Verified) return;
     // son turso via /api kills cached egress :sob:
     let vid = localStorage.getItem("sl_visitor");
     if (!vid) {
@@ -223,7 +227,7 @@ export default function Biolink() {
       if (J.links) setLinks(J.links);
       if (Array.isArray(J.assets)) setAssets(J.assets);
     }).catch(() => setNotFound(true));
-  }, [username]);
+  }, [username, Verified]);
 
   const animateScrollTo = (targetY: number, duration = 900) => {
     cancelAnimationFrame(scrollAnimRef.current);
@@ -536,48 +540,6 @@ export default function Biolink() {
     return () => window.removeEventListener("click", OnClick);
   }, [user?.click_sound]);
 
-  const voteTsId = useRef<string | null>(null);
-  const voteTsResolve = useRef<((t: string) => void) | null>(null);
-
-  useEffect(() => {
-    if (!TurnstileSiteKey) return;
-    let dead = false;
-    const doRender = () => {
-      if (dead) return;
-      const w = (window as any).turnstile;
-      const slot = document.getElementById("VoteTurnstileSlot");
-      if (!w || !slot) { setTimeout(doRender, 300); return; }
-      try {
-        if (!voteTsId.current) voteTsId.current = w.render(slot, {
-          sitekey: TurnstileSiteKey,
-          size: "invisible",
-          callback: (t: string) => voteTsResolve.current?.(t),
-          "expired-callback": () => voteTsResolve.current?.(""),
-          "error-callback": () => voteTsResolve.current?.(""),
-        });
-      } catch {}
-    };
-    if (!document.getElementById("TurnstileScript")) {
-      const s = document.createElement("script");
-      s.id = "TurnstileScript";
-      s.src = "https://challenges.cloudflare.com/turnstile/v0/api.js";
-      s.async = true;
-      s.defer = true;
-      s.onload = doRender;
-      document.body.appendChild(s);
-    } else doRender();
-    return () => { dead = true; };
-  }, []);
-
-  const getVoteToken = () => new Promise<string>((resolve) => {
-    const w = (window as any).turnstile;
-    if (!TurnstileSiteKey || !w || !voteTsId.current) { resolve(""); return; }
-    let done = false;
-    voteTsResolve.current = (t: string) => { if (!done) { done = true; voteTsResolve.current = null; resolve(t); } };
-    try { w.execute(voteTsId.current); } catch { if (!done) { done = true; voteTsResolve.current = null; resolve(""); } }
-    setTimeout(() => { if (!done) { done = true; voteTsResolve.current = null; resolve(""); } }, 8000);
-  });
-
   const castVote = async (vote: 1 | -1) => {
     if (!user) return;
     const prevVote = myVote, prevLikes = likes, prevDislikes = dislikes;
@@ -586,20 +548,14 @@ export default function Biolink() {
     setLikes(prevLikes + (next === 1 ? 1 : 0) - (prevVote === 1 ? 1 : 0));
     setDislikes(prevDislikes + (next === -1 ? 1 : 0) - (prevVote === -1 ? 1 : 0));
     try {
-      let turnstileToken = "";
-      if (next !== 0) {
-        turnstileToken = await getVoteToken();
-        try { (window as any).turnstile?.reset?.(voteTsId.current); } catch {}
-      }
       const r = await fetch("/api/profile", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: user.username, voter: getVisitorId(), vote, dwell_ms: Date.now() - enteredAtRef.current, turnstileToken }),
+        body: JSON.stringify({ username: user.username, voter: getVisitorId(), vote, dwell_ms: Date.now() - enteredAtRef.current }),
       });
       const J = await r.json().catch(() => null);
       if (!r.ok || J?.counted === false) {
         setMyVote(prevVote); setLikes(prevLikes); setDislikes(prevDislikes);
-        if (J?.captcha) showVoteToast("Couldn't verify you're human.", "The vote wasn't counted — try again.");
         return;
       }
       if (typeof J?.likes === "number") setLikes(J.likes);
@@ -676,6 +632,10 @@ export default function Biolink() {
       videoRef.current.play().catch(() => {});
     }
   };
+
+  if (!Verified) {
+    return <VerificationGate Username={username || undefined} OnVerified={() => SetVerified(true)} />;
+  }
 
   if (notFound) {
     return (
@@ -1229,7 +1189,6 @@ export default function Biolink() {
                   </button>
                 </div>
               )}
-              <div id="VoteTurnstileSlot" style={{ display: "none" }} />
             </motion.div>
             </motion.div>
           {hasSide ? (

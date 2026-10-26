@@ -1,6 +1,5 @@
 import crypto from "crypto";
 import { GetTurso, HasTurso, PublicProfileCols } from "../lib/turso.js";
-import { VerifyTurnstile } from "../lib/auth/register.js";
 const IP_PEPPER = process.env.VIEW_IP_PEPPER || process.env.SESSION_SECRET || "sire-view-ip-secret";
 
 function getClientIp(req) {
@@ -176,15 +175,10 @@ export default async function handler(req, res) {
       } else if ((Vote === 1 ? Cap.likes : Cap.dislikes) >= Cap.views) {
         res.status(200).json({ likes: Cap.likes, dislikes: Cap.dislikes, mine: Number(Had || 0), counted: false, capped: true });
       } else {
-        const CaptchaOk = await VerifyTurnstile(Body.turnstileToken || "", Ip);
-        if (!CaptchaOk) {
-          res.status(200).json({ likes: Cap.likes, dislikes: Cap.dislikes, mine: Number(Had || 0), counted: false, captcha: true });
-        } else {
-          await Db.execute({ sql: "INSERT INTO profile_votes (user_id, voter_key, vote, ip_hash) VALUES (?, ?, ?, ?) ON CONFLICT (user_id, ip_hash) DO UPDATE SET vote = excluded.vote, voter_key = excluded.voter_key", args: [Uid, Voter, Vote, IpHash] });
-          Mine = Vote;
-          const C = await VoteCounts(Db, Uid);
-          res.status(200).json({ likes: C.likes, dislikes: C.dislikes, mine: Mine, counted: true });
-        }
+        await Db.execute({ sql: "INSERT INTO profile_votes (user_id, voter_key, vote, ip_hash) VALUES (?, ?, ?, ?) ON CONFLICT (user_id, ip_hash) DO UPDATE SET vote = excluded.vote, voter_key = excluded.voter_key", args: [Uid, Voter, Vote, IpHash] });
+        Mine = Vote;
+        const C = await VoteCounts(Db, Uid);
+        res.status(200).json({ likes: C.likes, dislikes: C.dislikes, mine: Mine, counted: true });
       }
       return;
     }
