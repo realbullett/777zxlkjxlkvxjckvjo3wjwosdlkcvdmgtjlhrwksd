@@ -443,7 +443,7 @@ function SpotifyPlayerLyrics({ id, autoPlay = false, bgImage }: { id: string; au
                   <p
                     key={i}
                     data-line={i}
-                    className={`text-[13.5px] leading-snug transition-all duration-200 ${active ? "text-white font-semibold" : "text-white/30"}`}
+                    className={`text-[13.5px] leading-snug transition-all duration-[380ms] ease-out ${active ? "text-white font-bold [text-shadow:0_0_18px_rgba(255,255,255,0.4)] blur-none" : "text-white/30 font-medium blur-[1.5px]"}`}
                   >
                     {text || "\u00a0"}
                   </p>
