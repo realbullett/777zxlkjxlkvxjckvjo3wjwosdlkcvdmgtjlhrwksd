@@ -258,6 +258,7 @@ async function EnsureSchema() {
     D.execute("CREATE TABLE IF NOT EXISTS admin_log (id INTEGER PRIMARY KEY AUTOINCREMENT, admin_id INTEGER NOT NULL, action TEXT NOT NULL, target_uid INTEGER, detail TEXT, created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')))"),
     D.execute("CREATE INDEX IF NOT EXISTS idx_admin_log_time ON admin_log (created_at DESC)"),
     D.execute("CREATE TABLE IF NOT EXISTS badge_prefs (user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, badge TEXT NOT NULL, hidden INTEGER NOT NULL DEFAULT 0, by_name INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (user_id, badge))"),
+    D.execute("ALTER TABLE users ADD COLUMN updated_at TEXT").catch(() => {}),
   ]);
   SchemaReady = true;
 }
@@ -782,6 +783,8 @@ export default async function handler(req, res) {
   const { action, sessionToken } = req.body;
   const uid = unsignToken(sessionToken);
   if (!uid) { res.status(401).json({ error: "Unauthorized" }); return; }
+  const TouchRev = () => Db().execute({ sql: "UPDATE users SET updated_at = ? WHERE id = ?", args: [new Date().toISOString(), uid] }).catch(() => {});
+  TouchRev();
 
   switch (action) {
     case "update": {
@@ -1218,6 +1221,7 @@ export default async function handler(req, res) {
         await Db().execute({ sql: "DELETE FROM badges WHERE user_id = ? AND badge = ?", args: [targetUid, badge] });
       }
       await LogAdmin(uid, action === "admin_badge_set" ? "badge_set" : "badge_remove", targetUid, badge);
+      Db().execute({ sql: "UPDATE users SET updated_at = ? WHERE id = ?", args: [new Date().toISOString(), targetUid] }).catch(() => {});
       res.status(200).json({ ok: true });
       return;
     }

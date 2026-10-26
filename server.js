@@ -12,6 +12,7 @@ import statsHandler from "./api/stats.js";
 import checkUsernameHandler from "./api/check-username.js";
 import adminUserHandler from "./api/admin-user.js";
 import templatesHandler from "./api/templates.js";
+import liveHandler from "./api/live.js";
 
 const app = express();
 
@@ -37,6 +38,7 @@ app.post("/api/turnstile-verify", turnstileVerifyHandler);
 app.get("/api/leaderboard", leaderboardHandler);
 app.get("/api/presence", presenceHandler);
 app.get("/api/stats", statsHandler);
+app.get("/api/live", liveHandler);
 app.get("/api/check-username", checkUsernameHandler);
 app.get("/api/admin-user", adminUserHandler);
 app.get("/api/templates", templatesHandler);

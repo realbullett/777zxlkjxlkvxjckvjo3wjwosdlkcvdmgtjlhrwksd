@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence, LayoutGroup, type Variants } from "motion/react";
 import { Eye, Link as LinkIcon, ThumbsUp, ThumbsDown, Calendar, CheckCircle2, X, ChevronDown, ChevronUp, MapPin } from "lucide-react";
@@ -203,32 +203,62 @@ export default function Biolink() {
   const getPageTops = () =>
     Array.from(document.querySelectorAll<HTMLElement>(".snap-page")).map((el) => el.getBoundingClientRect().top + window.scrollY);
 
+  const UserRefresh = useCallback(async () => {
+    if (!username || !Verified) return;
+    let vid = localStorage.getItem("sl_visitor");
+    if (!vid) {
+      vid = crypto.randomUUID?.() || Math.random().toString(36).slice(2) + Date.now().toString(36);
+      localStorage.setItem("sl_visitor", vid);
+    }
+    const J = await fetch(`/api/profile?username=${encodeURIComponent(username)}&voter=${encodeURIComponent(vid)}`)
+      .then((R) => (R.ok ? R.json().catch(() => null) : null))
+      .catch(() => null);
+    if (!J?.user) return false;
+    setUser(J.user);
+    if (typeof J.views === "number") setViewCount(J.views);
+    if (typeof J.likes === "number") setLikes(J.likes);
+    if (typeof J.dislikes === "number") setDislikes(J.dislikes);
+    if (typeof J.mine === "number") setMyVote(J.mine);
+    if (Array.isArray(J.badges)) setBadges(J.badges);
+    if (J.badgePrefs && typeof J.badgePrefs === "object") setBadgePrefs(J.badgePrefs);
+    if (J.links) setLinks(J.links);
+    if (Array.isArray(J.assets)) setAssets(J.assets);
+    return true;
+  }, [username, Verified]);
+
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "instant" });
     activePageRef.current = 0;
     setActivePage(0);
     if (!username || !Verified) return;
     // son turso via /api kills cached egress :sob:
-    let vid = localStorage.getItem("sl_visitor");
-    if (!vid) {
-      vid = crypto.randomUUID?.() || Math.random().toString(36).slice(2) + Date.now().toString(36);
-      localStorage.setItem("sl_visitor", vid);
-    }
-    fetch(`/api/profile?username=${encodeURIComponent(username)}&voter=${encodeURIComponent(vid)}`).then(async (R) => {
-      if (!R.ok) { setNotFound(true); return; }
-      const J = await R.json().catch(() => null);
-      if (!J?.user) { setNotFound(true); return; }
-      setUser(J.user);
-      if (typeof J.views === "number") setViewCount(J.views);
-      if (typeof J.likes === "number") setLikes(J.likes);
-      if (typeof J.dislikes === "number") setDislikes(J.dislikes);
-      if (typeof J.mine === "number") setMyVote(J.mine);
-      if (Array.isArray(J.badges)) setBadges(J.badges);
-      if (J.badgePrefs && typeof J.badgePrefs === "object") setBadgePrefs(J.badgePrefs);
-      if (J.links) setLinks(J.links);
-      if (Array.isArray(J.assets)) setAssets(J.assets);
-    }).catch(() => setNotFound(true));
+    UserRefresh().then((ok) => {
+      if (!ok) setNotFound(true);
+    });
   }, [username, Verified]);
+
+  // live rev poll — dashboard save bumps /api/live, we swap the profile in without a reload :sob:
+  useEffect(() => {
+    const Uid = user?.id;
+    if (!Uid) return;
+    let Last = "";
+    const t = setInterval(() => {
+      if (document.hidden) return;
+      fetch(`/api/live?uid=${Uid}`, { cache: "no-store" })
+        .then((R) => (R.ok ? R.json() : null))
+        .then((J) => {
+          if (!J) return;
+          const Rev = String(J.rev || "");
+          if (!Last) { Last = Rev; return; }
+          if (Rev !== Last) {
+            Last = Rev;
+            UserRefresh();
+          }
+        })
+        .catch(() => {});
+    }, 3000);
+    return () => clearInterval(t);
+  }, [user?.id, UserRefresh]);
 
   const animateScrollTo = (targetY: number, duration = 900) => {
     cancelAnimationFrame(scrollAnimRef.current);
