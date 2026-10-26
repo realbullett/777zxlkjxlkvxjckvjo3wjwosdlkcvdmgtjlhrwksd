@@ -3222,7 +3222,7 @@ function Preview({ user, desc, background, audio, profileAvatar, customCursor, d
 }) {
   const BADGE_FILES: Record<string, string> = {
     verified: "verified.png",
-    premium: "premium.webp",
+    premium: "premium.png",
     og: "og.gif",
     booster: "booster.png",
     staff: "staff.webp",
@@ -3577,7 +3577,7 @@ const HALLOWEEN_END = Date.parse("2026-11-02T00:00:00Z");
 
 const BADGE_LIST = [
   { id: "verified", file: "verified.png" },
-  { id: "premium", file: "premium.webp" },
+  { id: "premium", file: "premium.png" },
   { id: "og", file: "og.gif" },
   { id: "booster", file: "booster.png" },
   { id: "staff", file: "staff.webp" },
@@ -5831,7 +5831,7 @@ function Premium({ user }: { user: User | null }) {
           <div className="absolute inset-0 rounded-2xl bg-[radial-gradient(ellipse_60%_40%_at_50%_0%,rgba(255,255,255,0.1),transparent_70%)] pointer-events-none" />
           {loaded && premium ? (
             <>
-              <img src="/emojis/premium.webp" alt="premium" className="relative h-14 w-14 object-contain drop-shadow-[0_0_15px_rgba(37,99,235,0.5)]" />
+              <img src="/emojis/premium.png" alt="premium" className="relative h-14 w-14 object-contain drop-shadow-[0_0_15px_rgba(37,99,235,0.5)]" />
               <p className="relative text-gradient-blue font-bold text-lg">you have premium</p>
               <p className="relative text-sm text-white/50">thanks for supporting sire.lol.</p>
             </>

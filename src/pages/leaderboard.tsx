@@ -48,7 +48,7 @@ function CountUp({ value, format, delay = 0, duration = 1100 }: { value: number;
 
 const BADGE_FILES: Record<string, string> = {
   og: "og.gif",
-  premium: "premium.webp",
+  premium: "premium.png",
   booster: "booster.png",
   staff: "staff.webp",
   bug: "bug.gif",

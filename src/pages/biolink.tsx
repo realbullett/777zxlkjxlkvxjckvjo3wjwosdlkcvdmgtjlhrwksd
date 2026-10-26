@@ -26,7 +26,7 @@ import VerificationGate from "../components/VerificationGate";
 
 const BADGE_FILES: Record<string, string> = {
   verified: "verified.png",
-  premium: "premium.webp",
+  premium: "premium.png",
   og: "og.gif",
   booster: "booster.png",
   staff: "staff.webp",
@@ -1018,7 +1018,7 @@ export default function Biolink() {
                             >
                               {BadgeTint ? (
                                 <motion.div
-                                  className="h-[42px] w-[42px]"
+                                  className="h-[52px] w-[52px]"
                                   style={{
                                     backgroundColor: BadgeTint,
                                     WebkitMaskImage: `url(${src})`,
@@ -1038,7 +1038,7 @@ export default function Biolink() {
                               <motion.img
                                 src={src}
                                 alt={b}
-                                className={`h-[42px] w-[42px] object-contain ${b !== "booster" && b !== "halloween" ? "brightness-150" : ""} ${user?.monochrome_badges ? "grayscale brightness-150" : ""}`}
+                                className={`h-[52px] w-[52px] object-contain ${b !== "booster" && b !== "halloween" ? "brightness-150" : ""} ${user?.monochrome_badges ? "grayscale brightness-150" : ""}`}
                                 whileHover={{ scale: 1.15 }}
                                 transition={{ type: "spring", stiffness: 300, damping: 15 }}
                               />
