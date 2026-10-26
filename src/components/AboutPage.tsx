@@ -54,8 +54,8 @@ export default function AboutPage({
       </motion.div>
       {config.description ? (
         <motion.div variants={dropItem} className="w-full">
-          <div className="glass-card w-full rounded-3xl px-9 py-8">
-            <p className="text-lg leading-relaxed sm:text-xl whitespace-pre-wrap" style={{ color: "var(--text-color, #ffffff)", opacity: 0.85 }}>
+          <div className="glass-card w-full rounded-3xl px-6 py-4">
+            <p className="text-[15px] leading-relaxed sm:text-base whitespace-pre-wrap" style={{ color: "var(--text-color, #ffffff)", opacity: 0.85 }}>
               {config.description}
             </p>
           </div>
