@@ -10,13 +10,13 @@ export default function VolumeControl({ Volume, Muted, OnVolume, OnMute }: {
   const Pct = Muted ? 0 : Volume;
   return (
     <div className="fixed left-4 top-4 z-[90] group">
-      <div className="flex items-center gap-2 rounded-full border-2 border-white/75 bg-white/25 px-3 py-2 shadow-[0_0_18px_rgba(255,255,255,0.45),0_0_45px_rgba(255,255,255,0.15),inset_0_1px_2px_rgba(255,255,255,0.55)] backdrop-blur-2xl">
+      <div className="flex items-center gap-2 rounded-full border-2 border-white/25 bg-black/20 px-3 py-2 shadow-[0_0_10px_rgba(255,255,255,0.18),0_0_28px_rgba(255,255,255,0.08),inset_0_1px_2px_rgba(255,255,255,0.25)] backdrop-blur-2xl transition-colors group-hover:border-white/40">
         <button
           onClick={OnMute}
           aria-label={Muted ? "unmute" : "mute"}
-          className="flex h-9 w-9 shrink-0 items-center justify-center text-white transition-transform hover:scale-110 cursor-pointer"
+          className="flex h-9 w-9 shrink-0 items-center justify-center text-white/85 transition-transform hover:scale-110 hover:text-white cursor-pointer"
         >
-          <svg viewBox="0 0 24 24" width={28} height={28} fill="currentColor" className="drop-shadow-[0_0_6px_rgba(255,255,255,0.7)]">
+          <svg viewBox="0 0 24 24" width={28} height={28} fill="currentColor" className="drop-shadow-[0_0_3px_rgba(255,255,255,0.4)]">
             <path d={Pct === 0 ? VolumeOff : VolumeUp} />
           </svg>
         </button>
