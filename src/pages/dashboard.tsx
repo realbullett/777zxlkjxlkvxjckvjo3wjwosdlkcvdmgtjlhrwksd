@@ -1049,7 +1049,8 @@ function AccountOverview({ user, onTab, onUpdateUser }: { user: User | null; onT
 
         <p className="text-[13px] text-white/70 mb-4">{completion === 100 ? "Your profile is complete!" : "Your profile isn't complete yet!"}</p>
 
-        <div className="space-y-1">
+        <div className="relative">
+          <div className={`space-y-1 transition-all duration-500 ${completion === 100 ? "blur-md opacity-30 pointer-events-none select-none" : ""}`}>
           <button onClick={() => onTab("customize")} className="flex items-center gap-3 cursor-pointer group w-full text-left px-2 py-1.5 -mx-2 rounded-lg hover:bg-white/[0.04] transition-colors">
             <div className="h-[18px] w-[18px] rounded-[6px] border border-white/15 flex items-center justify-center transition-colors">
               {hasAvatar && (
@@ -1080,6 +1081,17 @@ function AccountOverview({ user, onTab, onUpdateUser }: { user: User | null; onT
             </div>
             <span className="text-[13px] text-white/60 group-hover:text-white/85 transition-colors">Link Discord account</span>
           </a>
+          </div>
+          {completion === 100 && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <svg className="h-12 w-12 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="9" />
+                <circle cx="9" cy="10" r="0.8" fill="currentColor" stroke="none" />
+                <circle cx="15" cy="10" r="0.8" fill="currentColor" stroke="none" />
+                <path d="M8.5 14c1 1.3 2.2 2 3.5 2s2.5-.7 3.5-2" />
+              </svg>
+            </div>
+          )}
         </div>
       </div>
 
