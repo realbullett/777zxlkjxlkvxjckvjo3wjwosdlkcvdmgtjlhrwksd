@@ -69,10 +69,10 @@ export const Showcase = () => {
     fetch(`/api/leaderboard?period=all`)
       .then(async (R) => {
         const J = await R.json().catch(() => null);
-        const Top = (((J?.entries || []) as Entry[]) || []).slice(0, 10);
-        const Row1 = Fill(Top.slice(0, 5), 10);
-        const Row2 = Fill(Top.slice(5, 10).length ? Top.slice(5, 10) : Top.slice(0, 5), 10);
-        setRows([Row1, Row2]);
+        const Top = (((J?.entries || []) as Entry[]) || []).slice(0, 30);
+        const Seq1 = Fill(Top.slice(0, 15), 15);
+        const Seq2 = Fill(Top.slice(15, 30).length ? Top.slice(15, 30) : Top.slice(0, 15), 15);
+        setRows([Seq1, Seq2]);
       })
       .catch(() => {});
   }, []);
@@ -93,14 +93,22 @@ export const Showcase = () => {
       </div>
       <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} transition={{ duration: 0.6 }}>
         <div className="overflow-hidden">
-          <div className="flex w-max gap-4 py-2" style={{ marginLeft: -70 }}>
-            {rows[0].map((E, i) => (
-              <Card key={`r1-${i}`} E={E} />
+          <div className="flex w-max py-2 hover:[animation-play-state:paused]" style={{ marginLeft: -70, animation: "mq-left 55s linear infinite" }}>
+            {[0, 1].map((Copy) => (
+              <div key={`c1-${Copy}`} className="flex gap-4 pr-4" aria-hidden={Copy === 1}>
+                {rows[0].map((E, i) => (
+                  <Card key={`r1-${Copy}-${i}`} E={E} />
+                ))}
+              </div>
             ))}
           </div>
-          <div className="flex w-max gap-4 py-2" style={{ marginLeft: -160 }}>
-            {rows[1].map((E, i) => (
-              <Card key={`r2-${i}`} E={E} />
+          <div className="flex w-max py-2 hover:[animation-play-state:paused]" style={{ marginLeft: -160, animation: "mq-right 65s linear infinite" }}>
+            {[0, 1].map((Copy) => (
+              <div key={`c2-${Copy}`} className="flex gap-4 pr-4" aria-hidden={Copy === 1}>
+                {rows[1].map((E, i) => (
+                  <Card key={`r2-${Copy}-${i}`} E={E} />
+                ))}
+              </div>
             ))}
           </div>
         </div>
