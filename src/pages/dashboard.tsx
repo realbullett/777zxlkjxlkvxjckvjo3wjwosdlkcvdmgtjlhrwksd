@@ -3587,17 +3587,6 @@ const BADGE_LIST = [
   { id: "halloween", file: "halloween.gif", label: "halloween" },
 ];
 
-const CLAIM_COLORS: Record<string, string> = {
-  og: "#ffd75e",
-  premium: "#b14bff",
-  booster: "#00b3ff",
-  staff: "#00ffe1",
-  bug: "#a6ff00",
-  corrupt: "#ff3b3b",
-  owner: "#ff2bd1",
-  halloween: "#ff8a00",
-};
-
 const BADGE_DESCS: Record<string, string> = {
   og: "secured this badge in the early days of sire.lol",
   premium: "exclusive badge for premium supporters",
@@ -3636,69 +3625,19 @@ function Pill({ onClick, kind, children }: { onClick?: () => void; kind: "action
 }
 
 function BadgeRow({ id, file, desc, action, claimFx }: { key?: any; id: string; file: string; desc: string; action: any; claimFx?: { badge: string; stamp: number } | null }) {
-  const Fx = claimFx && claimFx.badge === id ? claimFx : null;
-  const FxC = CLAIM_COLORS[id] || "#ff2bd1";
+  const Fx = claimFx && claimFx.badge === id;
   return (
     <motion.div
       layout
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ type: "spring", stiffness: 260, damping: 24 }}
-      className="flex items-center gap-4 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4"
+      className={`flex items-center gap-4 rounded-2xl border p-4 transition-all duration-700 ${Fx ? "border-emerald-400/40 bg-emerald-400/10 ring-1 ring-emerald-400/50 shadow-[0_0_26px_rgba(74,222,128,0.22)]" : "border-white/[0.06] bg-white/[0.02]"}`}
     >
       {id === "verified" ? (
         <span className="flex h-9 w-9 shrink-0 items-center justify-center text-white"><VerifiedIcon className="h-9 w-9" /></span>
       ) : (
-        <span className="relative flex h-9 w-9 shrink-0 items-center justify-center">
-          {Fx && (
-            <span key={Fx.stamp} className="pointer-events-none absolute inset-0 z-10">
-              <motion.span
-                className="absolute -mt-[18px] -ml-[18px] h-9 w-9 rounded-full border-2"
-                style={{ borderColor: FxC, boxShadow: `0 0 18px ${FxC}` }}
-                initial={{ scale: 0.35, opacity: 0.9 }}
-                animate={{ scale: 2.4, opacity: 0 }}
-                transition={{ duration: 0.7, ease: "easeOut" }}
-              />
-              {Array.from({ length: 10 }).map((_, N) => {
-                const A = (N / 10) * Math.PI * 2 + 0.5;
-                const D = N % 2 ? 24 : 15;
-                return (
-                  <motion.span
-                    key={N}
-                    className="absolute -mt-[2.5px] -ml-[2.5px] h-[5px] w-[5px] rounded-full"
-                    style={{ backgroundColor: FxC, boxShadow: `0 0 7px ${FxC}` }}
-                    initial={{ x: 0, y: 0, opacity: 1, scale: 1 }}
-                    animate={{ x: Math.cos(A) * D, y: Math.sin(A) * D, opacity: 0, scale: 0.25 }}
-                    transition={{ duration: 0.7, delay: 0.05, ease: "easeOut" }}
-                  />
-                );
-              })}
-              <motion.span
-                className="absolute inset-[-14px] rounded-full"
-                style={{ background: `radial-gradient(circle, ${FxC}66, transparent 72%)` }}
-                initial={{ opacity: 0.9, scale: 0.5 }}
-                animate={{ opacity: 0, scale: 1.7 }}
-                transition={{ duration: 0.85, ease: "easeOut" }}
-              />
-              <motion.span
-                className="absolute -top-1 left-0 right-0 mx-auto w-max rounded-full px-2 py-0.5 text-[10px] font-bold"
-                style={{ backgroundColor: FxC, color: "#0b0b0f", boxShadow: `0 0 12px ${FxC}` }}
-                initial={{ opacity: 0, y: 2, scale: 0.7 }}
-                animate={{ opacity: [0, 1, 1, 0], y: -24, scale: 1 }}
-                transition={{ duration: 1.5, times: [0, 0.15, 0.55, 1], ease: "easeOut" }}
-              >
-                {BadgeLabel(id)} claimed
-              </motion.span>
-            </span>
-          )}
-          <motion.img
-            src={`/emojis/${file}`}
-            alt={id}
-            className="h-9 w-9 object-contain"
-            animate={Fx ? { scale: [1, 1.55, 1], rotate: [0, -8, 5, 0] } : {}}
-            transition={{ duration: 0.8, times: [0, 0.35, 0.7, 1], ease: "easeOut" }}
-          />
-        </span>
+        <img src={`/emojis/${file}`} alt={id} className="h-9 w-9 object-contain" />
       )}
       <div className="flex-1 min-w-0">
         <p className="text-[15px] font-bold text-white leading-tight">{BadgeLabel(id)}</p>
@@ -3750,7 +3689,7 @@ function UserBadges({ user, onTab }: { user: User | null; onTab?: (t: TabId) => 
     } else {
       J = await apiCall("badge_set", { badge });
       setMyBadges([...myBadges, badge]);
-      if (J && !J.error) setClaimFx({ badge, stamp: Date.now() + Math.random() });
+      if (J && !J.error) { setClaimFx({ badge, stamp: Date.now() }); setTimeout(() => setClaimFx(null), 1600); }
     }
     if (J?.error) {
       alert(J.error);
