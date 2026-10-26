@@ -8,6 +8,7 @@ import { motion, useScroll, useTransform, useInView } from "motion/react";
 import { Navbar } from "./components/Navbar";
 import { Hero } from "./components/Hero";
 import { Features } from "./components/Features";
+import { Showcase } from "./components/Showcase";
 import { Comparison } from "./components/Comparison";
 import { FAQ } from "./components/FAQ";
 import { Background } from "./components/Background";
@@ -43,6 +44,8 @@ export default function App() {
       <main>
         <Hero />
         
+        <Showcase />
+
         <Features />
 
         <Comparison />
