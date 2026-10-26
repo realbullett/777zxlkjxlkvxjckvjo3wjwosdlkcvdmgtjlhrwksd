@@ -29,7 +29,7 @@ const BADGE_FILES: Record<string, string> = {
   premium: "premium.webp",
   og: "og.gif",
   booster: "booster.png",
-  staff: "halloween.gif",
+  staff: "staff.webp",
   bug: "bug.gif",
   corrupt: "corrupt.gif",
   owner: "owner.gif",
