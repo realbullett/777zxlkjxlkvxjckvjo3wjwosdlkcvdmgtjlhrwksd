@@ -80,6 +80,7 @@ export default function LeaderboardPage() {
   const [loading, setLoading] = useState(false);
   const [openSel, setOpenSel] = useState<null | "metric" | "period">(null);
   const [tip, setTip] = useState<Tip>(null);
+  const [busted, setBusted] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     setLoading(true);
@@ -137,8 +138,8 @@ export default function LeaderboardPage() {
 
   const avatarEl = (e: Entry, cls: string) => (
     <div className={cls}>
-      {e.avatar_url ? (
-        <img src={e.avatar_url} alt="" />
+      {e.avatar_url && !busted.has(e.avatar_url) ? (
+        <img src={e.avatar_url} alt="" onError={() => setBusted((s) => { const n = new Set(s); n.add(e.avatar_url!); return n; })} />
       ) : (
         <div className="lb-init">{e.username.charAt(0).toUpperCase()}</div>
       )}
