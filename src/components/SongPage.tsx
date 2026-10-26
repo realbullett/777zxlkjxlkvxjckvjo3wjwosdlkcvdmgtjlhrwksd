@@ -387,7 +387,7 @@ function SpotifyPlayerLyrics({ id, autoPlay = false, bgImage }: { id: string; au
             )}
           </div>
           <div className="flex min-w-0 flex-col justify-center gap-0.5">
-            <p className="truncate text-[13.5px] font-semibold text-white leading-tight">{info?.title || (error ? "lyrics unavailable" : "loading track...")}</p>
+            <p className="truncate text-sm font-semibold text-white leading-tight">{info?.title || (error ? "lyrics unavailable" : "loading track...")}</p>
             <p className="truncate text-[11.5px] text-white/45">{info?.artist || "Spotify"}</p>
           </div>
         </div>
@@ -448,7 +448,7 @@ function SpotifyPlayerLyrics({ id, autoPlay = false, bgImage }: { id: string; au
                   <p
                     key={i}
                     data-line={i}
-                    className={`text-[13.5px] leading-snug transition-all duration-[380ms] ease-out ${active ? "text-white font-bold [text-shadow:0_0_18px_rgba(255,255,255,0.4)] blur-none" : "text-white/30 font-medium blur-[1.5px]"}`}
+                    className={`text-[16px] leading-snug transition-all duration-[380ms] ease-out ${active ? "text-white font-bold [text-shadow:0_0_18px_rgba(255,255,255,0.4)] blur-none" : "text-white/30 font-medium blur-[1.5px]"}`}
                   >
                     {text || "\u00a0"}
                   </p>
