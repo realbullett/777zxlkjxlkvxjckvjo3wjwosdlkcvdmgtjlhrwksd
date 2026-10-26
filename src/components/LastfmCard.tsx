@@ -66,14 +66,14 @@ export default function LastfmCard({ config, instant = false }: { config: Lastfm
       initial={instant ? false : { opacity: 0, y: -28 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ type: "spring", stiffness: 300, damping: 22 }}
-      className="glass-card w-full rounded-3xl p-6"
+      className="glass-card w-full rounded-2xl p-4"
     >
       {!info && !failed && (
-        <div className="flex items-center gap-4 animate-pulse">
-          <div className="h-14 w-14 rounded-2xl bg-white/10" />
-          <div className="flex-1 space-y-2">
-            <div className="h-4 w-2/3 rounded bg-white/10" />
-            <div className="h-3 w-1/2 rounded bg-white/10" />
+        <div className="flex items-center gap-3 animate-pulse">
+          <div className="h-10 w-10 rounded-xl bg-white/10" />
+          <div className="flex-1 space-y-1.5">
+            <div className="h-3 w-2/3 rounded bg-white/10" />
+            <div className="h-2.5 w-1/2 rounded bg-white/10" />
           </div>
         </div>
       )}
@@ -84,27 +84,27 @@ export default function LastfmCard({ config, instant = false }: { config: Lastfm
       )}
       {info && (
         <div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <SafeImg
               src={info.image}
-              ClassName="h-14 w-14 rounded-2xl object-cover"
+              ClassName="h-10 w-10 rounded-xl object-cover"
               Fallback={
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10 text-xl font-black" style={{ color: "var(--text-color, #ffffff)" }}>
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 text-base font-black" style={{ color: "var(--text-color, #ffffff)" }}>
                   {info.name.charAt(0).toUpperCase()}
                 </div>
               }
             />
             <div className="min-w-0">
-              <p className="truncate text-xl font-bold tracking-tight" style={{ color: "var(--text-color, #ffffff)" }}>
+              <p className="truncate text-[15px] font-bold tracking-tight" style={{ color: "var(--text-color, #ffffff)" }}>
                 {info.name}
               </p>
-              <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm font-semibold" style={{ color: "var(--text-color, #ffffff)", opacity: 0.85 }}>
-                <span className="flex items-center gap-1.5">
-                  <Headphones size={13} />
+              <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] font-semibold" style={{ color: "var(--text-color, #ffffff)", opacity: 0.85 }}>
+                <span className="flex items-center gap-1">
+                  <Headphones size={11} />
                   {info.playcount.toLocaleString("en-US")} scrobbles
                 </span>
-                <span className="flex items-center gap-1.5">
-                  <Users size={13} />
+                <span className="flex items-center gap-1">
+                  <Users size={11} />
                   {info.artistCount.toLocaleString("en-US")} artists
                 </span>
               </div>
@@ -114,33 +114,33 @@ export default function LastfmCard({ config, instant = false }: { config: Lastfm
             href={`https://www.last.fm/user/${encodeURIComponent(info.name)}`}
             target="_blank"
             rel="noreferrer"
-            className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-white px-4 py-1.5 text-xs font-bold text-black transition-transform hover:scale-105"
+            className="mt-3 inline-flex items-center gap-1 rounded-full bg-white px-3 py-1 text-[10.5px] font-bold text-black transition-transform hover:scale-105"
           >
             View Profile
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M7 17L17 7" /><path d="M8 7h9v9" /></svg>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M7 17L17 7" /><path d="M8 7h9v9" /></svg>
           </a>
           {info.tracks.length > 0 && (
-            <div className="mt-5">
-              <p className="mb-3 text-sm font-bold" style={{ color: "var(--text-color, #ffffff)", opacity: 0.85 }}>
+            <div className="mt-3.5">
+              <p className="mb-1.5 text-[11px] font-bold" style={{ color: "var(--text-color, #ffffff)", opacity: 0.85 }}>
                 Recent tracks
               </p>
-              <div className="grid grid-cols-1 gap-x-6 min-[420px]:grid-cols-2">
+              <div className="grid grid-cols-1 gap-x-5 min-[420px]:grid-cols-2">
                 {info.tracks.map((t, i) => (
-                  <div key={i} className="flex items-center gap-3 py-2">
+                  <div key={i} className="flex items-center gap-2.5 py-1.5">
                     <SafeImg
                       src={t.image}
-                      ClassName="h-11 w-11 shrink-0 rounded-xl object-cover"
-                      Fallback={<div className="h-11 w-11 shrink-0 rounded-xl bg-white/10" />}
+                      ClassName="h-8 w-8 shrink-0 rounded-lg object-cover"
+                      Fallback={<div className="h-8 w-8 shrink-0 rounded-lg bg-white/10" />}
                     />
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-bold leading-tight" style={{ color: "var(--text-color, #ffffff)" }}>
+                      <p className="truncate text-[12px] font-bold leading-tight" style={{ color: "var(--text-color, #ffffff)" }}>
                         {t.nowPlaying ? <span className="mr-1.5 inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400 align-middle" /> : null}{t.name}
                       </p>
-                      <p className="truncate text-xs" style={{ color: "var(--text-color, #ffffff)", opacity: 0.6 }}>
+                      <p className="truncate text-[10.5px]" style={{ color: "var(--text-color, #ffffff)", opacity: 0.6 }}>
                         {t.artist}
                       </p>
                     </div>
-                    <span className="shrink-0 text-[11px] font-medium" style={{ color: "var(--text-color, #ffffff)", opacity: 0.55 }}>
+                    <span className="shrink-0 text-[10px] font-medium" style={{ color: "var(--text-color, #ffffff)", opacity: 0.55 }}>
                       {t.nowPlaying ? "now" : t.uts ? timeAgo(t.uts) : ""}
                     </span>
                   </div>
