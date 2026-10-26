@@ -1,1 +1,6733 @@
-import { useEffect, useState, useRef } from "react";import { useNavigate, useSearchParams, Link as RouterLink, Link } from "react-router-dom";import { motion, AnimatePresence, LayoutGroup, useMotionValue } from "motion/react";import { User, Paintbrush, Link as LucideLink, Image, Crown, Layout, Shield, Home, AtSign, Hash, Eye, User as UserIcon, Volume2, X, Music, Play, Pause, Trash2, Upload, LogOut, Check, Database, Award, Copy, HardDrive, Layers, Type, Star, Clock, Search, TrendingUp, RefreshCw, Trophy, ChevronDown, LayoutTemplate, Palette } from "lucide-react";import { PLATFORMS } from "../lib/platforms";import { FONTS, CUSTOM_FONT_FAMILY, CUSTOM_FONT_NAME, ResolveFontFamily, CustomFontFace, ToSameOriginUrl } from "../lib/fonts";import { SparkleText } from "../components/SparkleText";import { VerifiedIcon } from "../components/VerifiedIcon";import { RainEffect, SnowEffect, AuroraEffect, TvStaticEffect, ParticlesEffect, GalaxyEffect, MatrixEffect, SpotlightEffect, FireEffect, StarsEffect, BubblesEffect, FogEffect, HeartsEffect, LeavesEffect, LightningEffect, WavesEffect } from "../components/BackgroundEffect";import { parseSongUrl } from "../lib/song";import SongPlayer from "../components/SongPlayer";import DiscordRPC from "../components/DiscordRPC";import { CursorEffect } from "../components/CursorEffect";import AboutPage from "../components/AboutPage";import SongPage from "../components/SongPage";import ProjectsPage from "../components/ProjectsPage";import { TIMEZONE_PRESETS, MAX_PROJECTS, MAX_TAGS, LANGUAGE_TAGS, SIDE_WIDGET_KEYS, SIDE_WIDGET_LABELS, MAX_SIDE_WIDGETS, defaultLabel, defaultAboutPage, defaultProjectsPage, defaultSongPage, emptyProject, emptyWidgets, findMyTimeZone, normalizeWidgets, parseInviteCode, tzOffsetHours, type AboutPageConfig, type ClockWidgetConfig, type ProjectItem, type SideWidgetKey, type SongPageConfig, type WidgetsConfig } from "../lib/widgets";import TagIcon from "../components/TagIcon";import { CLICK_SOUNDS, PlayClickSound } from "../lib/click-sounds";import { PanelTracer } from "../components/PanelTracer";type User = {  id: number;  username: string;  alias: string | null;  display_name: string | null;  email: string;  avatar_url: string;  provider: string;  provider_id: string | null;  discord_id: string | null;  discord_rpc_enabled: boolean | null;  description: string | null;  accent_color: string | null;  text_color: string | null;  background_color: string | null;  icon_color: string | null;  bg_effect_color: string | null;  primary_color: string | null;  secondary_color: string | null;  panel_glow_mode: string | null;  panel_glow_color: string | null;  panel_glow_color_2: string | null;  panel_glow_spread: number | null;  panel_pulse_enabled: boolean | null;  panel_pulse_color: string | null;  panel_pulse_speed: number | null;  panel_pulse_type: string | null;  display_effect: string | null;  sparkle_intensity?: number | null;  font: string | null;  bg_effect: string | null;  song_platform: string | null;  song_id: string | null;  entry_text: string | null;  entry_font: string | null;  entry_color: string | null;  entry_effect: string | null;  desc_effect: string | null;  desc_effect_speed: number | null;  desc_lines: string[] | null;  monochrome_icons: boolean;  monochrome_badges: boolean;  badge_color: string | null;  banner_enabled: boolean;  show_username: boolean;  show_joindate: boolean;  country: string | null;  show_views: boolean;  show_votes: boolean;  custom_font_scope: string | null;  video_audio: boolean;  seo_title: string | null;  seo_description: string | null;  seo_image: string | null;  seo_favicon: string | null;  embed_buttons: { label: string; url: string }[] | string | null;  panel_mouse_follow: boolean;  audio_volume: number;  audio_autoplay: boolean;  audio_loop: boolean;  audio_shuffle: boolean;  cursor_effect: string;  avatar_shape: string;  avatar_size: number;  avatar_offset_x: number;  avatar_offset_y: number;  name_offset_x: number;  name_offset_y: number;  badge_offset_x: number;  badge_offset_y: number;  desc_offset_x: number;  desc_offset_y: number;  song_offset_x: number;  song_offset_y: number;  discord_rpc_offset_x: number;  discord_rpc_offset_y: number;  panel_opacity: number | null;  panel_hidden: boolean | null;  is_admin: number | null;  reset_notices: { kind: string; reason: string; at: string }[] | null;  widgets: unknown;  click_sound: string | null;  profile_layout: string | null;};const tabs = [  { id: "overview", label: "account overview", icon: User },  { id: "customize", label: "customize", icon: Paintbrush },  { id: "layouts", label: "profile layouts", icon: LayoutTemplate },  { id: "design", label: "panel design", icon: Palette },  { id: "visibility", label: "visibility", icon: Eye },  { id: "links", label: "links", icon: LucideLink },  { id: "templates", label: "templates", icon: Layout },  { id: "data", label: "data", icon: Database },  { id: "badges", label: "badges", icon: Award },  { id: "premium", label: "premium", icon: Crown },  { id: "imagehost", label: "media host", icon: Image },  { id: "filehost", label: "file host", icon: HardDrive },  { id: "widgets", label: "widgets", icon: Clock },  { id: "leaderboard", label: "leaderboard", icon: Trophy },  { id: "admin", label: "admin", icon: Shield },] as const;type TabId = (typeof tabs)[number]["id"];const Countries = [  "Afghanistan","Albania","Algeria","Andorra","Angola","Argentina","Armenia","Australia","Austria","Azerbaijan",  "Bahamas","Bahrain","Bangladesh","Barbados","Belarus","Belgium","Belize","Benin","Bhutan","Bolivia","Bosnia and Herzegovina","Botswana","Brazil","Brunei","Bulgaria","Burkina Faso","Burundi",  "Cambodia","Cameroon","Canada","Chad","Chile","China","Colombia","Costa Rica","Croatia","Cuba","Cyprus","Czechia",  "Denmark","Djibouti","Dominica","Dominican Republic",  "Ecuador","Egypt","El Salvador","Estonia","Eswatini","Ethiopia",  "Fiji","Finland","France",  "Gabon","Gambia","Georgia","Germany","Ghana","Greece","Grenada","Guatemala","Guinea","Guyana",  "Haiti","Honduras","Hong Kong","Hungary",  "Iceland","India","Indonesia","Iran","Iraq","Ireland","Israel","Italy",  "Jamaica","Japan","Jordan",  "Kazakhstan","Kenya","Kiribati","Kosovo","Kuwait","Kyrgyzstan",  "Laos","Latvia","Lebanon","Lesotho","Liberia","Libya","Liechtenstein","Lithuania","Luxembourg",  "Macau","Madagascar","Malawi","Malaysia","Maldives","Mali","Malta","Mauritania","Mauritius","Mexico","Moldova","Monaco","Mongolia","Montenegro","Morocco","Mozambique","Myanmar",  "Namibia","Nauru","Nepal","Netherlands","New Zealand","Nicaragua","Niger","Nigeria","North Korea","North Macedonia","Norway",  "Oman",  "Pakistan","Palau","Palestine","Panama","Papua New Guinea","Paraguay","Peru","Philippines","Poland","Portugal",  "Qatar",  "Romania","Russia","Rwanda",  "Saint Kitts and Nevis","Saint Lucia","Samoa","San Marino","Saudi Arabia","Senegal","Serbia","Seychelles","Sierra Leone","Singapore","Slovakia","Slovenia","Somalia","South Africa","South Korea","South Sudan","Spain","Sri Lanka","Sudan","Suriname","Sweden","Switzerland","Syria",  "Taiwan","Tajikistan","Tanzania","Thailand","Timor-Leste","Togo","Tonga","Trinidad and Tobago","Tunisia","Turkey","Turkmenistan","Tuvalu",  "Uganda","Ukraine","United Arab Emirates","United Kingdom","United States","Uruguay","Uzbekistan",  "Vanuatu","Vatican City","Venezuela","Vietnam",  "Yemen",  "Zambia","Zimbabwe",];const TAB_SUBS: Record<string, string[]> = {  overview: ["profile info", "security", "danger zone"],  customize: ["fonts", "element positions", "name effects", "entry overlay", "background effects", "banner & audio", "other"],  design: ["color customization", "panel opacity"],  visibility: ["seo", "discord buttons", "counters"],  links: ["my links", "platforms"],  templates: ["my template", "gallery", "favorites"],  data: ["analytics", "resets"],  badges: ["my badges", "name / row"],  premium: ["upgrade", "what you get"],  imagehost: ["uploaded media", "limits"],  filehost: ["uploaded files", "limits"],  widgets: ["pages", "about", "song", "projects", "pinned widgets"],  admin: ["users", "admin log"],};const apiCall = async (action: string, payload: Record<string, unknown> = {}) => {  let sessionToken: string | null = null;  try {    const saved = localStorage.getItem("sl_auth");    if (saved) sessionToken = JSON.parse(saved).sessionToken;  } catch {}  const r = await fetch("/api/me", {    method: "POST",    headers: { "Content-Type": "application/json" },    body: JSON.stringify({ action, sessionToken, ...payload }),  });  return r.json();};const getSessionToken = () => {  try {    const saved = localStorage.getItem("sl_auth");    if (saved) return JSON.parse(saved).sessionToken || null;  } catch {}  return null;};const FetchProfile = async (Username: string) => {  const R = await fetch(`/api/profile?username=${encodeURIComponent(Username)}`);  if (!R.ok) return null;  return R.json().catch(() => null);};const FileToBase64 = (File: File): Promise<string> => new Promise((Resolve, Reject) => {  const Reader = new FileReader();  Reader.onload = () => {    const Result = String(Reader.result || "");    const Marker = Result.indexOf("base64,");    Resolve(Marker === -1 ? Result : Result.slice(Marker + 7));  };  Reader.onerror = () => Reject(new Error("Could not read file"));  Reader.readAsDataURL(File);});const uploadFile = async (file: File, kind: "media" | "file") => {  const token = getSessionToken();  const contentBase64 = await FileToBase64(file);  const r = await fetch(`/api/me?action=hostPrepare`, {    method: "POST",    headers: { "Content-Type": "application/json" },    body: JSON.stringify({ sessionToken: token, filename: file.name, contentBase64, contentType: file.type || null, kind }),  });  const d = await r.json();  if (!r.ok || d.error) throw new Error(d.error || "Upload failed");  return d;};const fetchMe = async () => {  let sessionToken: string | null = null;  try {    const saved = localStorage.getItem("sl_auth");    if (saved) sessionToken = JSON.parse(saved).sessionToken;  } catch {}  const r = await fetch(`/api/me?sessionToken=${encodeURIComponent(sessionToken || "")}`);  const d = await r.json();  return d;};export default function Dashboard() {  const navigate = useNavigate();  const [searchParams] = useSearchParams();  const [user, setUser] = useState<User | null>(null);  const [activeTab, setActiveTab] = useState<TabId>("overview");  const [openNav, setOpenNav] = useState<string | null>("customize");  const [activeSub, setActiveSub] = useState<{ tab: string; sub: string } | null>({ tab: "customize", sub: "colors" });  const [unauth, setUnauth] = useState(false);  const [suspendedMsg, setSuspendedMsg] = useState<string | null>(null);  const [noticesAcked, setNoticesAcked] = useState(false);  const activeNotices = !noticesAcked && user && Array.isArray(user.reset_notices) ? user.reset_notices : [];  const dismissNotices = async () => {    setNoticesAcked(true);    setUser((u) => (u ? { ...u, reset_notices: [] } : u));    try { await apiCall("dismiss_notices", {}); } catch {}  };  useEffect(() => {    const uid = searchParams.get("uid");    const token = searchParams.get("token");    if (!uid) { navigate("/", { replace: true }); return; }    let storedToken: string | null = null;    try {      const saved = JSON.parse(localStorage.getItem("sl_auth") || "null");      storedToken = saved?.sessionToken || null;    } catch {}    const qs = token ? `token=${encodeURIComponent(token)}` : (storedToken ? `s=${encodeURIComponent(storedToken)}` : "");    const loadMe = () => {      fetchMe().then((data) => {        const u = data?.user || null;        if (data?.suspended) setSuspendedMsg(typeof data?.reason === "string" && data.reason ? data.reason : "");        if (u && !u.onboarding_done) { navigate(`/welcome?uid=${u.id}`, { replace: true }); return; }        if (u) setUser(u);        else { localStorage.clear(); setUnauth(true); }      });    };    fetch(`/api/auth/verify?${qs}`).then(r => r.json()).then((session) => {      if (session?.authed) {        if (session.sessionToken) {          localStorage.setItem("sl_auth", JSON.stringify({ uid: session.uid, sessionToken: session.sessionToken }));        }        if (session.uid !== Number(uid)) {          navigate(`/dashboard?uid=${session.uid}`, { replace: true });          return;        }        if (token) navigate(`/dashboard?uid=${session.uid}`, { replace: true });        loadMe();        return;      }      if (token && storedToken) {        fetch(`/api/auth/verify?s=${encodeURIComponent(storedToken)}`).then(r => r.json()).then((s2) => {          if (s2?.authed) {            navigate(`/dashboard?uid=${s2.uid}`, { replace: true });            return;          }          localStorage.clear(); setUnauth(true);        }).catch(() => { localStorage.clear(); setUnauth(true); });        return;      }      localStorage.clear(); setUnauth(true);    }).catch(() => { localStorage.clear(); setUnauth(true); });  }, [searchParams]);  useEffect(() => {    const tab = searchParams.get("tab");    if (tab && tabs.some((t) => t.id === tab)) setActiveTab(tab as TabId);  }, [searchParams]);  useEffect(() => {    if (!unauth) return;    localStorage.clear();    try {      const h = window.location.hostname;      const labels = h.split(".");      const apex = labels.length > 2 ? labels.slice(1).join(".") : h;      for (const d of [h, "." + h, apex, "." + apex]) {        document.cookie = `sl_session=; Max-Age=0; Path=/; Domain=${d}`;      }      document.cookie = "sl_session=; Max-Age=0; Path=/";    } catch {}    fetch("/api/auth/logout").catch(() => {});  }, [unauth]);  if (unauth) return (    <div className="relative min-h-screen flex items-center justify-center bg-black">      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(37,99,235,0.08),transparent_70%)]" />      <div className="text-center relative">        <p className="text-6xl font-black text-white/10 mb-4">404</p>        <p className="text-white/20 text-sm mb-6">{suspendedMsg !== null ? `This account has been suspended${suspendedMsg ? `: ${suspendedMsg}` : ""}` : "Session expired, please sign in again"}</p>        <Link to="/auth" className="text-sm text-blue-400 hover:text-blue-300 transition-colors">          back to login        </Link>      </div>    </div>  );return (    <div className="relative min-h-screen bg-black">      {activeNotices.length > 0 && (        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">          <div className="glass-card rounded-2xl p-6 max-w-md w-full space-y-4 border-red-500/30">            <div className="flex items-center gap-3">              <div className="h-10 w-10 rounded-full bg-red-500/15 border border-red-500/30 flex items-center justify-center">                <Shield className="h-5 w-5 text-red-300" />              </div>              <h2 className="text-base font-bold text-white">Moderation notice</h2>            </div>            {activeNotices.map((n, i) => (              <div key={i} className="rounded-xl bg-white/[0.03] border border-white/[0.06] p-4 space-y-2">                <p className="text-sm text-white/80">Your {n.kind} have been reset for violating the terms of service.</p>                <p className="text-xs text-white/40">Moderator statement: <span className="text-white/70">“{n.reason}”</span></p>              </div>            ))}            <button onClick={dismissNotices} className="w-full rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-500 transition-colors">              I understand            </button>          </div>        </div>      )}      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(37,99,235,0.08),transparent_70%)]" />      <div className="relative flex flex-col min-h-[calc(100vh-1px)]">        <div className="relative flex flex-1 min-h-0">          <nav className="w-48 shrink-0 border-r border-white/[0.04] flex flex-col pt-2 sticky top-0 h-screen self-start">            <button onClick={() => navigate("/")} className="font-display text-xl font-black tracking-tighter text-white hover:text-blue-500 transition-colors px-6 mb-4 text-left">              sire<span className="text-blue-500">.</span>lol            </button>            <div className="px-3 mb-4">              <input                type="text"                placeholder="search..."                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white/60 placeholder-white/20 outline-none focus:border-blue-500/40 transition-colors"              />            </div>            <div className="flex flex-col gap-0.5 px-3 overflow-y-auto flex-1 min-h-0 pr-1">              {tabs.filter((t) => t.id !== "admin" || user?.id === 1 || user?.is_admin === 1).map((t) => {                const Icon = t.icon;                const isPremiumTab = t.id === "premium" || t.id === "imagehost" || t.id === "filehost";                const isWidgetsTab = t.id === "widgets";                const subs = TAB_SUBS[t.id] || null;                const isOpen = !!subs && openNav === t.id;                const jumpSub = (sub: string) => {                  setActiveTab(t.id);                  setActiveSub({ tab: t.id, sub });                  requestAnimationFrame(() => {                    const heads = Array.from(document.querySelectorAll<HTMLElement>("main h3"));                    const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "");                    const want = norm(sub);                    const hit = heads.find((h) => { const have = norm(h.textContent || ""); return have.includes(want) || want.includes(have) || (want === "colors" && have.includes("color")); });                    if (hit) hit.scrollIntoView({ behavior: "smooth", block: "center" });                    else window.scrollTo({ top: 0, behavior: "smooth" });                  });                };                return (                  <div key={t.id}>                    <button                      onClick={() => {                        if (t.id === "leaderboard") { navigate("/leaderboard"); return; }                        setActiveTab(t.id);                        setOpenNav(isOpen ? null : t.id);                        if (!isOpen && subs) setActiveSub({ tab: t.id, sub: subs[0] });                      }}                      className={`relative flex w-full items-center gap-2.5 px-2.5 py-2.5 rounded-xl text-[13px] font-medium transition-all ${                        isWidgetsTab                          ? "shimmer text-emerald-300 border border-emerald-500/30 bg-emerald-600/15 shadow-[0_0_25px_rgba(16,185,129,0.35)]"                          : isPremiumTab                            ? "shimmer text-blue-300 border border-blue-500/30 bg-blue-600/15 shadow-[0_0_25px_rgba(37,99,235,0.35)]"                            : activeTab === t.id                              ? "bg-blue-600/20 text-blue-300"                              : "text-white/30 hover:text-white/60 hover:bg-white/[0.03]"                      }`}                    >                      <Icon size={16} className={isWidgetsTab ? "text-emerald-400" : isPremiumTab ? "text-blue-400" : undefined} />                      <span className={`whitespace-nowrap ${isWidgetsTab ? "text-emerald-300 font-bold" : isPremiumTab ? "text-gradient-blue font-bold" : undefined}`}>{t.label}</span>                      {isPremiumTab && (                        <Crown size={12} className="text-blue-300 absolute right-6 top-1/2 -translate-y-1/2 animate-pulse" />                      )}                      {subs && (                        <ChevronDown                          size={13}                          className={`absolute right-2.5 top-1/2 -translate-y-1/2 transition-transform duration-300 ${isOpen ? "rotate-180 text-white/50" : "text-white/25"}`}                        />                      )}                    </button>                    {subs && (                      <div                        className="overflow-hidden opacity-0 transition-[max-height,opacity] duration-300"                        style={{ maxHeight: isOpen ? 500 : 0, opacity: isOpen ? 1 : 0, transitionTimingFunction: "cubic-bezier(.4,0,.2,1)" }}                      >                        <div className="ml-4 my-0.5 pl-3 border-l border-white/10 flex flex-col">                          {subs.map((s) => {                            const on = activeSub?.tab === t.id && activeSub?.sub === s;                            return (                              <button                                key={s}                                onClick={() => jumpSub(s)}                                className={`relative text-left flex items-center gap-2 pl-4 pr-2 py-1.5 rounded-lg text-[11.5px] transition-all ${                                  on ? "text-blue-300 bg-blue-600/15" : "text-white/35 hover:text-white/70 hover:bg-white/[0.03]"                                }`}                              >                                <span className={`absolute -left-3 top-1/2 h-px w-3 ${on ? "bg-blue-400/70" : "bg-white/15"}`} />                                {s}                              </button>                            );                          })}                        </div>                      </div>                    )}                  </div>                );              })}            </div>            <div className="mt-auto px-3 pb-6">              {user && (                <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/[0.03]">                  <div className="h-8 w-8 rounded-lg bg-white/[0.06] overflow-hidden shrink-0">                    {user.avatar_url ? (                      <img src={user.avatar_url} alt="" className="h-full w-full object-cover" />                    ) : (                      <div className="h-full w-full flex items-center justify-center text-white/30">                        <UserIcon size={14} />                      </div>                    )}                  </div>                  <div className="flex-1 min-w-0">                    <p className="text-xs font-medium text-white/70 truncate">{user.username || user.email}</p>                    <p className="text-[10px] text-white/30 capitalize">{user.provider}</p>                  </div>                  <button                    onClick={async () => {                      localStorage.removeItem("sl_auth");                      window.location.href = "/api/auth/logout";                    }}                    className="h-7 w-7 rounded-lg flex items-center justify-center text-white/20 hover:text-red-400 hover:bg-red-500/10 transition-all shrink-0"                    title="Sign out"                  >                    <LogOut size={14} />                  </button>                </div>              )}            </div>          </nav>          <div className="flex-1 flex flex-col min-w-0">            <header className="flex items-center justify-end h-10 px-6 border-b border-white/[0.04] bg-black/50 backdrop-blur-sm shrink-0">              <nav className="flex items-center gap-6 text-sm">                <RouterLink to="/privacy" className="text-white/40 hover:text-white/70 transition-colors">Privacy</RouterLink>                <RouterLink to="/terms" className="text-white/40 hover:text-white/70 transition-colors">Terms</RouterLink>                <a                  href="https://discord.gg/npN6H47KEn"                  target="_blank"                  rel="noopener noreferrer"                  className="flex items-center gap-1.5 text-white/40 hover:text-white/70 transition-colors"                >                  <svg className="w-4 h-4 text-[#5865F2]" viewBox="0 0 127.14 96.36" fill="currentColor">                    <path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z"/>                  </svg>                  Discord                </a>              </nav>            </header>            <main className="flex-1 px-8 py-10">            <AnimatePresence mode="wait">              <motion.div                key={activeTab}                initial={{ opacity: 0, y: 8 }}                animate={{ opacity: 1, y: 0 }}                exit={{ opacity: 0, y: -8 }}                transition={{ duration: 0.15 }}              >                {activeTab === "overview" && <AccountOverview user={user} onTab={setActiveTab} onUpdateUser={setUser} />}                {activeTab === "customize" && <Customize user={user} onUpdateUser={setUser} />}                {activeTab === "layouts" && <ProfileLayouts user={user} onUpdateUser={setUser} />}                {activeTab === "design" && <PanelDesign user={user} onUpdateUser={setUser} />}                {activeTab === "visibility" && <Visibility user={user} />}                {activeTab === "links" && <Links user={user} />}                {activeTab === "imagehost" && <MediaHost user={user} />}                {activeTab === "filehost" && <FileHost user={user} />}                {activeTab === "widgets" && <Widgets user={user} onUpdateUser={setUser} />}                {activeTab === "premium" && <Premium user={user} />}                {activeTab === "templates" && <Templates user={user} onTab={setActiveTab} onUpdateUser={setUser} />}                {activeTab === "data" && <DataSettings user={user} />}                {activeTab === "badges" && <UserBadges user={user} onTab={setActiveTab} />}                {activeTab === "admin" && <> <AdminStats /> <AdminStorage /> <AdminBadges /> <AdminBanUser /> <AdminLog /> </>}              </motion.div>            </AnimatePresence>            </main>          </div>        </div>      </div>    </div>  );}function smoothPath(pts: [number, number][]): string {  if (pts.length === 0) return "";  if (pts.length === 1) return `M${pts[0][0]},${pts[0][1]}`;  let d = `M${pts[0][0]},${pts[0][1]}`;  for (let i = 0; i < pts.length - 1; i++) {    const p0 = pts[Math.max(0, i - 1)], p1 = pts[i], p2 = pts[i + 1], p3 = pts[Math.min(pts.length - 1, i + 2)];    const c1x = p1[0] + (p2[0] - p0[0]) / 6, c1y = p1[1] + (p2[1] - p0[1]) / 6;    const c2x = p2[0] - (p3[0] - p1[0]) / 6, c2y = p2[1] - (p3[1] - p1[1]) / 6;    d += `C${c1x},${c1y} ${c2x},${c2y} ${p2[0]},${p2[1]}`;  }  return d;}type ChartPt = { date: string; full: string; iso: string; count: number };const CountryNames: Record<string, string> = {  US: "United States", GB: "United Kingdom", CA: "Canada", AU: "Australia", DE: "Germany", FR: "France",  NL: "Netherlands", SE: "Sweden", NO: "Norway", DK: "Denmark", FI: "Finland", IE: "Ireland", ES: "Spain",  IT: "Italy", PT: "Portugal", PL: "Poland", CH: "Switzerland", AT: "Austria", BE: "Belgium", GR: "Greece",  VN: "Vietnam", PH: "Philippines", ID: "Indonesia", TW: "Taiwan", TH: "Thailand", PK: "Pakistan",  BD: "Bangladesh", IN: "India", JP: "Japan", KR: "South Korea", CN: "China", HK: "Hong Kong",  SG: "Singapore", MY: "Malaysia", AE: "UAE", SA: "Saudi Arabia", QA: "Qatar", TR: "Turkey",  BR: "Brazil", MX: "Mexico", AR: "Argentina", CL: "Chile", CO: "Colombia", PE: "Peru",  ZA: "South Africa", NG: "Nigeria", EG: "Egypt", UA: "Ukraine", RU: "Russia", NZ: "New Zealand", IL: "Israel"};function CountryFlag(Code: string): string {  const C = Code.toUpperCase();  if (!/^[A-Z]{2}$/.test(C)) return "";  return String.fromCodePoint(...[...C].map((ch) => 0x1F1E6 + ch.charCodeAt(0) - 65));}function InsightPanel({ title, rows, flag }: { title: string; rows: { k: string; c: number }[]; flag?: boolean }) {  const Max = rows.length ? Math.max(...rows.map((r) => r.c)) : 0;  return (    <div className="glass-card rounded-xl p-4">      <p className="text-sm font-bold text-white mb-3">{title}</p>      {rows.length === 0 ? (        <p className="text-xs text-white/35 py-2">No data yet — share your page to start collecting.</p>      ) : (        <div className="flex flex-col gap-1.5">          {rows.map((r) => (            <div key={r.k} className="flex items-center gap-2">              <div                className="flex items-center gap-1.5 rounded-md bg-blue-600/20 px-2 py-1 overflow-hidden whitespace-nowrap"                style={{ width: `${Math.max(18, (r.c / Max) * 100)}%` }}              >                {flag && r.k.length === 2 ? <span className="text-xs leading-none">{CountryFlag(r.k)}</span> : null}                <span className="text-xs text-white/80 truncate">{flag ? (CountryNames[r.k.toUpperCase()] || r.k) : r.k}</span>              </div>              <span className="text-xs text-white/50 tabular-nums">{r.c}</span>            </div>          ))}        </div>      )}    </div>  );}function AccountOverview({ user, onTab, onUpdateUser }: { user: User | null; onTab: (tab: TabId) => void; onUpdateUser?: (u: User) => void }) {  const [newUsername, setNewUsername] = useState(user?.username || "");  const [isEditing, setIsEditing] = useState(false);  const [errorMsg, setErrorMsg] = useState("");  const [isSaving, setIsSaving] = useState(false);  const [newAlias, setNewAlias] = useState(user?.alias || "");  const [isEditingAlias, setIsEditingAlias] = useState(false);  const [aliasError, setAliasError] = useState("");  const [isSavingAlias, setIsSavingAlias] = useState(false);  const [totalUsers, setTotalUsers] = useState<number>(100);  const [totalViews, setTotalViews] = useState<number>(0);  const [recentViews, setRecentViews] = useState<number>(0);  const [dailyViews, setDailyViews] = useState<{ date: string; count: number }[]>([]);  const [viewsHourly, setViewsHourly] = useState<ChartPt[]>([]);  const [viewsDaily, setViewsDaily] = useState<ChartPt[]>([]);  const [likesHourly, setLikesHourly] = useState<ChartPt[]>([]);  const [likesDaily, setLikesDaily] = useState<ChartPt[]>([]);  const [chartMetric, setChartMetric] = useState<"Views" | "Likes">("Views");  const [chartRange, setChartRange] = useState<"24h" | "7d" | "14d" | "30d" | "custom">("7d");  const [customFrom, setCustomFrom] = useState("");  const [customTo, setCustomTo] = useState("");  const [hoverIdx, setHoverIdx] = useState<number | null>(null);  const [metricOpen, setMetricOpen] = useState(false);  const [calOpen, setCalOpen] = useState(false);  const [uniqueVisitors, setUniqueVisitors] = useState<number>(0);  const [countries, setCountries] = useState<{ k: string; c: number }[]>([]);  const [referrers, setReferrers] = useState<{ k: string; c: number }[]>([]);  const [devices, setDevices] = useState<{ k: string; c: number }[]>([]);  const [topLinks, setTopLinks] = useState<{ k: string; c: number }[]>([]);  const [likes, setLikes] = useState<number>(0);  const [dislikes, setDislikes] = useState<number>(0);  const [newDisplayName, setNewDisplayName] = useState(user?.display_name || "");  const [isEditingDisplayName, setIsEditingDisplayName] = useState(false);  const [isSavingDisplayName, setIsSavingDisplayName] = useState(false);  const [copied, setCopied] = useState(false);  const [profileAvatar, setProfileAvatar] = useState<string | null>(null);  const [ovMsg, setOvMsg] = useState<string | null>(null);  const showSaved = (msg: string, _note?: boolean) => {    setOvMsg(msg);    setTimeout(() => setOvMsg(null), 2500);  };  useEffect(() => {    if (!user) return;    const token = getSessionToken();    if (!token) return;    fetch(`/api/stats?sessionToken=${encodeURIComponent(token)}`).then(async (R) => {      const J = await R.json().catch(() => null);      if (!J || J.error) return;      if (typeof J.totalViews === "number") setTotalViews(J.totalViews);      if (typeof J.recentViews === "number") setRecentViews(J.recentViews);      if (Array.isArray(J.daily)) setDailyViews(J.daily);      if (Array.isArray(J.viewsHourly)) setViewsHourly(J.viewsHourly);      if (Array.isArray(J.viewsDaily)) setViewsDaily(J.viewsDaily);      if (Array.isArray(J.likesHourly)) setLikesHourly(J.likesHourly);      if (Array.isArray(J.likesDaily)) setLikesDaily(J.likesDaily);      if (typeof J.uniqueVisitors === "number") setUniqueVisitors(J.uniqueVisitors);      if (typeof J.totalUsers === "number") setTotalUsers(J.totalUsers);      if (Array.isArray(J.countries)) setCountries(J.countries);      if (Array.isArray(J.referrers)) setReferrers(J.referrers);      if (Array.isArray(J.devices)) setDevices(J.devices);      if (Array.isArray(J.topLinks)) setTopLinks(J.topLinks);    }).catch(() => {});  }, [user]);  useEffect(() => {    if (user?.username) setNewUsername(user.username);    setNewAlias(user?.alias || "");    setNewDisplayName(user?.display_name || "");  }, [user]);  useEffect(() => {    if (!user?.username) return;    fetch(`/api/profile?username=${encodeURIComponent(user.username)}`).then(async (R) => {      const J = await R.json().catch(() => null);      if (!J) return;      if (typeof J.likes === "number") setLikes(J.likes);      if (typeof J.dislikes === "number") setDislikes(J.dislikes);      if (Array.isArray((J as any).assets)) {        const pa = (J as any).assets.find((a: any) => a.type === "profile_avatar");        if (pa?.url) setProfileAvatar(pa.url);      }    }).catch(() => {});  }, [user?.username]);  const likeRate = likes + dislikes > 0 ? Math.round((likes / (likes + dislikes)) * 100) : 100;  const hasAvatar = !!profileAvatar || (user?.avatar_url && user?.avatar_url !== "") || false;  const hasDescription = (user?.description && user?.description.trim() !== "") || (user?.desc_effect === "typewriter" && !!user?.desc_lines?.some((l) => l.trim()));  const hasDiscord = user?.provider === "discord" || !!user?.discord_id || false;  const completion = [hasAvatar, hasDescription, hasDiscord].filter(Boolean).length * 33 + (user ? 1 : 0);  const handleSaveAlias = async () => {    if (!user) return;    const target = newAlias.trim().toLowerCase();    if (target === (user.alias || "")) {      setIsEditingAlias(false);      return;    }    if (target && !/^[a-zA-Z0-9_]{1,20}$/.test(target)) {      setAliasError("alias can only contain letters, numbers, and underscores");      return;    }    setIsSavingAlias(true);    setAliasError("");    const { error } = await apiCall("update", { data: { alias: target || null } });    if (error) {      setAliasError("failed to update alias");      setIsSavingAlias(false);      return;    }    if (onUpdateUser) {      onUpdateUser({ ...user, alias: target || null });    }    setIsSavingAlias(false);    setIsEditingAlias(false);  };  const handleSaveDisplayName = async () => {    if (!user) return;    const target = newDisplayName.trim();    if (target === (user.display_name || "")) {      setIsEditingDisplayName(false);      return;    }    setIsSavingDisplayName(true);    const { error } = await apiCall("update", { data: { display_name: target || null } });    if (error) {      setIsSavingDisplayName(false);      return;    }    if (onUpdateUser) {      onUpdateUser({ ...user, display_name: target || null });    }    setIsSavingDisplayName(false);    setIsEditingDisplayName(false);  };  const copyProfileLink = async () => {    if (!user?.username) return;    try {      await navigator.clipboard.writeText(`https://sire.lol/${user.username}`);    } catch {}    setCopied(true);    setTimeout(() => setCopied(false), 1200);  };  const getRecentChanges = () => {    if (!user) return [];    try {      const raw = localStorage.getItem(`sire_uname_changes_${user.id}`);      if (!raw) return [];      const timestamps: number[] = JSON.parse(raw);      const oneWeekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;      return timestamps.filter((t) => t > oneWeekAgo);    } catch {      return [];    }  };  const handleSaveUsername = async () => {    if (!user) return;    const target = newUsername.trim().toLowerCase();    if (!target) {      setErrorMsg("username cannot be empty");      return;    }    if (!/^[a-zA-Z0-9_]{1,20}$/.test(target)) {      setErrorMsg("username can only contain letters, numbers, and underscores");      return;    }    if (target === user.username) {      setIsEditing(false);      return;    }    const recent = getRecentChanges();    if (recent.length >= 2) {      setErrorMsg("you can only change your username 2 times per week");      return;    }    setIsSaving(true);    setErrorMsg("");    const CheckR = await fetch(`/api/check-username?u=${encodeURIComponent(target)}`);    const CheckJ = await CheckR.json().catch(() => null);    if (CheckJ && CheckJ.available === false) {      setErrorMsg("username is already taken");      setIsSaving(false);      return;    }    const { error } = await apiCall("update", { data: { username: target } });    if (error) {      setErrorMsg("failed to update username");      setIsSaving(false);      return;    }    const updatedTimestamps = [...recent, Date.now()];    localStorage.setItem(`sire_uname_changes_${user.id}`, JSON.stringify(updatedTimestamps));    if (onUpdateUser) {      onUpdateUser({ ...user, username: target });    }    setIsSaving(false);    setIsEditing(false);  };  return (    <div>      <div className="relative rounded-2xl p-6 overflow-hidden mb-8 border border-blue-300/20 bg-gradient-to-br from-white via-blue-200 to-blue-500 shadow-[0_4px_24px_rgba(37,99,235,0.15)] animate-gradient-shift">        <div className="absolute -top-20 -right-20 w-52 h-52 rounded-full bg-blue-400/20 blur-3xl" />        <div className="absolute -bottom-16 -left-16 w-40 h-40 rounded-full bg-white/30 blur-3xl" />        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shine pointer-events-none" />        <div className="relative flex items-center justify-between">          <div className="z-10">            <h2 className="text-xl font-bold tracking-tight text-slate-900">              Welcome back, {user?.display_name || user?.username || "User"}            </h2>            <p className="text-[13px] text-slate-600/80 mt-1.5 font-medium">              Here's what's happening with your profile today.            </p>          </div>          <div className="shrink-0 flex items-center gap-2">            <Link              to={`/${user?.username}`}              className="h-8 px-3 rounded-lg bg-white/20 hover:bg-white/30 transition-colors flex items-center text-xs font-semibold text-slate-800 gap-1.5"            >              view profile            </Link>            <div className="h-9 w-9 rounded-full bg-blue-600/15 border border-blue-400/25 flex items-center justify-center text-sm font-bold text-blue-700">              {(user?.display_name || user?.username || "S")[0].toUpperCase()}          </div>        </div>      </div>    </div>      {/* profile header */}      <div className="grid grid-cols-1 justify-items-center md:grid-cols-[1fr_auto_1fr] md:justify-items-stretch items-center gap-6 mb-6">        <div className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-4 md:justify-self-end w-full max-w-[260px]">          <p className="text-sm font-semibold text-white">Your Likes</p>          <p className="text-xs text-white/35 mt-0.5">Your profile has been liked <span className="text-white/70 font-medium">{likes.toLocaleString("en-US")}</span> times!</p>          <p className="text-3xl font-semibold text-white tabular-nums tracking-tight mt-3">{likes.toLocaleString("en-US")}</p>          <div className="w-full h-1 rounded-full bg-white/[0.07] overflow-hidden my-3">            <div className="h-full rounded-full bg-emerald-400/80" style={{ width: `${likeRate}%` }} />          </div>          <div className="flex items-center justify-between text-[11px] text-white/40">            <span>{dislikes.toLocaleString("en-US")} dislikes</span>            <span>{likeRate}% positive</span>          </div>        </div>        <div className="relative shrink-0 flex flex-col items-center text-center">          <div className="relative">            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-96 w-[900px] max-w-none rounded-[100%] bg-[radial-gradient(ellipse,rgba(37,99,235,0.5)_0%,rgba(37,99,235,0.22)_40%,rgba(37,99,235,0.08)_60%,rgba(0,0,0,0)_80%)] blur-3xl pointer-events-none" />            <div className="relative h-40 w-40 rounded-full p-[2px] bg-cyan-200/70">              {(profileAvatar || user?.avatar_url) ? (                <img src={profileAvatar || user!.avatar_url} alt="profile picture" className="h-full w-full rounded-full object-cover bg-[#131316] border-4 border-black" />              ) : (                <div className="h-full w-full rounded-full bg-white/[0.06] border-4 border-black flex items-center justify-center text-5xl font-bold text-white/70">                  {(user?.display_name || user?.username || "S")[0].toUpperCase()}                </div>              )}            </div>          </div>          <p className="relative mt-3 text-4xl font-bold tracking-tight text-white flex items-center gap-2">            {user?.display_name || user?.username || "—"}            <svg className="w-6 h-6 shrink-0" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#3b82f6" /><path d="M8 12.5l2.7 2.7L16.5 9" stroke="#fff" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></svg>          </p>          <p className="relative text-xs text-white/35 font-mono mt-0.5">sire.lol/{user?.username}</p>          <div className="relative mt-3 flex items-center justify-center gap-2">            <Link to="/leaderboard" className="text-xs font-medium text-white/55 px-3 py-1.5 rounded-lg transition-all border border-white/10 hover:text-white hover:bg-white/[0.07] flex items-center gap-1.5">              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" /><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" /><path d="M4 22h16" /><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" /><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" /><path d="M18 2H6v7a6 6 0 0 0 12 0V2z" /></svg>              leaderboard            </Link>            <Link to="/terms" className="text-xs font-medium text-white/55 px-3 py-1.5 rounded-lg transition-all border border-white/10 hover:text-white hover:bg-white/[0.07] flex items-center gap-1.5">              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z" /><path d="M14 2v4a2 2 0 0 0 2 2h4" /><path d="M10 9H8M16 13H8M16 17H8" /></svg>              terms            </Link>          </div>        </div>        <div className="min-w-0 md:justify-self-start text-center md:text-left">          <div className="flex items-center justify-center md:justify-start gap-5 text-[13px]">            <span className="text-white/60"><strong className="text-white font-semibold">{totalViews}</strong> views</span>            <span className="text-white/60"><strong className="text-white font-semibold">#{user?.id}</strong> uid</span>            <span className="text-white/60"><strong className="text-white font-semibold">{likes.toLocaleString("en-US")}</strong> likes</span>          </div>          <div className="flex items-center justify-center md:justify-start gap-2 mt-4">            <button onClick={() => onTab("customize")} className="text-xs font-semibold text-white bg-white/[0.12] px-3 py-1.5 rounded-lg transition-colors hover:bg-white/[0.2] cursor-pointer">✎ customize</button>            <button onClick={copyProfileLink} className="text-xs font-medium text-white/55 px-3 py-1.5 rounded-lg transition-all border border-white/10 hover:text-white hover:bg-white/[0.07] cursor-pointer">{copied ? "copied!" : "⧉ copy link"}</button>          </div>        </div>      </div>      <p className="text-[11px] font-semibold tracking-[0.08em] uppercase text-white/35 mb-3">Essentials</p>      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 mb-5">        {/* Username Card */}        <div className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-4 transition-colors hover:border-white/[0.14]">          <div className="relative">            <div className="flex items-center justify-between mb-3">              <p className="text-[11px] font-semibold tracking-[0.08em] uppercase text-white/35">Username</p>              {!isEditing ? (                <button                  onClick={() => { setIsEditing(true); setErrorMsg(""); }}                  className="text-xs font-medium text-white/50 hover:text-white transition-colors cursor-pointer"                >                  change                </button>              ) : (                <button                  onClick={() => { setIsEditing(false); setErrorMsg(""); setNewUsername(user?.username || ""); }}                  className="text-xs font-medium text-white/50 hover:text-white transition-colors cursor-pointer"                >                  cancel                </button>              )}            </div>            {!isEditing ? (              <>                <p className="text-sm font-semibold text-white">{user?.username || "—"}</p>                <p className="text-xs text-white/35 mt-1">{2 - getRecentChanges().length} of 2 changes left this week</p>              </>            ) : (              <div className="space-y-2">                <div className="flex items-center bg-white/[0.04] border border-white/[0.09] rounded-lg overflow-hidden">                  <span className="text-xs text-white/30 select-none pl-2.5">sire.lol/</span>                  <input                    type="text"                    value={newUsername}                    onChange={(e) => setNewUsername(e.target.value)}                    placeholder="new username"                    className="flex-1 bg-transparent text-xs text-white outline-none font-mono px-1 py-[7px]"                  />                </div>                {errorMsg && <p className="text-[11px] text-red-400">{errorMsg}</p>}                <button                  disabled={isSaving}                  onClick={handleSaveUsername}                  className="w-full text-xs font-semibold text-white bg-white/[0.12] py-2 rounded-lg hover:bg-white/[0.2] disabled:opacity-40 transition-colors cursor-pointer"                >                  {isSaving ? "saving..." : "save username"}                </button>              </div>            )}          </div>        </div>        {/* Alias Card */}        <div className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-4 transition-colors hover:border-white/[0.14]">          <div className="relative">            <div className="flex items-center justify-between mb-3">              <p className="text-[11px] font-semibold tracking-[0.08em] uppercase text-white/35">Alias</p>              {!isEditingAlias ? (                <button                  onClick={() => { setIsEditingAlias(true); setAliasError(""); }}                  className="text-xs font-medium text-white/50 hover:text-white transition-colors cursor-pointer"                >                  change                </button>              ) : (                <button                  onClick={() => { setIsEditingAlias(false); setAliasError(""); setNewAlias(user?.alias || ""); }}                  className="text-xs font-medium text-white/50 hover:text-white transition-colors cursor-pointer"                >                  cancel                </button>              )}            </div>            {!isEditingAlias ? (              <>                <p className="text-sm font-semibold text-white">{user?.alias || "—"}</p>                <p className="text-xs text-white/35 mt-1">custom link alias</p>              </>            ) : (              <div className="space-y-2">                <input                  type="text"                  value={newAlias}                  onChange={(e) => setNewAlias(e.target.value)}                  placeholder="alias"                  className="w-full bg-white/[0.04] border border-white/[0.09] rounded-lg px-2.5 py-[7px] text-xs text-white outline-none font-mono placeholder:text-white/25"                />                {aliasError && <p className="text-[11px] text-red-400">{aliasError}</p>}                <button                  disabled={isSavingAlias}                  onClick={handleSaveAlias}                  className="w-full text-xs font-semibold text-white bg-white/[0.12] py-2 rounded-lg hover:bg-white/[0.2] disabled:opacity-40 transition-colors cursor-pointer"                >                  {isSavingAlias ? "saving..." : "save alias"}                </button>              </div>            )}          </div>        </div>        {/* Display Name Card */}        <div className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-4 transition-colors hover:border-white/[0.14]">          <div className="relative">            <div className="flex items-center justify-between mb-3">              <p className="text-[11px] font-semibold tracking-[0.08em] uppercase text-white/35">Display name</p>              {!isEditingDisplayName ? (                <button                  onClick={() => setIsEditingDisplayName(true)}                  className="text-xs font-medium text-white/50 hover:text-white transition-colors cursor-pointer"                >                  change                </button>              ) : (                <button                  onClick={() => { setIsEditingDisplayName(false); setNewDisplayName(user?.display_name || ""); }}                  className="text-xs font-medium text-white/50 hover:text-white transition-colors cursor-pointer"                >                  cancel                </button>              )}            </div>            {!isEditingDisplayName ? (              <>                <p className="text-sm font-semibold text-white">{user?.display_name || "—"}</p>                <p className="text-xs text-white/35 mt-1">shown on your profile</p>              </>            ) : (              <div className="space-y-2">                <input                  type="text"                  value={newDisplayName}                  onChange={(e) => setNewDisplayName(e.target.value)}                  placeholder="display name"                  className="w-full bg-white/[0.04] border border-white/[0.09] rounded-lg px-2.5 py-[7px] text-xs text-white outline-none placeholder:text-white/25"                />                <button                  disabled={isSavingDisplayName}                  onClick={handleSaveDisplayName}                  className="w-full text-xs font-semibold text-white bg-white/[0.12] py-2 rounded-lg hover:bg-white/[0.2] disabled:opacity-40 transition-colors cursor-pointer"                >                  {isSavingDisplayName ? "saving..." : "save name"}                </button>              </div>            )}          </div>        </div>        {/* Profile Link Card */}        <div className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-4 transition-colors hover:border-white/[0.14]">          <p className="text-[11px] font-semibold tracking-[0.08em] uppercase text-white/35 mb-3">Profile link</p>          <p className="text-sm font-mono font-semibold text-white truncate">sire.lol/{user?.username}</p>          <button onClick={copyProfileLink} className="text-xs font-medium text-white/55 px-3 py-1.5 rounded-lg transition-all border border-white/10 hover:text-white hover:bg-white/[0.07] w-full mt-2 cursor-pointer">{copied ? "copied!" : "⧉ copy link"}</button>        </div>      </div>      <p className="text-[11px] font-semibold tracking-[0.08em] uppercase text-white/35 mb-3">Setup</p>      <div className="glass-card rounded-2xl p-5 bg-blue-500/[0.04] border-blue-500/10 mb-5">        <div className="flex items-center justify-between mb-3">          <p className="text-sm font-medium text-white">Profile completion</p>          <span className="text-sm font-semibold text-blue-400">{completion}%</span>        </div>        <div className="w-full h-1.5 rounded-full bg-white/[0.07] overflow-hidden mb-2">          <div className="h-full rounded-full bg-blue-500 transition-all duration-300" style={{ width: `${completion}%` }} />        </div>        <p className="text-[13px] text-white/70 mb-4">{completion === 100 ? "Your profile is complete!" : "Your profile isn't complete yet!"}</p>        <div className="space-y-1">          <button onClick={() => onTab("customize")} className="flex items-center gap-3 cursor-pointer group w-full text-left px-2 py-1.5 -mx-2 rounded-lg hover:bg-white/[0.04] transition-colors">            <div className="h-[18px] w-[18px] rounded-[6px] border border-white/15 flex items-center justify-center transition-colors">              {hasAvatar && (                <svg className="w-3 h-3 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">                  <polyline points="20 6 9 17 4 12" />                </svg>              )}            </div>            <span className="text-[13px] text-white/60 group-hover:text-white/85 transition-colors">Upload an avatar</span>          </button>          <button onClick={() => onTab("customize")} className="flex items-center gap-3 cursor-pointer group w-full text-left px-2 py-1.5 -mx-2 rounded-lg hover:bg-white/[0.04] transition-colors">            <div className="h-[18px] w-[18px] rounded-[6px] border border-white/15 flex items-center justify-center transition-colors">              {hasDescription && (                <svg className="w-3 h-3 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">                  <polyline points="20 6 9 17 4 12" />                </svg>              )}            </div>            <span className="text-[13px] text-white/60 group-hover:text-white/85 transition-colors">Add a description</span>          </button>          <a href="/api/auth/discord" className="flex items-center gap-3 cursor-pointer group w-full text-left px-2 py-1.5 -mx-2 rounded-lg hover:bg-white/[0.04] transition-colors">            <div className="h-[18px] w-[18px] rounded-[6px] border border-white/15 flex items-center justify-center transition-colors">              {hasDiscord && (                <svg className="w-3 h-3 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">                  <polyline points="20 6 9 17 4 12" />                </svg>              )}            </div>            <span className="text-[13px] text-white/60 group-hover:text-white/85 transition-colors">Link Discord account</span>          </a>        </div>      </div>      <p className="text-[11px] font-semibold tracking-[0.08em] uppercase text-white/35 mb-3">Analytics</p>      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-3">        <div className="glass-card rounded-xl p-4">          <p className="text-[10px] font-semibold tracking-wider text-white/40 mb-1">total views</p>          <p className="text-xl font-bold text-white tabular-nums">{totalViews}</p>          <p className="text-xs font-medium text-emerald-400 mt-1">+{recentViews} in the last 7 days</p>        </div>        <div className="glass-card rounded-xl p-4">          <p className="text-[10px] font-semibold tracking-wider text-white/40 mb-1">unique visitors</p>          <p className="text-xl font-bold text-white tabular-nums">{uniqueVisitors}</p>        </div>        <div className="glass-card rounded-xl p-4">          <p className="text-[10px] font-semibold tracking-wider text-white/40 mb-1">registered users</p>          <p className="text-xl font-bold text-white tabular-nums">{totalUsers}</p>        </div>      </div>      <div className="glass-card rounded-2xl p-6">        <div className="flex flex-wrap items-start justify-between gap-3 mb-1">          <div>            <p className="text-sm font-semibold text-white/80">{chartMetric}</p>            <p className="text-xs text-white/35 mt-1">Your profile {chartMetric === "Views" ? "activity" : "likes"} over the selected range.</p>            {chartRange === "custom" && customFrom && customTo ? (              <button onClick={() => setChartRange("7d")} className="mt-1.5 text-[11px] text-blue-300/80 hover:text-blue-300 cursor-pointer">                {customFrom} → {customTo} ×              </button>            ) : null}          </div>          <div className="flex items-center gap-2">            <div className="relative">              <button onClick={() => { setMetricOpen(!metricOpen); setCalOpen(false); }} className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs text-white/70 cursor-pointer">                {chartMetric}                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m6 9 6 6 6-6" /></svg>              </button>              {metricOpen ? (                <div className="absolute right-0 z-20 mt-1 w-32 overflow-hidden rounded-lg border border-white/10 bg-[#141416] shadow-xl">                  {(["Views", "Likes"] as const).map((m) => (                    <button key={m} onClick={() => { setChartMetric(m); setMetricOpen(false); }} className={`flex w-full items-center justify-between px-3 py-2 text-xs cursor-pointer hover:bg-white/5 ${chartMetric === m ? "text-white" : "text-white/60"}`}>                      {m}<span className={chartMetric === m ? "text-blue-400" : "hidden"}>✓</span>                    </button>                  ))}                </div>              ) : null}            </div>            <div className="flex items-center gap-1 rounded-lg border border-white/10 bg-white/[0.03] p-1">              {(["24h", "7d", "14d", "30d"] as const).map((r) => (                <button key={r} onClick={() => setChartRange(r)} className={`rounded-md px-2.5 py-1 text-xs cursor-pointer ${chartRange === r ? "bg-blue-600/25 text-blue-300" : "text-white/40 hover:text-white/70"}`}>{r}</button>              ))}            </div>            <div className="relative">              <button onClick={() => { setCalOpen(!calOpen); setMetricOpen(false); }} className="rounded-lg border border-white/10 bg-white/[0.03] p-2 text-white/40 hover:text-white/70 cursor-pointer" title="pick date">                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></svg>              </button>              {calOpen ? (                <div className="absolute right-0 z-20 mt-1 w-52 rounded-lg border border-white/10 bg-[#141416] p-3 shadow-xl">                  <p className="text-[11px] font-semibold text-white/60 mb-2">Custom range</p>                  <label className="block text-[10px] text-white/40 mb-1">From</label>                  <input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} className="mb-2 w-full rounded-md border border-white/10 bg-white/[0.04] px-2 py-1.5 text-xs text-white/80 outline-none" />                  <label className="block text-[10px] text-white/40 mb-1">To</label>                  <input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} className="mb-3 w-full rounded-md border border-white/10 bg-white/[0.04] px-2 py-1.5 text-xs text-white/80 outline-none" />                  <button onClick={() => {                    if (!customFrom || !customTo) { showSaved("pick both dates first!", false); return; }                    if (customFrom > customTo) { showSaved("invalid range!", false); return; }                    setChartRange("custom"); setCalOpen(false);                  }} className="w-full rounded-md bg-blue-600/25 py-1.5 text-xs text-blue-300 cursor-pointer hover:bg-blue-600/35">Apply</button>                </div>              ) : null}            </div>          </div>        </div>        {(metricOpen || calOpen) ? (          <div className="fixed inset-0 z-10" onClick={() => { setMetricOpen(false); setCalOpen(false); }} />        ) : null}        <div className="relative">          {(() => {            const src = chartMetric === "Views"              ? (chartRange === "24h" ? viewsHourly : chartRange === "7d" ? viewsDaily.slice(-7) : chartRange === "14d" ? viewsDaily.slice(-14) : chartRange === "30d" ? viewsDaily : viewsDaily.filter((p) => (!customFrom || p.iso >= customFrom) && (!customTo || p.iso <= customTo)))              : (chartRange === "24h" ? likesHourly : chartRange === "7d" ? likesDaily.slice(-7) : chartRange === "14d" ? likesDaily.slice(-14) : chartRange === "30d" ? likesDaily : likesDaily.filter((p) => (!customFrom || p.iso >= customFrom) && (!customTo || p.iso <= customTo)));            if (src.length === 0) return <p className="text-sm text-white/20 italic py-8 text-center">no data yet</p>;            const W = 700, H = 260, PL = 36, PB = 30, PT = 10, base = H - PB;            const max = Math.max(...src.map((d) => d.count), 1);            const raw = max / 4;            const step = raw <= 1 ? 1 : raw <= 2 ? 2 : raw <= 5 ? 5 : raw <= 10 ? 10 : raw <= 25 ? 25 : Math.ceil(raw / 25) * 25;            const top = step * 4;            const X = (i: number) => src.length === 1 ? (PL + W) / 2 : PL + (i / (src.length - 1)) * (W - PL);            const Y = (v: number) => base - (v / top) * (base - PT);            const pts: [number, number][] = src.map((d, i) => [X(i), Y(d.count)]);            const line = smoothPath(pts);            const area = `${line}L${X(src.length - 1)},${base}L${X(0)},${base}Z`;            const labStep = Math.ceil(src.length / 7);            const hov = hoverIdx !== null && hoverIdx >= 0 && hoverIdx < src.length ? src[hoverIdx] : null;            return (              <>                <svg                  viewBox={`0 0 ${W} ${H}`}                  className="w-full h-auto overflow-visible select-none"                  onMouseMove={(e) => {                    const r = e.currentTarget.getBoundingClientRect();                    const mx = ((e.clientX - r.left) / r.width) * W;                    let best = 0, bd = 1e9;                    for (let i = 0; i < src.length; i++) {                      const dd = Math.abs(X(i) - mx);                      if (dd < bd) { bd = dd; best = i; }                    }                    setHoverIdx(best);                  }}                  onMouseLeave={() => setHoverIdx(null)}                >                  <defs>                    <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">                      <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.45" />                      <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.02" />                    </linearGradient>                  </defs>                  {[0, 1, 2, 3, 4].map((g) => {                    const v = step * g, y = Y(v);                    return (                      <g key={g}>                        <line x1={PL} y1={y} x2={W} y2={y} stroke="rgba(255,255,255,0.07)" strokeWidth="1" />                        <text x={PL - 8} y={y + 4} textAnchor="end" fill="rgba(255,255,255,0.3)" fontSize="11">{v}</text>                      </g>                    );                  })}                  {src.map((d, i) => i % labStep === 0 ? (                    <text key={i} x={X(i)} y={H - 8} textAnchor="middle" fill="rgba(255,255,255,0.3)" fontSize="11">{d.date}</text>                  ) : null)}                  <path d={area} fill="url(#areaGrad)" />                  <path d={line} fill="none" stroke="#3b82f6" strokeWidth="2.5" strokeLinecap="round" />                  {hov ? (                    <>                      <line x1={X(hoverIdx!)} y1={PT} x2={X(hoverIdx!)} y2={base} stroke="rgba(255,255,255,0.25)" strokeWidth="1" />                      <circle cx={X(hoverIdx!)} cy={Y(hov.count)} r="5" fill="#3b82f6" stroke="#0a0a0a" strokeWidth="2" />                    </>                  ) : null}                </svg>                {hov ? (                  <div                    className="absolute z-10 pointer-events-none rounded-lg border border-white/10 bg-[#141416] px-3 py-2 shadow-xl"                    style={{                      left: `min(${(X(hoverIdx!) / W) * 100}% + 14px, calc(100% - 130px))`,                      top: `max(${(Y(hov.count) / H) * 100}% - ${(70 / H) * 100}%, 0%)`,                    }}                  >                    <p className="text-xs font-semibold text-white whitespace-nowrap">{hov.full}</p>                    <p className="mt-1 flex items-center gap-1.5 text-xs text-white/60">                      <span className="h-2 w-2 rounded-full bg-blue-500" />{chartMetric}                      <span className="ml-2 font-bold text-white tabular-nums">{hov.count}</span>                    </p>                  </div>                ) : null}              </>            );          })()}        </div>      </div>      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3 mt-5">        <InsightPanel title="Countries" rows={countries} flag />        <InsightPanel title="Referrers" rows={referrers} />        <InsightPanel title="Devices" rows={devices} />        <InsightPanel title="Top links" rows={topLinks} />      </div>      <p className="text-[11px] font-semibold tracking-[0.08em] uppercase text-white/35 mb-3 mt-5">Your Likes</p>      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-3">        <div className="glass-card rounded-xl p-4">          <p className="text-[10px] font-semibold tracking-wider text-white/40 mb-1">total likes</p>          <p className="text-xl font-bold text-white tabular-nums">{likes.toLocaleString("en-US")}</p>        </div>        <div className="glass-card rounded-xl p-4">          <p className="text-[10px] font-semibold tracking-wider text-white/40 mb-1">dislikes</p>          <p className="text-xl font-bold text-white tabular-nums">{dislikes.toLocaleString("en-US")}</p>        </div>        <div className="glass-card rounded-xl p-4">          <p className="text-[10px] font-semibold tracking-wider text-white/40 mb-1">like rate</p>          <p className="text-xl font-bold text-white tabular-nums">{likeRate}%</p>        </div>      </div>      {ovMsg && (        <div className="fixed bottom-6 right-6 z-[100] bg-red-600/90 backdrop-blur-md text-white text-xs font-medium px-4 py-2.5 rounded-xl shadow-2xl border border-white/10 pointer-events-none">          {ovMsg}        </div>      )}    </div>  );}function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (u: User) => void }) {  const [displayName, setDisplayName] = useState(user?.display_name || "");  const [savingDisplayName, setSavingDisplayName] = useState(false);  const [desc, setDesc] = useState(user?.description || "");  const [savingDesc, setSavingDesc] = useState(false);  const [background, setBackground] = useState<string | null>(null);  const [profileAvatar, setProfileAvatar] = useState<string | null>(null);  const [customCursor, setCustomCursor] = useState<string | null>(null);  const [saving, setSaving] = useState<string | null>(null);  const [audio1, setAudio1] = useState<string | null>(null);  const [audio2, setAudio2] = useState<string | null>(null);  const [shuffleAudio, setShuffleAudio] = useState(user?.audio_shuffle || false);  const [audio1Duration, setAudio1Duration] = useState<string | null>(null);  const [audio2Duration, setAudio2Duration] = useState<string | null>(null);  const [videoBg, setVideoBg] = useState<string | null>(null);  const [videoAudio, setVideoAudio] = useState(user?.video_audio || false);  const [banner, setBanner] = useState<string | null>(null);  const [bannerEnabled, setBannerEnabled] = useState(user?.banner_enabled || false);  const [clickSound, setClickSound] = useState(user?.click_sound || "");  useEffect(() => {    if (!audio1) { setAudio1Duration(null); return; }    const a = new Audio(audio1);    a.onloadedmetadata = () => {      if (a.duration && !isNaN(a.duration)) {        const m = Math.floor(a.duration / 60); const s = Math.floor(a.duration % 60);        setAudio1Duration(`${m}:${s < 10 ? "0" : ""}${s}`);      }    };  }, [audio1]);  useEffect(() => {    if (!audio2) { setAudio2Duration(null); return; }    const a = new Audio(audio2);    a.onloadedmetadata = () => {      if (a.duration && !isNaN(a.duration)) {        const m = Math.floor(a.duration / 60); const s = Math.floor(a.duration % 60);        setAudio2Duration(`${m}:${s < 10 ? "0" : ""}${s}`);      }    };  }, [audio2]);  const [isAudioModalOpen, setIsAudioModalOpen] = useState(false);  const [isBgModalOpen, setIsBgModalOpen] = useState(false);  const [audioVolume, setAudioVolume] = useState(user?.audio_volume ?? 30);  const [audioAutoplay, setAudioAutoplay] = useState(user?.audio_autoplay ?? true);  const [audioLoop, setAudioLoop] = useState(user?.audio_loop ?? true);  const [accentColor, setAccentColor] = useState(user?.accent_color || "rgba(255, 255, 255, 0.05)");  const [textColor, setTextColor] = useState(user?.text_color || "#ffffff");  const [backgroundColor, setBackgroundColor] = useState(user?.background_color || "#080808");  const [iconColor, setIconColor] = useState(user?.icon_color || "#ffffff");  const [bgEffectColor, setBgEffectColor] = useState(user?.bg_effect_color || "rgba(255, 255, 255, 0.08)");  const [primaryColor, setPrimaryColor] = useState(user?.primary_color || "rgba(255, 255, 255, 0.1)");  const [secondaryColor, setSecondaryColor] = useState(user?.secondary_color || "rgba(255, 255, 255, 0.15)");  const [glowMode, setGlowMode] = useState(user?.panel_glow_mode || "none");  const [glowColor, setGlowColor] = useState(user?.panel_glow_color || "");  const [glowColor2, setGlowColor2] = useState(user?.panel_glow_color_2 || "");  const [glowSpread, setGlowSpread] = useState(user?.panel_glow_spread ?? 50);  const [pulseOn, setPulseOn] = useState(!!user?.panel_pulse_enabled);  const [pulseColor, setPulseColor] = useState(user?.panel_pulse_color || "#3b82f6");  const [pulseSpeed, setPulseSpeed] = useState(user?.panel_pulse_speed ?? 50);  const [pulseType, setPulseType] = useState<string>(user?.panel_pulse_type || "pulse");  const [savingColors, setSavingColors] = useState(false);  const [displayEffect, setDisplayEffect] = useState(user?.display_effect || "none");  const [sparkleIntensity, setSparkleIntensity] = useState(user?.sparkle_intensity ?? 14);  const [font, setFont] = useState(user?.font || "Inter");  const [fontScope, setFontScope] = useState("all");  const [customFontUrl, setCustomFontUrl] = useState("");  const [customFontName, setCustomFontName] = useState("");  const [bgEffect, setBgEffect] = useState(user?.bg_effect || "none");  const [entryText, setEntryText] = useState(user?.entry_text || "click anywhere to enter");  const [entryFont, setEntryFont] = useState(user?.entry_font || "Inter");  const [entryColor, setEntryColor] = useState(user?.entry_color || "rgba(255,255,255,0.5)");  const [entryEffect, setEntryEffect] = useState(user?.entry_effect || "none");  const [descEffect, setDescEffect] = useState(user?.desc_effect || "none");  const [descSpeed, setDescSpeed] = useState(user?.desc_effect_speed ?? 50);  const [descLines, setDescLines] = useState<string[]>(user?.desc_lines?.length ? user.desc_lines : (desc ? [desc] : []));  const [descPreview, setDescPreview] = useState(descLines[0] || "");  useEffect(() => {    if (descEffect === "typewriter" && descLines.length === 0 && desc.trim()) {      setDescLines([desc]);    }  }, [descEffect]);  const [savingEntry, setSavingEntry] = useState(false);  const [monochromeIcons, setMonochromeIcons] = useState(user?.monochrome_icons || false);  const [monochromeBadges, setMonochromeBadges] = useState(user?.monochrome_badges || false);  const [panelMouseFollow, setPanelMouseFollow] = useState(user?.panel_mouse_follow || false);  const [cursorEffect, setCursorEffect] = useState(user?.cursor_effect || "none");  const [avatarShape, setAvatarShape] = useState(user?.avatar_shape || "circle");  const [avatarSize, setAvatarSize] = useState(user?.avatar_size || 96);  const [avatarOffsetX, setAvatarOffsetX] = useState(user?.avatar_offset_x || 0);  const [avatarOffsetY, setAvatarOffsetY] = useState(user?.avatar_offset_y || 0);  const [nameOffsetX, setNameOffsetX] = useState(user?.name_offset_x || 0);  const [nameOffsetY, setNameOffsetY] = useState(user?.name_offset_y || 0);  const [badgeOffsetX, setBadgeOffsetX] = useState(user?.badge_offset_x || 0);  const [badgeOffsetY, setBadgeOffsetY] = useState(user?.badge_offset_y || 0);  const [descOffsetX, setDescOffsetX] = useState(user?.desc_offset_x || 0);  const [descOffsetY, setDescOffsetY] = useState(user?.desc_offset_y || 0);  const [songOffsetX, setSongOffsetX] = useState(user?.song_offset_x || 0);  const [songOffsetY, setSongOffsetY] = useState(user?.song_offset_y || 0);  const [rpcOffsetX, setRpcOffsetX] = useState(user?.discord_rpc_offset_x || 0);  const [rpcOffsetY, setRpcOffsetY] = useState(user?.discord_rpc_offset_y || 0);  const [panelOpacity, setPanelOpacity] = useState(user?.panel_opacity ?? 100);  const [panelHidden, setPanelHidden] = useState(user?.panel_hidden || false);  const [savingAvatar, setSavingAvatar] = useState(false);  const [myBadges, setMyBadges] = useState<string[]>([]);  const [entryPreview, setEntryPreview] = useState(entryText);  const [songPlatform, setSongPlatform] = useState(user?.song_platform || "");  const [songId, setSongId] = useState(user?.song_id || "");  const [songLink, setSongLink] = useState("");  const [songError, setSongError] = useState("");  const songTouched = useRef(false);  const [discordRpcEnabled, setDiscordRpcEnabled] = useState(user?.discord_rpc_enabled || false);  const [showUsername, setShowUsername] = useState(user?.show_username !== false);  const [showJoindate, setShowJoindate] = useState(user?.show_joindate !== false);  const [country, setCountry] = useState(user?.country || "");  const [showViews, setShowViews] = useState(user?.show_views !== false);  const [showVotes, setShowVotes] = useState(user?.show_votes !== false);  const linkedDiscordId = user?.discord_id || (user?.provider === "discord" ? user?.provider_id : null) || null;  const [savedMsg, setSavedMsg] = useState<string | null>(null);  const showSaved = (msg: string, delayNote = true) => {    setSavedMsg(delayNote ? `${msg} — can take a few seconds for changes to take place` : msg);    setTimeout(() => setSavedMsg(null), 3500);  };  useEffect(() => {    if (entryEffect !== "typewriter") { setEntryPreview(entryText); return; }    let i = 0;    setEntryPreview("");    const timer = setInterval(() => {      i++;      setEntryPreview(entryText.slice(0, i));      if (i >= entryText.length) clearInterval(timer);    }, 50);    return () => clearInterval(timer);  }, [entryText, entryEffect]);  useEffect(() => {    const lines = descLines.length > 0 ? descLines : (desc ? [desc] : []);    if (descEffect !== "typewriter" || lines.length === 0) { setDescPreview(lines[0] || ""); return; }    let lineIdx = 0, charIdx = 0, dir = 1, pause = 0;    setDescPreview("");    const timer = setInterval(() => {      if (pause > 0) { pause--; return; }      charIdx += dir;      const line = lines[lineIdx] || "";      if (dir === 1) {        setDescPreview(line.slice(0, charIdx));        if (charIdx >= line.length) { pause = 4; dir = -1; }      } else {        setDescPreview(line.slice(0, charIdx));        if (charIdx <= 0) { pause = 2; lineIdx = (lineIdx + 1) % lines.length; dir = 1; }      }    }, descSpeed);    return () => clearInterval(timer);  }, [desc, descEffect, descSpeed, descLines]);  const bgRef = useRef<HTMLInputElement>(null);  const audio1Ref = useRef<HTMLInputElement>(null);  const audio2Ref = useRef<HTMLInputElement>(null);  const paRef = useRef<HTMLInputElement>(null);  const cursorRef = useRef<HTMLInputElement>(null);  const videoBgRef = useRef<HTMLInputElement>(null);  const bannerRef = useRef<HTMLInputElement>(null);  const clickSoundRef = useRef<HTMLInputElement>(null);  const hydrated = useRef(false);  useEffect(() => {    if (!user || hydrated.current) return;    hydrated.current = true;    setDisplayName(user.display_name || "");    setDesc(user.description || "");    setShuffleAudio(!!user.audio_shuffle);    setVideoAudio(!!user.video_audio);    setBannerEnabled(!!user.banner_enabled);    setClickSound(user.click_sound || "");    setAudioVolume(user.audio_volume ?? 30);    setAudioAutoplay(user.audio_autoplay ?? true);    setAudioLoop(user.audio_loop ?? true);    setAccentColor(user.accent_color || "rgba(255, 255, 255, 0.05)");    setTextColor(user.text_color || "#ffffff");    setBackgroundColor(user.background_color || "#080808");    setIconColor(user.icon_color || "#ffffff");    setBgEffectColor(user.bg_effect_color || "rgba(255, 255, 255, 0.08)");    setPrimaryColor(user.primary_color || "rgba(255, 255, 255, 0.1)");    setSecondaryColor(user.secondary_color || "rgba(255, 255, 255, 0.15)");    setGlowMode(user.panel_glow_mode || "none");    setGlowColor(user.panel_glow_color || "");    setGlowColor2(user.panel_glow_color_2 || "");    setGlowSpread(user.panel_glow_spread ?? 50);  setPulseOn(!!user.panel_pulse_enabled);  setPulseColor(user.panel_pulse_color || "#3b82f6");  setPulseSpeed(user.panel_pulse_speed ?? 50);  setPulseType(user.panel_pulse_type || "pulse");    setDisplayEffect(user.display_effect || "none");    setSparkleIntensity(user.sparkle_intensity ?? 14);    setFont(user.font || "Inter");    setFontScope(user.custom_font_scope === "name" ? "name" : "all");    setBgEffect(user.bg_effect || "none");    setEntryText(user.entry_text || "click anywhere to enter");    setEntryFont(user.entry_font || "Inter");    setEntryColor(user.entry_color || "rgba(255,255,255,0.5)");    setEntryEffect(user.entry_effect || "none");    setDescEffect(user.desc_effect || "none");    setDescSpeed(user.desc_effect_speed ?? 50);    setDescLines(user.desc_lines?.length ? user.desc_lines : (user.description ? [user.description] : []));    setMonochromeIcons(!!user.monochrome_icons);    setMonochromeBadges(!!user.monochrome_badges);    setPanelMouseFollow(!!user.panel_mouse_follow);    setCursorEffect(user.cursor_effect || "none");    setAvatarShape(user.avatar_shape || "circle");    setAvatarSize(user.avatar_size || 96);    setAvatarOffsetX(user.avatar_offset_x || 0);    setAvatarOffsetY(user.avatar_offset_y || 0);    setNameOffsetX(user.name_offset_x || 0);    setNameOffsetY(user.name_offset_y || 0);    setBadgeOffsetX(user.badge_offset_x || 0);    setBadgeOffsetY(user.badge_offset_y || 0);    setDescOffsetX(user.desc_offset_x || 0);    setDescOffsetY(user.desc_offset_y || 0);    setSongOffsetX(user.song_offset_x || 0);    setSongOffsetY(user.song_offset_y || 0);    setRpcOffsetX(user.discord_rpc_offset_x || 0);    setRpcOffsetY(user.discord_rpc_offset_y || 0);    setPanelOpacity(user.panel_opacity ?? 100);    setPanelHidden(!!user.panel_hidden);    setShowUsername(user.show_username !== false);    setShowJoindate(user.show_joindate !== false);    setCountry(user.country || "");    setShowViews(user.show_views !== false);    setShowVotes(user.show_votes !== false);    setDiscordRpcEnabled(!!user.discord_rpc_enabled);    if (user.song_platform) setSongPlatform(user.song_platform);    if (user.song_id) setSongId(user.song_id);  }, [user]);  useEffect(() => {    const t = setTimeout(() => {      if (!songLink.trim()) {        if (songTouched.current) { setSongPlatform(""); setSongId(""); setSongError(""); }        return;      }      const info = parseSongUrl(songLink);      if (info) { setSongPlatform(info.platform); setSongId(info.id); setSongError(""); }      else setSongError("Invalid YouTube or Spotify link");    }, 400);    return () => clearTimeout(t);  }, [songLink]);  useEffect(() => {    if (!user) return;    FetchProfile(user.username).then((J) => {      if (!J) return;      for (const a of J.assets || []) {        if (a.type === "background") setBackground(a.url);        if (a.type === "audio" || a.type === "audio_1") setAudio1(a.url);        if (a.type === "audio_2") setAudio2(a.url);        if (a.type === "profile_avatar") setProfileAvatar(a.url);        if (a.type === "custom_cursor") setCustomCursor(a.url);        if (a.type === "video_background") setVideoBg(a.url);        if (a.type === "banner") setBanner(a.url);        if (a.type === "custom_font") { setCustomFontUrl(String(a.url || "")); if ((a as any).filename) setCustomFontName(String((a as any).filename)); }      }      if (Array.isArray(J.badges)) setMyBadges(J.badges);    }).catch(() => {});  }, [user]);  const saveDesc = async () => {    if (!user) return;    setSavingDesc(true);    const { error } = await apiCall("update", { data: { description: descEffect === "typewriter" ? null : desc, desc_effect: descEffect, desc_effect_speed: descSpeed, desc_lines: descEffect === "typewriter" ? descLines.filter(l => l.trim()) : null } });    if (error) console.error("saveDesc error:", error);    setSavingDesc(false);  };  const saveDisplayName = async () => {    if (!user) return;    setSavingDisplayName(true);    const target = displayName.trim() || null;    const { error } = await apiCall("update", { data: { display_name: target } });    if (error) console.error("saveDisplayName error:", error);    setSavingDisplayName(false);    if (onUpdateUser) onUpdateUser({ ...user, display_name: target });  };  const saveColors = async () => {    if (!user) return;    setSavingColors(true);    const { error } = await apiCall("update", {      data: {        accent_color: accentColor,        text_color: textColor,        background_color: backgroundColor,        icon_color: iconColor,        bg_effect_color: bgEffectColor,        primary_color: primaryColor,        secondary_color: secondaryColor,        panel_glow_mode: glowMode,        panel_glow_color: glowColor,        panel_glow_color_2: glowColor2,        panel_glow_spread: glowSpread,  panel_pulse_enabled: pulseOn,  panel_pulse_color: pulseColor,  panel_pulse_speed: pulseSpeed,      },    });    if (error) console.error("saveColors error:", error);    else showSaved("colors saved!");    setSavingColors(false);  };  const resetToGlassy = async () => {    setAccentColor("rgba(255, 255, 255, 0.05)");    setTextColor("#ffffff");    setBackgroundColor("#080808");    setIconColor("#ffffff");    setBgEffectColor("rgba(255, 255, 255, 0.08)");    setPrimaryColor("rgba(255, 255, 255, 0.1)");    setSecondaryColor("rgba(255, 255, 255, 0.15)");    setGlowMode("none");    setGlowColor("");    setGlowColor2("");    setGlowSpread(50);  setPulseOn(false);  setPulseColor("");  setPulseSpeed(50);    if (!user) return;    setSavingColors(true);    const { error } = await apiCall("update", {      data: {        accent_color: "rgba(255, 255, 255, 0.05)",        text_color: "#ffffff",        background_color: "#080808",        icon_color: "#ffffff",        bg_effect_color: "rgba(255, 255, 255, 0.08)",        primary_color: "rgba(255, 255, 255, 0.1)",        secondary_color: "rgba(255, 255, 255, 0.15)",        panel_glow_mode: "none",        panel_glow_color: "",        panel_glow_color_2: "",        panel_glow_spread: 50,  panel_pulse_enabled: false,  panel_pulse_color: "",  panel_pulse_speed: 50,      },    });    if (error) console.error("reset error:", error);    setSavingColors(false);  };  const uploadAsset = async (type: string, file: File) => {    if (!user) return;    const premium = myBadges.includes("premium");    const capMb = type === "click_sound" ? 5 : (type === "video_background" || type.startsWith("audio")) ? (premium ? 10 : 5) : 10;    if (file.size > capMb * 1024 * 1024) {      alert(type === "click_sound"        ? `Click sound too large (max ${capMb}MB). Please use a shorter clip and try again.`        : type === "video_background"          ? `Video too large (max ${capMb}MB). Please compress your video to reduce the file size and try again.`        : type.startsWith("audio")          ? `Audio too large (max ${capMb}MB). Please compress your music file to reduce the file size and try again.`          : `File too large (max ${capMb}MB). Please compress your file to reduce the file size and try again.`);      setSaving(null);      return;    }    setSaving(type);    const token = getSessionToken();    const contentBase64 = await FileToBase64(file).catch(() => null);    if (!contentBase64) { setSaving(null); return; }    const CHUNK = 2000000;    let hd: { url: string; error?: string } | null = null;    if (contentBase64.length > CHUNK) {      const uploadId = (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `u${Date.now()}-${Math.random().toString(36).slice(2)}`);      const total = Math.ceil(contentBase64.length / CHUNK);      let failed: string | null = null;      for (let i = 0; i < total; i++) {        const cr = await fetch(`/api/me?action=assetChunk`, {          method: "POST",          headers: { "Content-Type": "application/json" },          body: JSON.stringify({ sessionToken: token, uploadId, index: i, total, assetType: type, chunk: contentBase64.slice(i * CHUNK, (i + 1) * CHUNK) }),        });        const cd = await cr.json().catch(() => null);        if (!cr.ok || !cd || cd.error) { failed = cd?.error || "upload failed"; break; }      }      if (!failed) {        const hr = await fetch(`/api/me?action=assetUpload`, {          method: "POST",          headers: { "Content-Type": "application/json" },          body: JSON.stringify({ sessionToken: token, uploadId, filename: file.name, contentType: file.type || null, assetType: type }),        });        hd = await hr.json().catch(() => null);        if (!hr.ok || !hd || (hd as { error?: string }).error || !(hd as { url?: string }).url) failed = (hd as { error?: string } | null)?.error || "upload failed";        else hd = hd as { url: string };      }      if (failed) { setSaving(null); alert(failed); return; }    } else {      const hr = await fetch(`/api/me?action=assetUpload`, {        method: "POST",        headers: { "Content-Type": "application/json" },        body: JSON.stringify({ sessionToken: token, filename: file.name, contentBase64, contentType: file.type || null, assetType: type }),      });      hd = await hr.json().catch(() => null);      if (!hr.ok || !hd || (hd as { error?: string }).error || !(hd as { url?: string }).url) { setSaving(null); alert((hd as { error?: string } | null)?.error || "upload failed"); return; }    }    const busted = `${hd.url}?t=${Date.now()}`;    if (type === "click_sound") {      setClickSound(busted);      const { error: soundError } = await apiCall("update", { data: { click_sound: busted } });      if (soundError) console.error("click sound save error:", soundError);      else showSaved("custom click sound saved!");      setSaving(null);      return;    }    const { error: upsertError } = await apiCall("asset_upsert", { type, url: busted });    if (upsertError) console.error("upsert error:", upsertError);    if (type === "background") setBackground(busted);    if (type === "audio" || type === "audio_1") setAudio1(busted);    if (type === "audio_2") setAudio2(busted);    if (type === "profile_avatar") setProfileAvatar(busted);    if (type === "custom_cursor") setCustomCursor(busted);    if (type === "video_background") setVideoBg(busted);    if (type === "banner") setBanner(busted);    if (type === "custom_font") {      setCustomFontUrl(busted); setCustomFontName(file.name); setFont("Custom");      await apiCall("update", { data: { font: "Custom", custom_font_scope: fontScope } });      showSaved("custom font uploaded and equipped!");    }    setSaving(null);  };  const handleAsset = (name: string) => {    const ref = assetRef(name);    const file = ref.current?.files?.[0];    if (file) uploadAsset(assetType(name), file);  };  const assetType = (name: string) => {    if (name === "Background") return "background";    if (name === "Video Background") return "video_background";    if (name === "Audio") return "audio";    if (name === "Profile Avatar") return "profile_avatar";    if (name === "Banner") return "banner";    return "custom_cursor";  };  const assetRef = (name: string) => {    if (name === "Background") return bgRef;    if (name === "Video Background") return videoBgRef;    if (name === "Audio") return audio1Ref;    if (name === "Profile Avatar") return paRef;    if (name === "Banner") return bannerRef;    return cursorRef;  };  const assetState = (name: string) => {    if (name === "Background") return background;    if (name === "Video Background") return videoBg;    if (name === "Audio") return audio1;    if (name === "Profile Avatar") return profileAvatar;    if (name === "Banner") return banner;    return customCursor;  };  const removeAsset = async (name: string) => {    if (!user) return;    const type = assetType(name);    await apiCall("asset_delete", { type });    if (name === "Background") setBackground(null);    else if (name === "Video Background") setVideoBg(null);    else if (name === "Audio") setAudio1(null);    else if (name === "Profile Avatar") setProfileAvatar(null);    else if (name === "Banner") setBanner(null);    else setCustomCursor(null);    showSaved(`${name} removed`);  };  const isSaving = (name: string) => saving === assetType(name);  return (    <div className="flex flex-col lg:flex-row lg:gap-8 min-h-[calc(100vh-100px)]">      <div className="lg:w-1/2 flex-1">        <h1 className="text-lg font-semibold text-white/40 mb-8 lowercase">customize</h1>        <div className="relative rounded-2xl p-6 bg-gradient-to-r from-blue-500/40 via-blue-600/50 to-blue-500/40 border border-blue-500/60 backdrop-blur-xl overflow-hidden shine-effect mb-8">          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shine" />          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shine2" />          <div className="relative flex items-center gap-4">            <div>              <h3 className="text-lg font-bold text-white">Let's customize</h3>              <p className="text-sm text-blue-100 mt-1">Use the below features to customize your bio link</p>            </div>          </div>        </div>        <div className="vfx-frame rounded-2xl mb-8 vfx-shake">          <div className="relative rounded-xl bg-black/90 backdrop-blur-xl px-6 py-5 overflow-hidden flex items-center gap-4">            <div className="vfx-beam" />            <div className="vfx-scan absolute inset-0 pointer-events-none" />            <svg className="shrink-0 relative vfx-flicker" xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>            <div className="relative vfx-flicker">              <h3 className="text-lg font-bold text-white">Heads up!</h3>              <p className="text-sm text-white/75 mt-1">saving can take a few seconds — wait a moment after clicking save before checking your page</p>            </div>          </div>        </div>        <div className="glass-card rounded-2xl p-8 bg-blue-500/[0.04] border-blue-500/10 space-y-8">          <div>          <p className="text-sm font-semibold text-white/80 mb-4">Assets Uploader</p>          <div className="rounded-2xl bg-white/[0.02] border border-white/[0.06] p-5 space-y-4">            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">              <div className="space-y-2">                <p className="text-sm text-white/70">Background</p>                <button onClick={() => setIsBgModalOpen(true)} className="relative w-full h-28 rounded-xl border border-white/[0.08] bg-white/[0.02] hover:border-blue-500/40 hover:bg-blue-600/5 transition-all flex flex-col items-center justify-center gap-2 text-white/45 hover:text-blue-300 overflow-hidden group cursor-pointer">                  {background || videoBg ? <img src={background || videoBg} className="absolute inset-0 h-full w-full object-cover opacity-20" /> : null}                  <span className="relative flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 group-hover:bg-blue-600/20 transition-colors"><Image size={18} className="text-white/70 group-hover:text-blue-300" /></span>                  <span className="relative text-xs">{background || videoBg ? "Click to change file" : "Click to upload a file"}</span>                </button>              </div>              <div className="space-y-2">                <p className="text-sm text-white/70">Video Background</p>                <button onClick={() => assetRef("Video Background").current?.click()} disabled={isSaving("Video Background")} className="relative w-full h-28 rounded-xl border border-white/[0.08] bg-white/[0.02] hover:border-blue-500/40 hover:bg-blue-600/5 transition-all flex flex-col items-center justify-center gap-2 text-white/45 hover:text-blue-300 overflow-hidden group cursor-pointer disabled:opacity-50">                  {videoBg ? <img src={videoBg} className="absolute inset-0 h-full w-full object-cover opacity-25" /> : null}                  <span className="relative flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 group-hover:bg-blue-600/20 transition-colors"><Image size={18} className="text-white/70 group-hover:text-blue-300" /></span>                  <span className="relative text-xs">{isSaving("Video Background") ? "saving..." : videoBg ? "Click to change file" : "Click to upload a file"}</span>                </button>                <input ref={assetRef("Video Background")} type="file" accept="video/*" className="hidden" onChange={() => handleAsset("Video Background")} />                {videoBg && <button onClick={() => removeAsset("Video Background")} className="text-[11px] text-red-400/70 hover:text-red-300 transition-colors cursor-pointer self-start">remove</button>}              </div>              <div className="space-y-2">                <p className="text-sm text-white/70">Audio</p>                <button onClick={() => setIsAudioModalOpen(true)} className="relative w-full h-28 rounded-xl border border-white/[0.08] bg-white/[0.02] hover:border-blue-500/40 hover:bg-blue-600/5 transition-all flex flex-col items-center justify-center gap-2 text-white/45 hover:text-blue-300 overflow-hidden group cursor-pointer">                  <span className="relative flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 group-hover:bg-blue-600/20 transition-colors"><Music size={18} className="text-white/70 group-hover:text-blue-300" /></span>                  <span className="relative text-xs">Click to open audio manager</span>                </button>              </div>              <div className="space-y-2">                <p className="text-sm text-white/70">Profile Avatar</p>                <button onClick={() => paRef.current?.click()} disabled={isSaving("Profile Avatar")} className="relative w-full h-28 rounded-xl border border-white/[0.08] bg-white/[0.02] hover:border-blue-500/40 hover:bg-blue-600/5 transition-all flex flex-col items-center justify-center gap-2 text-white/45 hover:text-blue-300 overflow-hidden group cursor-pointer disabled:opacity-50">                  {assetState("Profile Avatar") ? <img src={assetState("Profile Avatar")!} className="absolute inset-0 h-full w-full object-cover opacity-25" /> : null}                  <span className="relative flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 group-hover:bg-blue-600/20 transition-colors"><Image size={18} className="text-white/70 group-hover:text-blue-300" /></span>                  <span className="relative text-xs">{isSaving("Profile Avatar") ? "saving..." : profileAvatar ? "Click to change file" : "Click to upload a file"}</span>                </button>                <input ref={paRef} type="file" accept="image/*" className="hidden" onChange={() => handleAsset("Profile Avatar")} />                {profileAvatar && <button onClick={() => removeAsset("Profile Avatar")} className="text-[11px] text-red-400/70 hover:text-red-300 transition-colors cursor-pointer self-start">remove</button>}              </div>              <div className="space-y-2">                <p className="text-sm text-white/70">Banner</p>                <button onClick={() => bannerRef.current?.click()} disabled={isSaving("Banner")} className="relative w-full h-28 rounded-xl border border-white/[0.08] bg-white/[0.02] hover:border-blue-500/40 hover:bg-blue-600/5 transition-all flex flex-col items-center justify-center gap-2 text-white/45 hover:text-blue-300 overflow-hidden group cursor-pointer disabled:opacity-50">                  {assetState("Banner") ? <img src={assetState("Banner")!} className="absolute inset-0 h-full w-full object-cover opacity-25" /> : null}                  <span className="relative flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 group-hover:bg-blue-600/20 transition-colors"><Image size={18} className="text-white/70 group-hover:text-blue-300" /></span>                  <span className="relative text-xs">{isSaving("Banner") ? "saving..." : banner ? "Click to change file" : "Click to upload a file"}</span>                </button>                <div className="flex items-center justify-between">                  <span className="text-[11px] text-white/40">Banner enabled</span>                  <Toggle                    checked={bannerEnabled}                    onChange={async (v) => {                      if (!user) return;                      setBannerEnabled(v);                      await apiCall("update", { data: { banner_enabled: v } });                      showSaved(v ? "banner on" : "banner off");                    }}                  />                </div>                <input ref={bannerRef} type="file" accept="image/*" className="hidden" onChange={() => handleAsset("Banner")} />                {banner && <button onClick={() => removeAsset("Banner")} className="text-[11px] text-red-400/70 hover:text-red-300 transition-colors cursor-pointer self-start">remove</button>}              </div>              <div className="space-y-2">                <p className="text-sm text-white/70">Custom Cursor</p>                <button onClick={() => cursorRef.current?.click()} disabled={isSaving("Custom Cursor")} className="relative w-full h-28 rounded-xl border border-white/[0.08] bg-white/[0.02] hover:border-blue-500/40 hover:bg-blue-600/5 transition-all flex flex-col items-center justify-center gap-2 text-white/45 hover:text-blue-300 overflow-hidden group cursor-pointer disabled:opacity-50">                  {assetState("Custom Cursor") ? <img src={assetState("Custom Cursor")!} className="absolute inset-0 h-full w-full object-cover opacity-25" /> : null}                  <span className="relative flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 group-hover:bg-blue-600/20 transition-colors"><Image size={18} className="text-white/70 group-hover:text-blue-300" /></span>                  <span className="relative text-xs">{isSaving("Custom Cursor") ? "saving..." : customCursor ? "Click to change file" : "Click to upload a file"}</span>                </button>                <input ref={cursorRef} type="file" accept="image/*" className="hidden" onChange={() => handleAsset("Custom Cursor")} />                {customCursor && <button onClick={() => removeAsset("Custom Cursor")} className="text-[11px] text-red-400/70 hover:text-red-300 transition-colors cursor-pointer self-start">remove</button>}              </div>            </div>          </div>          </div>          <div>          <p className="text-sm font-semibold text-white/80 mb-4">Display Name</p>          <input            value={displayName}            onChange={(e) => setDisplayName(e.target.value)}            placeholder={user?.username || "Your name"}            maxLength={40}            className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl px-4 py-3 text-sm text-white outline-none placeholder:text-white/10 focus:border-blue-500/30 transition-colors"          />          <div className="flex justify-between items-center mt-3">            <p className="text-xs text-white/20">shown as the name on your biolink — leave empty to use your username</p>            <button onClick={saveDisplayName} disabled={savingDisplayName} className="text-xs bg-blue-600 hover:bg-blue-500 disabled:opacity-40 px-3 py-1 rounded-lg text-white transition-colors">              {savingDisplayName ? "saving..." : "save"}            </button>          </div>          <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/[0.04]">            <div>              <p className="text-xs text-white/50 font-semibold uppercase tracking-wider">Show @username</p>              <p className="text-[10px] text-white/30">Hide the @user handle under your display name</p>            </div>            <Toggle              checked={showUsername}              onChange={async (v) => {                setShowUsername(v);                const { error } = await apiCall("update", { data: { show_username: v } });                if (error) console.error("saveShowUsername error:", error);                else showSaved(v ? "showing @username!" : "@username hidden!");              }}            />          </div>          <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/[0.04]">            <div className="pr-4">              <p className="text-xs text-white/50 font-semibold uppercase tracking-wider">Country</p>              <p className="text-[10px] text-white/30">Shows your country with a pin under your username</p>            </div>            <select              value={country}              onChange={async (e) => {                const Val = e.target.value;                setCountry(Val);                const { error } = await apiCall("update", { data: { country: Val } });                if (error) console.error("saveCountry error:", error);                else showSaved(Val ? `${Val} set!` : "country removed!");              }}              className="bg-[#0b0b10] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-white/80 outline-none focus:border-blue-500/40 max-w-[150px] cursor-pointer"            >              <option value="">none</option>              {Countries.map((C) => <option key={C} value={C}>{C}</option>)}            </select>          </div>          <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/[0.04]">            <div>              <p className="text-xs text-white/50 font-semibold uppercase tracking-wider">Show join date</p>              <p className="text-[10px] text-white/30">Hide the join date next to your profile views</p>            </div>            <Toggle              checked={showJoindate}              onChange={async (v) => {                setShowJoindate(v);                const { error } = await apiCall("update", { data: { show_joindate: v } });                if (error) console.error("saveShowJoindate error:", error);                else showSaved(v ? "showing join date!" : "join date hidden!");              }}            />          </div>          <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/[0.04]">            <div>              <p className="text-xs text-white/50 font-semibold uppercase tracking-wider">Show views</p>              <p className="text-[10px] text-white/30">Hide the views counter on your profile</p>            </div>            <Toggle              checked={showViews}              onChange={async (v) => {                setShowViews(v);                const { error } = await apiCall("update", { data: { show_views: v } });                if (error) console.error("saveShowViews error:", error);                else showSaved(v ? "showing views!" : "views hidden!");              }}            />          </div>          <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/[0.04]">            <div>              <p className="text-xs text-white/50 font-semibold uppercase tracking-wider">Show likes / dislikes</p>              <p className="text-[10px] text-white/30">Hide the like / dislike buttons on your profile</p>            </div>            <Toggle              checked={showVotes}              onChange={async (v) => {                setShowVotes(v);                const { error } = await apiCall("update", { data: { show_votes: v } });                if (error) console.error("saveShowVotes error:", error);                else showSaved(v ? "showing likes / dislikes!" : "likes / dislikes hidden!");              }}            />          </div>          </div>          <div>          <p className="text-sm font-semibold text-white/80 mb-4">Description</p>          <div className="flex flex-wrap gap-2 mb-3">            {["none", "typewriter"].map((e) => (              <button                key={e}                onClick={() => setDescEffect(e)}                className={`text-xs px-3 py-1.5 rounded-lg border transition-colors cursor-pointer ${                  descEffect === e                    ? "bg-blue-600/20 border-blue-500/40 text-blue-300"                    : "bg-white/[0.03] border-white/10 text-white/40 hover:text-white/60"                }`}              >                {e === "none" ? "None" : "Typewriter (loop)"}              </button>            ))}          </div>          {descEffect !== "typewriter" ? (            <textarea              value={desc}              onChange={(e) => setDesc(e.target.value)}              placeholder="Write something about yourself..."              rows={3}              className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl px-4 py-3 text-sm text-white outline-none placeholder:text-white/10 focus:border-blue-500/30 transition-colors resize-none"            />          ) : (            <div className="space-y-2 mb-3">              {descLines.map((line, idx) => (                <div key={idx} className="flex gap-2">                  <input                    value={line}                    onChange={(e) => {                      const next = [...descLines];                      next[idx] = e.target.value;                      setDescLines(next);                    }}                    placeholder={`Line ${idx + 1}`}                    className="flex-1 bg-white/[0.03] border border-white/[0.06] rounded-xl px-4 py-2 text-sm text-white outline-none placeholder:text-white/10 focus:border-blue-500/30 transition-colors"                  />                  <button                    onClick={() => setDescLines(descLines.filter((_, i) => i !== idx))}                    className="text-xs text-red-400 hover:text-red-300 px-2"                  >                    ✕                  </button>                </div>              ))}              <button                onClick={() => setDescLines([...descLines, ""])}                className="text-xs text-blue-400 hover:text-blue-300 transition-colors"              >                + add line              </button>            </div>          )}          {descEffect === "typewriter" && descLines.length > 0 && (            <div className="mb-3 p-4 rounded-xl bg-black/40 border border-white/10 flex items-center justify-center min-h-[48px]">              <p className="text-sm text-white/80">                {descPreview || ""}<span className="animate-pulse">|</span>              </p>            </div>          )}          {descEffect === "typewriter" && (            <div className="flex items-center gap-3 mb-3">              <span className="text-xs text-white/60">Speed</span>              <input                type="range"                min="10"                max="200"                value={descSpeed}                onChange={(e) => setDescSpeed(Number(e.target.value))}                className="flex-1 h-1 accent-blue-500 cursor-pointer"              />              <span className="text-xs text-white/40 w-8 text-right">{descSpeed}ms</span>            </div>          )}          <div className="flex justify-between items-center mt-2">            <p className="text-xs text-white/20">displayed on your profile</p>            <button onClick={saveDesc} disabled={savingDesc} className="text-xs bg-blue-600 hover:bg-blue-500 disabled:opacity-40 px-3 py-1 rounded-lg text-white transition-colors">              {savingDesc ? "saving..." : "save"}            </button>          </div>        </div>        <div className="glass-card rounded-2xl p-6">          <h3 className="text-sm font-semibold text-white/80 mb-4">Audio</h3>          <p className="text-[11px] text-white/40 mb-3">Paste a YouTube or Spotify link to add a song to your biolink.</p>          <input            value={songLink}            onChange={(e) => { setSongLink(e.target.value); if (e.target.value.trim()) songTouched.current = true; setSongError(""); }}            placeholder="https://youtu.be/... or https://open.spotify.com/track/..."            className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white/80 outline-none focus:border-blue-500/40 transition-colors placeholder:text-white/20 mb-3"          />          {songError && <p className="text-[11px] text-red-400 mb-2">{songError}</p>}          {songPlatform && songId && (            <div className="mb-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">              <p className="text-[10px] text-white/40 uppercase tracking-wider mb-2">Preview</p>              {songPlatform === "spotify" ? (                <iframe                  src={`https://open.spotify.com/embed/track/${songId}`}                  className="w-full h-[80px] rounded-lg"                  allow="autoplay; encrypted-media"                />              ) : (                <iframe                  src={`https://www.youtube.com/embed/${songId}?controls=1`}                  className="w-full aspect-video rounded-lg"                  allow="autoplay; encrypted-media"                />              )}            </div>          )}          <div className="flex justify-end gap-2">            {songPlatform && songId && (              <button                onClick={async () => {                  if (!user) return;                  await apiCall("update", { data: { song_platform: null, song_id: null } });                  setSongLink("");                  setSongPlatform("");                  setSongId("");                  setSongError("");                  songTouched.current = false;                  showSaved("song removed");                }}                className="text-xs bg-white/5 hover:bg-red-500/20 border border-white/10 hover:border-red-500/40 text-white/60 hover:text-red-300 px-4 py-2 rounded-lg font-semibold transition-all cursor-pointer"              >                remove song              </button>            )}            <button              onClick={async () => {                if (!user) return;                if (!songPlatform || !songId) { setSongError("No song set"); return; }                await apiCall("update", { data: { song_platform: songPlatform, song_id: songId } });                showSaved("song saved!");              }}              className="text-xs bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-white font-semibold transition-all cursor-pointer"            >              save song            </button>          </div>        </div>        <div className="glass-card rounded-2xl p-6">          <div className="flex items-center justify-between mb-1">            <h3 className="text-sm font-semibold text-white/80">Click Sound</h3>            {clickSound && (              <button                onClick={async () => {                  setClickSound("");                  await apiCall("update", { data: { click_sound: "" } });                  showSaved("click sound off");                }}                className="text-[11px] text-white/30 hover:text-red-300 transition-colors cursor-pointer"              >                turn off              </button>            )}          </div>          <p className="text-[11px] text-white/40 mb-4">plays on every click a visitor makes on your page.</p>          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-4">            {CLICK_SOUNDS.map((S) => {              const on = clickSound === S.id;              return (                <button                  key={S.id}                  onClick={async () => {                    PlayClickSound(S.id);                    setClickSound(S.id);                    await apiCall("update", { data: { click_sound: S.id } });                    showSaved(`${S.label} selected`);                  }}                  className={`flex items-center justify-center gap-1.5 px-2 py-2.5 rounded-lg border text-[11px] capitalize transition-all cursor-pointer ${                    on ? "bg-blue-600/20 border-blue-500/40 text-blue-300" : "bg-white/[0.02] border-white/[0.06] text-white/40 hover:text-white/70 hover:border-white/15"                  }`}                >                  <Volume2 size={12} />                  {S.label}                </button>              );            })}          </div>          <div className="pt-3 border-t border-white/[0.04]">            <p className="text-[11px] text-white/40 mb-2">or upload your own (max 5MB)</p>            <div className="flex items-center gap-3 flex-wrap">              <input                ref={clickSoundRef}                type="file"                accept="audio/*"                className="hidden"                onChange={(e) => {                  const F = e.target.files?.[0];                  if (F) uploadAsset("click_sound", F);                  e.target.value = "";                }}              />              <button                onClick={() => clickSoundRef.current?.click()}                disabled={saving === "click_sound"}                className="text-xs bg-white/5 hover:bg-white/10 border border-white/10 px-3 py-1.5 rounded-lg text-white/60 hover:text-white transition-colors cursor-pointer disabled:opacity-40"              >                {saving === "click_sound" ? "uploading..." : "upload audio"}              </button>              {clickSound.startsWith("http") && (                <>                  <span className="text-[11px] text-white/30">custom sound active</span>                  <button onClick={() => PlayClickSound(clickSound)} className="text-[11px] text-blue-400 hover:text-blue-300 cursor-pointer">preview</button>                </>              )}            </div>          </div>        </div>        <div>          <p className="text-sm font-semibold text-white/80 mb-4">Discord</p>          <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.02] border border-white/[0.06]">            <div className="flex items-center gap-3">              <svg className="w-5 h-5 text-[#5865F2]" viewBox="0 0 127.14 96.36" fill="currentColor">                <path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z"/>              </svg>              <span className="text-sm text-white/70">Discord</span>            </div>            {user?.provider === "discord" || !!user?.discord_id ? (              <span className="flex items-center gap-1.5 text-xs text-green-400">linked</span>            ) : (              <a href="/api/auth/discord" className="text-xs text-blue-400 hover:text-blue-300 transition-colors">link account</a>            )}          </div>          {(user?.provider === "discord" || !!user?.discord_id) && (            <button              onClick={async () => {                if (!user || !window.confirm("Unlink your Discord account? Your Discord status will stop showing on your page.")) return;                const { error } = await apiCall("discord_unlink", {});                if (error) { alert(error); return; }                setDiscordRpcEnabled(false);                if (onUpdateUser) onUpdateUser({ ...user, discord_id: null, discord_rpc_enabled: false });                showSaved("discord unlinked!");              }}              className="text-xs font-medium text-red-400/80 px-3 py-1.5 rounded-lg transition-all border border-red-500/20 hover:text-red-300 hover:bg-red-500/10 w-full mt-2 cursor-pointer"            >              unlink discord            </button>          )}        </div>        <div>          <p className="text-sm font-semibold text-white/80 mb-4">Discord RPC</p>          <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] space-y-3">            {linkedDiscordId ? (              <>                <label className="flex items-center gap-2 text-xs text-white/50 cursor-pointer">                  <Toggle checked={discordRpcEnabled} onChange={setDiscordRpcEnabled} />                  Show Discord presence on my biolink                </label>                <ol className="text-[11px] text-white/40 space-y-1 list-decimal list-inside">                  <li>Join our <a href="https://discord.gg/npN6H47KEn" target="_blank" rel="noreferrer" className="text-blue-400 hover:text-blue-300">Discord server</a> (the sire bot can only see members who are in the server).</li>                  <li>Run <span className="text-white/70 font-mono">/link</span> in the server to get the linked role.</li>                  <li>Turn on the toggle above and hit save. Your status, custom status and activity show on your page within ~15 seconds.</li>                </ol>                <div className="flex justify-end">                  <button                    onClick={async () => {                      if (!user) return;                      const { error } = await apiCall("update", { data: { discord_rpc_enabled: discordRpcEnabled } });                      if (error) console.error("saveDiscordRpc error:", error);                      else showSaved("discord rpc saved!");                    }}                    className="text-xs bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-white font-semibold transition-all cursor-pointer"                  >                    save discord rpc                  </button>                </div>              </>            ) : (              <p className="text-[11px] text-white/40">Link a Discord account to enable Discord RPC.</p>            )}          </div>        </div>      </div>    </div>    <div className="lg:w-[55%] flex-1 space-y-6">      <Preview user={user} desc={desc} descEffect={descEffect} descSpeed={descSpeed} descLines={descLines} background={background} audio={audio1 || audio2} profileAvatar={profileAvatar} customCursor={customCursor} displayEffect={displayEffect} sparkleIntensity={sparkleIntensity} font={font} customFontUrl={customFontUrl} customFontName={customFontName} fontScope={fontScope} videoBg={videoBg} videoAudio={videoAudio} bgEffect={bgEffect} avatarShape={avatarShape} avatarSize={avatarSize} avatarOffsetX={avatarOffsetX} avatarOffsetY={avatarOffsetY} onAvatarOffsetChange={(x, y) => { setAvatarOffsetX(Math.round(x)); setAvatarOffsetY(Math.round(y)); }} banner={banner} bannerEnabled={bannerEnabled} entryText={entryText} entryFont={entryFont} entryColor={entryColor} entryEffect={entryEffect} songPlatform={songPlatform} songId={songId} showUsername={showUsername} primaryColor={primaryColor} secondaryColor={secondaryColor} accentColor={accentColor} textColor={textColor} backgroundColor={backgroundColor} iconColor={iconColor} bgEffectColor={bgEffectColor} panelMouseFollow={panelMouseFollow} cursorEffect={cursorEffect} nameOffsetX={nameOffsetX} nameOffsetY={nameOffsetY} onNameOffsetChange={(x, y) => { setNameOffsetX(Math.round(x)); setNameOffsetY(Math.round(y)); }} badgeOffsetX={badgeOffsetX} badgeOffsetY={badgeOffsetY} onBadgeOffsetChange={(x, y) => { setBadgeOffsetX(Math.round(x)); setBadgeOffsetY(Math.round(y)); }} descOffsetX={descOffsetX} descOffsetY={descOffsetY} onDescOffsetChange={(x, y) => { setDescOffsetX(Math.round(x)); setDescOffsetY(Math.round(y)); }} songOffsetX={songOffsetX} songOffsetY={songOffsetY} onSongOffsetChange={(x, y) => { setSongOffsetX(Math.round(x)); setSongOffsetY(Math.round(y)); }} rpcOffsetX={rpcOffsetX} rpcOffsetY={rpcOffsetY} onRpcOffsetChange={(x, y) => { setRpcOffsetX(Math.round(x)); setRpcOffsetY(Math.round(y)); }} badges={myBadges} panelOpacity={panelOpacity} panelHidden={panelHidden} glowMode={glowMode} glowColor={glowColor} glowColor2={glowColor2} glowSpread={glowSpread} pulseEnabled={pulseOn} pulseColor={pulseColor} pulseSpeed={pulseSpeed} discordId={linkedDiscordId} discordRpcEnabled={discordRpcEnabled} />      <div className="glass-card rounded-2xl p-5 space-y-4">        <div className="flex items-center justify-between">          <span className="text-xs text-white/50 font-semibold uppercase tracking-wider">Shape</span>          <div className="flex gap-2">            {["circle", "rounded"].map((s) => (              <button key={s} onClick={() => setAvatarShape(s)}                className={`text-xs px-3 py-1.5 rounded-lg border transition-colors cursor-pointer ${                  avatarShape === s                    ? "bg-blue-600/20 border-blue-500/40 text-blue-300"                    : "bg-white/[0.03] border-white/10 text-white/40 hover:text-white/60"                }`}              >                {s === "circle" ? "Circle" : "Rounded Box"}              </button>            ))}          </div>        </div>        <div className="flex items-center justify-between">          <span className="text-xs text-white/50 font-semibold uppercase tracking-wider">Size</span>          <div className="flex items-center gap-3">            <input type="range" min="48" max="200" value={avatarSize} onChange={(e) => setAvatarSize(Number(e.target.value))} className="w-24 h-1 accent-blue-500 cursor-pointer" />            <span className="text-xs text-white/40 w-10 text-right">{avatarSize}px</span>          </div>        </div>        <div className="pt-3 border-t border-white/[0.04]">          <h3 className="text-xs text-white/50 font-semibold uppercase tracking-wider mb-3">Position</h3>          <div className="grid gap-3">            <div className="flex items-center justify-between text-xs">              <span className="text-white/50 font-semibold uppercase tracking-wider">Avatar</span>              <span className="text-white/80 font-mono">{avatarOffsetX}px / {avatarOffsetY}px</span>            </div>            <div className="flex items-center justify-between text-xs">              <span className="text-white/50 font-semibold uppercase tracking-wider">Description</span>              <span className="text-white/80 font-mono">{descOffsetX}px / {descOffsetY}px</span>            </div>            <div className="flex items-center justify-between text-xs">              <span className="text-white/50 font-semibold uppercase tracking-wider">Song Player</span>              <span className="text-white/80 font-mono">{songOffsetX}px / {songOffsetY}px</span>            </div>            <div className="flex items-center justify-between text-xs">              <span className="text-white/50 font-semibold uppercase tracking-wider">Discord RPC</span>              <span className="text-white/80 font-mono">{rpcOffsetX}px / {rpcOffsetY}px</span>            </div>          </div>          <p className="text-[10px] text-white/30 mt-3">Drag the avatar, description, song player, and discord rpc directly in the live preview to position them.</p>          <div className="flex justify-end gap-2 mt-3">            <button onClick={async () => {              if (!user) return;              setAvatarOffsetX(0);              setAvatarOffsetY(0);              setNameOffsetX(0);              setNameOffsetY(0);              setBadgeOffsetX(0);              setBadgeOffsetY(0);              setDescOffsetX(0);              setDescOffsetY(0);              setSongOffsetX(0);              setSongOffsetY(0);              setRpcOffsetX(0);              setRpcOffsetY(0);              const { error } = await apiCall("update", {                data: {                  avatar_shape: avatarShape,                  avatar_size: avatarSize,                  avatar_offset_x: 0,                  avatar_offset_y: 0,                  name_offset_x: 0,                  name_offset_y: 0,                  badge_offset_x: 0,                  badge_offset_y: 0,                  desc_offset_x: 0,                  desc_offset_y: 0,                  song_offset_x: 0,                  song_offset_y: 0,                  discord_rpc_offset_x: 0,                  discord_rpc_offset_y: 0,                },              });              if (!error) showSaved("positions reset");            }} className="text-xs bg-white/[0.05] hover:bg-white/[0.1] border border-white/[0.1] px-4 py-2 rounded-lg text-white/70 transition-colors cursor-pointer">              reset            </button>            <button onClick={async () => {              if (!user) return;              setSavingAvatar(true);              const { error } = await apiCall("update", {                data: {                  avatar_shape: avatarShape,                  avatar_size: avatarSize,                  avatar_offset_x: avatarOffsetX,                  avatar_offset_y: avatarOffsetY,                  name_offset_x: nameOffsetX,                  name_offset_y: nameOffsetY,                  badge_offset_x: badgeOffsetX,                  badge_offset_y: badgeOffsetY,                  desc_offset_x: descOffsetX,                  desc_offset_y: descOffsetY,                  song_offset_x: songOffsetX,                  song_offset_y: songOffsetY,                  discord_rpc_offset_x: rpcOffsetX,                  discord_rpc_offset_y: rpcOffsetY,                },              });              if (!error) showSaved("saved!");              setSavingAvatar(false);            }} disabled={savingAvatar} className="text-xs bg-blue-600 hover:bg-blue-500 disabled:opacity-40 px-4 py-2 rounded-lg text-white font-semibold transition-colors cursor-pointer">              {savingAvatar ? "saving..." : "save"}            </button>          </div>        </div>      </div>        <div className="glass-card rounded-2xl p-6">        <h3 className="text-sm font-semibold text-white/80 mb-4">Display Name Effects</h3>        <div className="flex flex-wrap gap-2 mb-4">          {[            { id: "none", label: "None" },            { id: "sparkle", label: "Sparkle" },            { id: "glow", label: "Glow" },            { id: "rainbow", label: "Rainbow" },            { id: "glitch", label: "Glitch", premium: true },            { id: "neon", label: "Neon", premium: true },            { id: "gradient-flow", label: "Gradient Flow", premium: true },            { id: "shine-sweep", label: "Shine Sweep", premium: true },          ].map((e) => {            const locked = !!e.premium && !myBadges.includes("premium");            return (              <button                key={e.id}                onClick={() => {                  if (locked) { showSaved("that's a premium effect", false); return; }                  setDisplayEffect(e.id);                }}                className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border transition-colors cursor-pointer ${                  displayEffect === e.id                    ? "bg-blue-600/20 border-blue-500/40 text-blue-300"                    : locked                      ? "bg-white/[0.03] border-white/10 text-white/25"                      : "bg-white/[0.03] border-white/10 text-white/40 hover:text-white/60"                }`}              >                {e.label}                {e.premium && <Crown size={10} className={locked ? "text-white/20" : "text-blue-300"} />}              </button>            );          })}        </div>        <div className="mb-4 p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] flex items-center justify-center min-h-[48px]">          <span className={`text-lg font-black tracking-tight ${displayEffect !== "sparkle" && displayEffect !== "none" ? `display-effect-${displayEffect}` : ""}`}>            {displayEffect === "sparkle" ? (              <SparkleText text={user?.display_name || user?.username || "preview"} count={sparkleIntensity} />            ) : (              user?.display_name || user?.username || "preview"            )}          </span>        </div>        {displayEffect === "sparkle" ? (          <div className="flex items-center gap-3 mb-4">            <span className="text-xs text-white/60 whitespace-nowrap">Intensity</span>            <input type="range" min="4" max="40" value={sparkleIntensity} onChange={(e) => setSparkleIntensity(Number(e.target.value))} className="flex-1 h-1 accent-blue-500 cursor-pointer" />            <span className="text-xs text-white/60 font-mono w-6 text-right">{sparkleIntensity}</span>          </div>        ) : null}        <div className="flex justify-end">          <button            onClick={async () => {              if (!user) return;              await apiCall("update", { data: { display_effect: displayEffect, sparkle_intensity: sparkleIntensity } });              showSaved("effect saved!");            }}            className="text-xs bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-white font-semibold transition-all cursor-pointer"          >            save effect          </button>        </div>      </div>      <div className="glass-card rounded-2xl p-6">        {customFontUrl ? (          <style>{CustomFontFace(customFontUrl, customFontName)}</style>        ) : null}        <h3 className="text-sm font-semibold text-white/80 mb-4">Font{font === CUSTOM_FONT_NAME ? <span className="ml-2 text-[10px] px-2 py-0.5 rounded-full bg-blue-600/20 border border-blue-500/40 text-blue-300 align-middle">custom equipped</span> : null}</h3>        <div className="flex flex-wrap gap-2 mb-4">          {FONTS.map((f) => (            <button              key={f.name}              onClick={() => setFont(f.name)}              className={`text-xs px-3 py-1.5 rounded-lg border transition-colors cursor-pointer ${                font === f.name                  ? "bg-blue-600/20 border-blue-500/40 text-blue-300"                  : "bg-white/[0.03] border-white/10 text-white/40 hover:text-white/60"              }`}              style={{ fontFamily: f.family }}            >              {f.name}            </button>          ))}          <button            onClick={() => setFont(CUSTOM_FONT_NAME)}            className={`text-xs px-3 py-1.5 rounded-lg border transition-colors cursor-pointer ${              font === CUSTOM_FONT_NAME                ? "bg-blue-600/20 border-blue-500/40 text-blue-300"                : "bg-white/[0.03] border-white/10 text-white/40 hover:text-white/60"            }`}            style={customFontUrl ? { fontFamily: CUSTOM_FONT_FAMILY } : undefined}            title={customFontUrl ? "custom font file stored" : "no font file uploaded yet"}          >            Custom{customFontUrl ? (font === CUSTOM_FONT_NAME ? " ✓" : "") : "*"}          </button>        </div>        {font === CUSTOM_FONT_NAME || customFontUrl ? (          <div className="mb-4 p-4 rounded-xl bg-white/[0.02] border border-white/[0.06]">            <p className="text-[11px] text-white/40 mb-3">Upload your own font (.ttf, .otf, .woff, .woff2, max 10MB). It styles your biolink page only.</p>            <div className="flex items-center gap-3 mb-3">              <label className="inline-block text-xs bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 px-4 py-2 rounded-lg text-white/70 font-semibold transition-all cursor-pointer">                {customFontUrl ? "replace font file" : "upload font file"}                <input                  type="file"                  accept=".ttf,.otf,.woff,.woff2"                  className="hidden"                  onChange={async (e) => {                    const file = e.target.files?.[0];                    e.target.value = "";                    if (file) await uploadAsset("custom_font", file);                  }}                />              </label>              {customFontUrl ? (                <button                  onClick={async () => {                    await apiCall("asset_delete", { type: "custom_font" });                    setCustomFontUrl("");                    setCustomFontName("");                    if (font === CUSTOM_FONT_NAME) setFont("Inter");                    showSaved("custom font removed");                  }}                  className="text-xs text-red-400 hover:text-red-300 transition-colors cursor-pointer"                >                  remove                </button>              ) : null}            </div>            {customFontUrl ? (              <div className="mb-3 p-3 rounded-xl bg-emerald-500/[0.06] border border-emerald-500/20">                <p className="text-[11px] text-white/60">Uploaded file:</p>                <p className="text-xs text-white font-semibold truncate" style={customFontUrl ? { fontFamily: CUSTOM_FONT_FAMILY } : undefined}>{customFontName || "custom font file"}</p>                <p className="text-[11px] mt-1">{font === CUSTOM_FONT_NAME ? <span className="text-emerald-400/90">currently using this font ✓</span> : <span className="text-amber-400/90">stored but not equipped — click Custom above + save to use it</span>}</p>                <FontLoadStatus url={customFontUrl} />              </div>            ) : (              <p className="text-[11px] text-amber-400/80 mb-3">* upload a font file first, then save</p>            )}            <p className="text-[11px] text-white/40 mb-2">Apply custom font to:</p>            <div className="flex flex-wrap gap-2">              {[{ v: "all", label: "Entire profile" }, { v: "name", label: "Display name only" }].map((o) => (                <button                  key={o.v}                  onClick={() => setFontScope(o.v)}                  className={`text-xs px-3 py-1.5 rounded-lg border transition-colors cursor-pointer ${                    fontScope === o.v                      ? "bg-blue-600/20 border-blue-500/40 text-blue-300"                      : "bg-white/[0.03] border-white/10 text-white/40 hover:text-white/60"                  }`}                >                  {o.label}                </button>              ))}            </div>          </div>        ) : null}        <div className="mb-4 p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] flex items-center justify-center min-h-[48px]">          <span className="text-lg font-black tracking-tight" style={{ fontFamily: ResolveFontFamily(font, !!customFontUrl) }}>            {user?.display_name || user?.username || "preview"}          </span>        </div>        <div className="flex justify-end">          <button            onClick={async () => {              if (!user) return;              await apiCall("update", { data: { font, custom_font_scope: fontScope } });              showSaved("font saved!");            }}            className="text-xs bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-white font-semibold transition-all cursor-pointer"          >            save font          </button>        </div>      </div>      <div className="glass-card rounded-2xl p-6">        <h3 className="text-sm font-semibold text-white/80 mb-4">Entry Overlay</h3>        <p className="text-[11px] text-white/40 mb-3">Customize the "click anywhere to enter" overlay text.</p>        <input          value={entryText}          onChange={(e) => setEntryText(e.target.value)}          placeholder="click anywhere to enter"          className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white/80 outline-none focus:border-blue-500/40 transition-colors placeholder:text-white/20 mb-3"        />        <div className="flex flex-wrap gap-2 mb-3">          {FONTS.map((f) => (            <button              key={f.name}              onClick={() => setEntryFont(f.name)}              className={`text-xs px-3 py-1.5 rounded-lg border transition-colors cursor-pointer ${                entryFont === f.name                  ? "bg-blue-600/20 border-blue-500/40 text-blue-300"                  : "bg-white/[0.03] border-white/10 text-white/40 hover:text-white/60"              }`}              style={{ fontFamily: f.family }}            >              {f.name}            </button>          ))}          {customFontUrl ? (            <button              onClick={() => setEntryFont(CUSTOM_FONT_NAME)}              className={`text-xs px-3 py-1.5 rounded-lg border transition-colors cursor-pointer ${                entryFont === CUSTOM_FONT_NAME                  ? "bg-blue-600/20 border-blue-500/40 text-blue-300"                  : "bg-white/[0.03] border-white/10 text-white/40 hover:text-white/60"              }`}              style={{ fontFamily: CUSTOM_FONT_FAMILY }}            >              Custom            </button>          ) : null}        </div>        {!customFontUrl ? (          <p className="text-[11px] text-white/30 mb-3">upload a custom font above to unlock it here</p>        ) : null}        <div className="flex items-center gap-3 mb-3">          <span className="text-xs text-white/60">Color</span>          <input            type="color"            value={entryColor.startsWith("#") ? entryColor : "#ffffff"}            onChange={(e) => setEntryColor(e.target.value)}            className="h-7 w-10 rounded border border-white/10 bg-white/5 cursor-pointer"          />          <input            type="text"            value={entryColor}            onChange={(e) => setEntryColor(e.target.value)}            className="w-24 bg-white/[0.03] border border-white/[0.06] rounded px-1.5 py-1 text-white outline-none focus:border-blue-500/30 transition-colors font-mono text-[10px] text-center"          />        </div>        <div className="flex flex-wrap gap-2 mb-3">          {["none", "typewriter"].map((e) => (            <button              key={e}              onClick={() => setEntryEffect(e)}              className={`text-xs px-3 py-1.5 rounded-lg border transition-colors cursor-pointer ${                entryEffect === e                  ? "bg-blue-600/20 border-blue-500/40 text-blue-300"                  : "bg-white/[0.03] border-white/10 text-white/40 hover:text-white/60"              }`}            >              {e === "none" ? "None" : "Typewriter"}            </button>          ))}        </div>        <div className="mb-4 p-4 rounded-xl bg-black/40 border border-white/10 flex items-center justify-center min-h-[48px]">          <p className="text-lg lowercase" style={{ fontFamily: ResolveFontFamily(entryFont, !!customFontUrl), color: entryColor }}>            {entryPreview || ""}<span className="animate-pulse">|</span>          </p>        </div>        <div className="flex justify-end">          <button            onClick={async () => {              if (!user) return;              setSavingEntry(true);              await apiCall("update", {                data: {                  entry_text: entryText,                  entry_font: entryFont,                  entry_color: entryColor,                  entry_effect: entryEffect,                },              });              setSavingEntry(false);              showSaved("entry settings saved!");            }}            className="text-xs bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-white font-semibold transition-all cursor-pointer"          >            {savingEntry ? "saving..." : "save entry"}          </button>        </div>      </div>      <div className="glass-card rounded-2xl p-6">        <h3 className="text-sm font-semibold text-white/80 mb-4">Background Effects</h3>        <div className="flex flex-wrap gap-2 mb-4">          {[            { id: "none", label: "None" },            { id: "rain", label: "Rain" },            { id: "snow", label: "Snow" },            { id: "aurora", label: "Aurora" },            { id: "tv", label: "TV Static" },            { id: "fire", label: "Fire" },            { id: "stars", label: "Stars" },            { id: "fog", label: "Fog" },            { id: "waves", label: "Waves" },            { id: "particles", label: "Particles", premium: true },            { id: "galaxy", label: "Galaxy", premium: true },            { id: "matrix", label: "Matrix", premium: true },            { id: "spotlight", label: "Spotlight", premium: true },            { id: "bubbles", label: "Bubbles", premium: true },            { id: "hearts", label: "Hearts", premium: true },            { id: "leaves", label: "Leaves", premium: true },            { id: "lightning", label: "Lightning", premium: true },          ].map((e) => {            const locked = !!e.premium && !myBadges.includes("premium");            return (              <button                key={e.id}                onClick={() => {                  if (locked) { showSaved("that's a premium effect", false); return; }                  setBgEffect(e.id);                }}                className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border transition-colors cursor-pointer ${                  bgEffect === e.id                    ? "bg-blue-600/20 border-blue-500/40 text-blue-300"                    : locked                      ? "bg-white/[0.03] border-white/10 text-white/25"                      : "bg-white/[0.03] border-white/10 text-white/40 hover:text-white/60"                }`}              >                {e.label}                {e.premium && <Crown size={10} className={locked ? "text-white/20" : "text-blue-300"} />}              </button>            );          })}        </div>        <div className="mb-4 relative p-4 rounded-xl bg-black/40 border border-white/[0.06] flex items-center justify-center min-h-[120px] overflow-hidden">          {bgEffect === "rain" && <RainEffect />}          {bgEffect === "snow" && <SnowEffect />}          {bgEffect === "aurora" && <AuroraEffect />}          {bgEffect === "tv" && <TvStaticEffect />}          {bgEffect === "fire" && <FireEffect />}          {bgEffect === "stars" && <StarsEffect />}          {bgEffect === "fog" && <FogEffect />}          {bgEffect === "waves" && <WavesEffect />}          {bgEffect === "particles" && <ParticlesEffect />}          {bgEffect === "galaxy" && <GalaxyEffect />}          {bgEffect === "matrix" && <MatrixEffect />}          {bgEffect === "spotlight" && <SpotlightEffect />}          {bgEffect === "bubbles" && <BubblesEffect />}          {bgEffect === "hearts" && <HeartsEffect />}          {bgEffect === "leaves" && <LeavesEffect />}          {bgEffect === "lightning" && <LightningEffect />}          <span className="text-sm text-white/30 italic relative z-[2]">preview</span>        </div>        <div className="flex justify-end">          <button            onClick={async () => {              if (!user) return;              await apiCall("update", { data: { bg_effect: bgEffect } });              showSaved("effect saved!");            }}            className="text-xs bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-white font-semibold transition-all cursor-pointer"          >            save effect          </button>        </div>      </div>      <div className="glass-card rounded-2xl p-6">        <h3 className="text-sm font-semibold text-white/80 mb-4">Other Customization</h3>        <div className="flex items-center justify-between">          <div>            <p className="text-sm text-white/80">Monochrome Icons</p>            <p className="text-[11px] text-white/40">Show all company logos in monochrome on your biolink</p>          </div>          <button            onClick={async () => {              if (!user) return;              const next = !monochromeIcons;              setMonochromeIcons(next);              await apiCall("update", { data: { monochrome_icons: next } });              showSaved(next ? "monochrome on" : "monochrome off");            }}            className={`text-xs px-3 py-1.5 rounded-lg border transition-colors cursor-pointer ${              monochromeIcons                ? "bg-blue-600/20 border-blue-500/40 text-blue-300"                : "bg-white/[0.03] border-white/10 text-white/40"            }`}          >            {monochromeIcons ? "on" : "off"}          </button>        </div>        <div className="flex items-center justify-between mt-4">          <div>            <p className="text-sm text-white/80">Monochrome Badges</p>            <p className="text-[11px] text-white/40">Show badges in monochrome on your biolink</p>          </div>          <button            onClick={async () => {              if (!user) return;              const next = !monochromeBadges;              setMonochromeBadges(next);              await apiCall("update", { data: { monochrome_badges: next } });              showSaved(next ? "monochrome badges on" : "monochrome badges off");            }}            className={`text-xs px-3 py-1.5 rounded-lg border transition-colors cursor-pointer ${              monochromeBadges                ? "bg-blue-600/20 border-blue-500/40 text-blue-300"                : "bg-white/[0.03] border-white/10 text-white/40"            }`}          >            {monochromeBadges ? "on" : "off"}          </button>        </div>        <div className="flex items-center justify-between mt-4">          <div>            <p className="text-sm text-white/80">Panel Mouse Follow</p>            <p className="text-[11px] text-white/40">Glass panel tilts to follow your cursor</p>          </div>          <button            onClick={async () => {              if (!user) return;              const next = !panelMouseFollow;              setPanelMouseFollow(next);              await apiCall("update", { data: { panel_mouse_follow: next } });              showSaved(next ? "mouse follow on" : "mouse follow off");            }}            className={`text-xs px-3 py-1.5 rounded-lg border transition-colors cursor-pointer ${              panelMouseFollow                ? "bg-blue-600/20 border-blue-500/40 text-blue-300"                : "bg-white/[0.03] border-white/10 text-white/40"            }`}          >            {panelMouseFollow ? "on" : "off"}          </button>        </div>        <div className="flex items-center justify-between mt-4">          <div>            <p className="text-sm text-white/80">Cursor Effect</p>            <p className="text-[11px] text-white/40">Particles that follow your cursor (spark / star)</p>          </div>          <div className="flex gap-1">            {["none", "spark", "star"].map((e) => (              <button                key={e}                onClick={async () => {                  if (!user) return;                  setCursorEffect(e);                  await apiCall("update", { data: { cursor_effect: e } });                  showSaved(`cursor: ${e}`);                }}                className={`text-xs px-2.5 py-1.5 rounded-lg border transition-colors cursor-pointer ${                  cursorEffect === e                    ? "bg-blue-600/20 border-blue-500/40 text-blue-300"                    : "bg-white/[0.03] border-white/10 text-white/40"                }`}              >                {e === "none" ? "off" : e}              </button>            ))}          </div>        </div>      </div>    </div>    {savedMsg && (      <div className="fixed bottom-6 right-6 z-[100] bg-emerald-600/90 backdrop-blur-md text-white text-xs font-medium px-4 py-2.5 rounded-xl shadow-2xl border border-white/10 pointer-events-none animate-in fade-in slide-in-from-bottom-2" style={{ animation: "saved-toast 2s ease-in-out" }}>        {savedMsg}      </div>    )}    <AnimatePresence>      {isAudioModalOpen && (        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">          <motion.div            initial={{ opacity: 0, y: 10 }}            animate={{ opacity: 1, y: 0 }}            exit={{ opacity: 0, y: 10 }}            className="w-full max-w-sm rounded-2xl bg-[#09090b] border border-white/10 p-5 shadow-2xl space-y-4"          >            <div className="flex items-center justify-between">              <span className="text-xs font-semibold text-white/50 lowercase tracking-wider">audio settings</span>              <button                onClick={() => setIsAudioModalOpen(false)}                className="text-white/30 hover:text-white transition-colors cursor-pointer text-xs"              >                close              </button>            </div>            <div className="space-y-2">              {/* Audio 1 */}              <div className="flex items-center justify-between p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">                <div className="flex items-center gap-3 min-w-0 flex-1 mr-2">                  <div className="h-7 w-7 rounded-full bg-white/10 flex items-center justify-center shrink-0">                    <Music size={12} className="text-white ml-0.5" />                  </div>                  <div className="min-w-0 flex-1">                    <p className="text-xs font-medium text-white truncate">                      {audio1 ? (audio1.split('/').pop()?.split('?')[0] || "audio track 1") : "audio 1 (none)"}                    </p>                    <p className="text-[10px] text-white/40 font-mono">                      {audio1Duration || "0:00"}                    </p>                  </div>                </div>                <input ref={audio1Ref} type="file" accept="audio/*" className="hidden" onChange={() => {                  const file = audio1Ref.current?.files?.[0];                  if (file) uploadAsset("audio_1", file);                }} />                <div className="flex items-center gap-3">                <button                  onClick={() => audio1Ref.current?.click()}                  disabled={saving === "audio_1"}                  className="text-xs text-blue-400 hover:text-blue-300 disabled:opacity-40 transition-colors cursor-pointer shrink-0"                >                  {saving === "audio_1" ? "saving..." : audio1 ? "change" : "upload"}                </button>                {audio1 && (                  <button                    onClick={async () => {                      await apiCall("asset_delete", { type: "audio_1" });                      setAudio1(null);                      showSaved("audio 1 removed");                    }}                    className="text-xs text-red-400 hover:text-red-300 transition-colors cursor-pointer shrink-0"                  >                    remove                  </button>                )}                </div>              </div>              {/* Audio 2 */}              <div className="flex items-center justify-between p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">                <div className="flex items-center gap-3 min-w-0 flex-1 mr-2">                  <div className="h-7 w-7 rounded-full bg-white/10 flex items-center justify-center shrink-0">                    <Music size={12} className="text-white ml-0.5" />                  </div>                  <div className="min-w-0 flex-1">                    <p className="text-xs font-medium text-white truncate">                      {audio2 ? (audio2.split('/').pop()?.split('?')[0] || "audio track 2") : "audio 2 (none)"}                    </p>                    <p className="text-[10px] text-white/40 font-mono">                      {audio2Duration || "0:00"}                    </p>                  </div>                </div>                <input ref={audio2Ref} type="file" accept="audio/*" className="hidden" onChange={() => {                  const file = audio2Ref.current?.files?.[0];                  if (file) uploadAsset("audio_2", file);                }} />                <div className="flex items-center gap-3">                <button                  onClick={() => audio2Ref.current?.click()}                  disabled={saving === "audio_2"}                  className="text-xs text-blue-400 hover:text-blue-300 disabled:opacity-40 transition-colors cursor-pointer shrink-0"                >                  {saving === "audio_2" ? "saving..." : audio2 ? "change" : "upload"}                </button>                {audio2 && (                  <button                    onClick={async () => {                      await apiCall("asset_delete", { type: "audio_2" });                      setAudio2(null);                      showSaved("audio 2 removed");                    }}                    className="text-xs text-red-400 hover:text-red-300 transition-colors cursor-pointer shrink-0"                  >                    remove                  </button>                )}                </div>              </div>            </div>            <div className="space-y-3 pt-1">              <div className="flex items-center justify-between">                <span className="text-xs text-white/60">shuffle audio</span>                <button                  onClick={() => setShuffleAudio(!shuffleAudio)}                  className={`text-xs px-2.5 py-1 rounded-lg border transition-colors cursor-pointer ${                    shuffleAudio                      ? "bg-blue-600/20 border-blue-500/40 text-blue-300"                      : "bg-white/[0.03] border-white/10 text-white/40"                  }`}                >                  {shuffleAudio ? "on" : "off"}                </button>              </div>              <div className="flex items-center justify-between">                <span className="text-xs text-white/60">volume</span>                <div className="flex items-center gap-2 w-32">                  <input                    type="range"                    min="0"                    max="100"                    value={audioVolume}                    onChange={(e) => setAudioVolume(Number(e.target.value))}                    className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-blue-500"                  />                  <span className="text-[10px] text-white/40 font-mono w-6 text-right">{audioVolume}%</span>                </div>              </div>              <div className="flex items-center justify-between">                <span className="text-xs text-white/60">autoplay</span>                <button                  onClick={() => setAudioAutoplay(!audioAutoplay)}                  className={`text-xs px-2.5 py-1 rounded-lg border transition-colors cursor-pointer ${                    audioAutoplay                      ? "bg-blue-600/20 border-blue-500/40 text-blue-300"                      : "bg-white/[0.03] border-white/10 text-white/40"                  }`}                >                  {audioAutoplay ? "on" : "off"}                </button>              </div>              <div className="flex items-center justify-between">                <span className="text-xs text-white/60">loop</span>                <button                  onClick={() => setAudioLoop(!audioLoop)}                  className={`text-xs px-2.5 py-1 rounded-lg border transition-colors cursor-pointer ${                    audioLoop                      ? "bg-blue-600/20 border-blue-500/40 text-blue-300"                      : "bg-white/[0.03] border-white/10 text-white/40"                  }`}                >                  {audioLoop ? "on" : "off"}                </button>              </div>            </div>            <button              onClick={async () => {                if (!user) return;                await apiCall("update", {                  data: {                    audio_volume: audioVolume,                    audio_autoplay: audioAutoplay,                    audio_loop: audioLoop,                    audio_shuffle: shuffleAudio,                  },                });                showSaved("audio settings saved");                setIsAudioModalOpen(false);              }}              className="w-full text-xs bg-blue-600 hover:bg-blue-500 py-2 rounded-lg text-white font-semibold transition-all cursor-pointer"            >              save settings            </button>          </motion.div>        </div>      )}      {isBgModalOpen && (        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">          <motion.div            initial={{ opacity: 0, y: 10 }}            animate={{ opacity: 1, y: 0 }}            exit={{ opacity: 0, y: 10 }}            className="w-full max-w-sm rounded-2xl bg-[#09090b] border border-white/10 p-5 shadow-2xl space-y-4"          >            <div className="flex items-center justify-between">              <span className="text-xs font-semibold text-white/50 lowercase tracking-wider">background</span>              <button onClick={() => setIsBgModalOpen(false)} className="text-white/30 hover:text-white/60 transition-colors cursor-pointer">                <X size={14} />              </button>            </div>            <div className="space-y-3">              <div className="flex items-center justify-between p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">                <span className="text-xs text-white/60">Image / GIF</span>                <div className="flex items-center gap-3">                  <span className="text-[10px] text-white/20">max 10MB</span>                  <input ref={bgRef} type="file" accept="image/*" className="hidden" onChange={async () => {                    const file = bgRef.current?.files?.[0];                    if (!file) return;                    if (file.size > 10 * 1024 * 1024) { showSaved("file too large (max 10MB)", false); return; }                    await uploadAsset("background", file);                    setIsBgModalOpen(false);                  }} />                  <button onClick={() => bgRef.current?.click()} disabled={saving === "background"} className="text-xs text-blue-400 hover:text-blue-300 disabled:opacity-40 transition-colors cursor-pointer">                    {saving === "background" ? "uploading..." : background ? "change" : "upload"}                  </button>                </div>              </div>                <div className="flex items-center justify-between p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">                <span className="text-xs text-white/60">Video</span>                <div className="flex items-center gap-3">                  <span className="text-[10px] text-white/20">{myBadges.includes("premium") ? "max 10MB" : "max 5MB"}</span>                  <input ref={videoBgRef} type="file" accept="video/mp4,video/webm,video/ogg" className="hidden" onChange={async () => {                    const file = videoBgRef.current?.files?.[0];                    if (!file) return;                    const vcap = myBadges.includes("premium") ? 10 : 5;                    if (file.size > vcap * 1024 * 1024) { showSaved(`video too large (max ${vcap}MB) — compress your video and try again`, false); return; }                    await uploadAsset("video_background", file);                    setIsBgModalOpen(false);                  }} />                  <button onClick={() => videoBgRef.current?.click()} disabled={saving === "video_background"} className="text-xs text-blue-400 hover:text-blue-300 disabled:opacity-40 transition-colors cursor-pointer">                    {saving === "video_background" ? "uploading..." : videoBg ? "change" : "upload"}                  </button>                </div>              </div>            </div>            {(background || videoBg) && (              <div className="pt-2 border-t border-white/[0.06] space-y-3">                <div className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">                  {videoBg ? (                    <video src={videoBg} className="h-12 w-20 rounded object-cover" muted />                  ) : background ? (                    <img src={background} className="h-12 w-20 rounded object-cover" />                  ) : null}                  <div className="flex-1 min-w-0">                    <p className="text-xs text-white/80 truncate">{videoBg ? "video background" : "image background"}</p>                    <button                      onClick={async () => {                        const type = videoBg ? "video_background" : "background";                        await apiCall("asset_delete", { type });                        if (type === "video_background") setVideoBg(null);                        else setBackground(null);                        showSaved("background removed");                      }}                      className="text-[10px] text-red-400 hover:text-red-300 transition-colors mt-1 cursor-pointer"                    >                      remove                    </button>                  </div>                </div>                {videoBg && (                  <div className="flex items-center justify-between p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">                    <span className="text-xs text-white/60">Video Audio</span>                    <button                      onClick={async () => {                        const next = !videoAudio;                        setVideoAudio(next);                        if (user) await apiCall("update", { data: { video_audio: next } });                        showSaved("video audio " + (next ? "on" : "off"));                      }}                      className={`text-xs px-2.5 py-1 rounded-lg border transition-colors cursor-pointer ${                        videoAudio                          ? "bg-emerald-600/20 border-emerald-500/40 text-emerald-300"                          : "bg-white/[0.03] border-white/10 text-white/40"                      }`}                    >                      {videoAudio ? "on" : "off"}                    </button>                  </div>                )}              </div>            )}          </motion.div>        </div>      )}      </AnimatePresence>    </div>  );}function FontLoadStatus({ url }: { url: string }) {  const [state, setState] = useState<"checking" | "loaded" | "failed">("checking");  useEffect(() => {    if (!url) return;    let alive = true;    setState("checking");    const run = async () => {      try {        if (typeof document !== "undefined" && (document as any).fonts?.load) {          await (document as any).fonts.load('16px SireCustomFont');          await (document as any).fonts.ready?.catch(() => {});        } else {          await fetch(ToSameOriginUrl(url), { method: "HEAD" }).catch(() => null);        }        if (!alive) return;        const ok = typeof document !== "undefined" && (document as any).fonts?.check          ? (document as any).fonts.check('16px SireCustomFont')          : true;        setState(ok ? "loaded" : "failed");      } catch {        if (alive) setState("failed");      }    };    run();    return () => { alive = false; };  }, [url]);  if (state === "loaded") return <p className="text-[11px] text-emerald-400/80 mt-1">font file loads ✓</p>;  if (state === "failed") return <p className="text-[11px] text-red-400/90 mt-1">font file failed to load — try re-uploading the .ttf/.otf</p>;  return <p className="text-[11px] text-white/30 mt-1">checking font file…</p>;}function Toggle({ checked, onChange, className = "" }: { checked: boolean; onChange: (v: boolean) => void; className?: string }) {  return (    <button      type="button"      role="switch"      aria-checked={checked}      onClick={() => onChange(!checked)}      className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors duration-200 cursor-pointer ${checked ? "bg-blue-600" : "bg-white/15"} ${className}`}    >      <span        className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform duration-200 ${checked ? "translate-x-[20px]" : "translate-x-1"}`}      />    </button>  );}function Preview({ user, desc, background, audio, profileAvatar, customCursor, displayEffect, sparkleIntensity, font, customFontUrl, customFontName, fontScope, videoBg, videoAudio, bgEffect, descEffect, descSpeed, descLines, avatarShape, avatarSize, avatarOffsetX, avatarOffsetY, onAvatarOffsetChange, banner, bannerEnabled, entryText, entryFont, entryColor, entryEffect, songPlatform, songId, showUsername, primaryColor, secondaryColor, accentColor, textColor, backgroundColor, iconColor, bgEffectColor, panelMouseFollow, cursorEffect: cursorEffectType, nameOffsetX, nameOffsetY, onNameOffsetChange, badgeOffsetX, badgeOffsetY, onBadgeOffsetChange, descOffsetX, descOffsetY, onDescOffsetChange, songOffsetX, songOffsetY, onSongOffsetChange, rpcOffsetX, rpcOffsetY, onRpcOffsetChange, badges, panelOpacity, panelHidden, glowMode, glowColor, glowColor2, glowSpread, pulseEnabled, pulseColor, pulseSpeed, pulseType, discordId, discordRpcEnabled }: {   user: User | null;   desc?: string;  background: string | null;   audio: string | null;   profileAvatar: string | null;   customCursor: string | null;   displayEffect?: string;  sparkleIntensity?: number;  font?: string;  customFontUrl?: string | null;  customFontName?: string | null;  fontScope?: string;  videoBg?: string | null;  videoAudio?: boolean;  bgEffect?: string;  descEffect?: string;  descSpeed?: number;  descLines?: string[];  avatarShape?: string;  avatarSize?: number;  avatarOffsetX?: number;  avatarOffsetY?: number;  onAvatarOffsetChange?: (x: number, y: number) => void;  banner?: string | null;  bannerEnabled?: boolean;  entryText?: string;  entryFont?: string;  entryColor?: string;  entryEffect?: string;  songPlatform?: string;  songId?: string;  showUsername?: boolean;  primaryColor?: string;  secondaryColor?: string;  accentColor?: string;  textColor?: string;  backgroundColor?: string;  iconColor?: string;  bgEffectColor?: string;  panelMouseFollow?: boolean;  cursorEffect?: string;  nameOffsetX?: number;  nameOffsetY?: number;  onNameOffsetChange?: (x: number, y: number) => void;  badgeOffsetX?: number;  badgeOffsetY?: number;  onBadgeOffsetChange?: (x: number, y: number) => void;  descOffsetX?: number;  descOffsetY?: number;  onDescOffsetChange?: (x: number, y: number) => void;  songOffsetX?: number;  songOffsetY?: number;  onSongOffsetChange?: (x: number, y: number) => void;  rpcOffsetX?: number;  rpcOffsetY?: number;  onRpcOffsetChange?: (x: number, y: number) => void;  badges?: string[];  panelOpacity?: number;  panelHidden?: boolean;  glowMode?: string;  glowColor?: string;  glowColor2?: string;  glowSpread?: number;  pulseEnabled?: boolean;  pulseColor?: string;  pulseSpeed?: number;  pulseType?: string;  discordId?: string | null;  discordRpcEnabled?: boolean;}) {  const BADGE_FILES: Record<string, string> = {    verified: "verified.png",    premium: "premium.webp",    og: "og.gif",    booster: "booster.png",    staff: "staff.webp",    bug: "bug.gif",    corrupt: "corrupt.gif",    owner: "owner.gif",    halloween: "halloween.gif",  };  const BADGE_LABELS: Record<string, string> = {    bug: "bug hunter",  };  const effectClass = displayEffect && displayEffect !== "none" ? `display-effect-${displayEffect}` : "";  const previewLines = descLines && descLines.length > 0 ? descLines : (desc ? [desc] : user?.description ? [user.description] : []);  const [descPreview, setDescPreview] = useState(previewLines[0] || "");  const [entered, setEntered] = useState(true);  const [entryDisplay, setEntryDisplay] = useState(entryText || "");  const cardRef = useRef<HTMLDivElement>(null);  useEffect(() => {    const lines = previewLines;    if (descEffect !== "typewriter" || lines.length === 0) { setDescPreview(lines[0] || ""); return; }    let lineIdx = 0, charIdx = 0, dir = 1, pause = 0;    setDescPreview("");    const timer = setInterval(() => {      if (pause > 0) { pause--; return; }      charIdx += dir;      const line = lines[lineIdx] || "";      if (dir === 1) {        setDescPreview(line.slice(0, charIdx));        if (charIdx >= line.length) { pause = 4; dir = -1; }      } else {        setDescPreview(line.slice(0, charIdx));        if (charIdx <= 0) { pause = 2; lineIdx = (lineIdx + 1) % lines.length; dir = 1; }      }    }, descSpeed ?? 50);    return () => clearInterval(timer);  }, [descEffect, descSpeed, previewLines]);  useEffect(() => {    if (entryEffect !== "typewriter" || entered) { setEntryDisplay(entryText || ""); return; }    let i = 0;    const timer = setInterval(() => {      i++;      setEntryDisplay((entryText || "").slice(0, i));      if (i >= (entryText || "").length) clearInterval(timer);    }, 50);    return () => clearInterval(timer);  }, [entryText, entryEffect, entered]);  const avSize = avatarSize || 96;  const avOffX = avatarOffsetX || 0;  const avOffY = avatarOffsetY || 0;  const avSrc = profileAvatar || user?.avatar_url;  const avMX = useMotionValue(avOffX);  const avMY = useMotionValue(avOffY);  const nameMX = useMotionValue(nameOffsetX || 0);  const nameMY = useMotionValue(nameOffsetY || 0);  const badgeMX = useMotionValue(badgeOffsetX || 0);  const badgeMY = useMotionValue(badgeOffsetY || 0);  const descMX = useMotionValue(descOffsetX || 0);  const descMY = useMotionValue(descOffsetY || 0);  const songMX = useMotionValue(songOffsetX || 0);  const songMY = useMotionValue(songOffsetY || 0);  const rpcMX = useMotionValue(rpcOffsetX || 0);  const rpcMY = useMotionValue(rpcOffsetY || 0);  useEffect(() => { avMX.set(avOffX); avMY.set(avOffY); }, [avOffX, avOffY, avMX, avMY]);  useEffect(() => { nameMX.set(nameOffsetX || 0); nameMY.set(nameOffsetY || 0); }, [nameOffsetX, nameOffsetY, nameMX, nameMY]);  useEffect(() => { badgeMX.set(badgeOffsetX || 0); badgeMY.set(badgeOffsetY || 0); }, [badgeOffsetX, badgeOffsetY, badgeMX, badgeMY]);  useEffect(() => { descMX.set(descOffsetX || 0); descMY.set(descOffsetY || 0); }, [descOffsetX, descOffsetY, descMX, descMY]);  useEffect(() => { songMX.set(songOffsetX || 0); songMY.set(songOffsetY || 0); }, [songOffsetX, songOffsetY, songMX, songMY]);  useEffect(() => { rpcMX.set(rpcOffsetX || 0); rpcMY.set(rpcOffsetY || 0); }, [rpcOffsetX, rpcOffsetY, rpcMX, rpcMY]);  const avStart = useRef({ x: 0, y: 0 });  const nameStart = useRef({ x: 0, y: 0 });  const badgeStart = useRef({ x: 0, y: 0 });  const descStart = useRef({ x: 0, y: 0 });  const songStart = useRef({ x: 0, y: 0 });  const rpcStart = useRef({ x: 0, y: 0 });  return (      <div className="glass-card rounded-3xl p-3 backdrop-blur-2xl shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] flex flex-col max-h-[calc(100vh-140px)]">      {customFontUrl ? (        <style>{CustomFontFace(customFontUrl, customFontName)}</style>      ) : null}      <h3 className="text-sm font-semibold text-white/80 mb-4">Live Preview (depends on screen resolution)</h3>      <div className="glass-card rounded-3xl backdrop-blur-2xl shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] flex-1 flex flex-col min-h-0 relative" style={{ backgroundColor: backgroundColor || "#080808", cursor: customCursor ? `url("${ToSameOriginUrl(customCursor)}"), auto` : undefined }}>        {videoBg ? (          <video src={videoBg} autoPlay loop muted playsInline className="absolute inset-0 h-full w-full object-cover" />        ) : background ? (          <img src={background} className="absolute inset-0 h-full w-full object-cover" />        ) : (          <div className="absolute inset-0" style={{ background: `radial-gradient(ellipse at 50% 0%, ${bgEffectColor || "#ffffff"} 0%, transparent 70%)` }} />        )}        {bgEffect === "rain" && <RainEffect />}        {bgEffect === "snow" && <SnowEffect />}        {bgEffect === "aurora" && <AuroraEffect />}        {bgEffect === "tv" && <TvStaticEffect />}        {bgEffect === "fire" && <FireEffect />}        {bgEffect === "stars" && <StarsEffect />}        {bgEffect === "fog" && <FogEffect />}        {bgEffect === "waves" && <WavesEffect />}        {bgEffect === "particles" && <ParticlesEffect />}        {bgEffect === "galaxy" && <GalaxyEffect />}        {bgEffect === "matrix" && <MatrixEffect />}        {bgEffect === "spotlight" && <SpotlightEffect />}        {bgEffect === "bubbles" && <BubblesEffect />}        {bgEffect === "hearts" && <HeartsEffect />}        {bgEffect === "leaves" && <LeavesEffect />}        {bgEffect === "lightning" && <LightningEffect />}        {cursorEffectType && cursorEffectType !== "none" && <CursorEffect type={cursorEffectType} />}        <div className="absolute inset-0 bg-black/30" />        <AnimatePresence>          {!entered && (            <motion.div              initial={{ opacity: 0 }}              animate={{ opacity: 1 }}              exit={{ opacity: 0 }}              className="absolute inset-0 z-10 flex items-center justify-center cursor-pointer bg-black"              onClick={() => setEntered(true)}            >              <motion.p                animate={{ opacity: [0.4, 1, 0.4] }}                transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}                className="text-lg lowercase" style={{ fontFamily: ResolveFontFamily(entryFont, !!customFontUrl), color: entryColor || "rgba(255,255,255,0.5)" }}              >                {entryDisplay}              </motion.p>            </motion.div>          )}        </AnimatePresence><motion.div          initial={{ opacity: 0, y: 20 }}          animate={entered ? { opacity: 1, y: 0 } : {}}          transition={{ duration: 0.5 }}          className="relative z-0 flex items-start justify-center flex-1 p-3"        >          <div className="text-center w-full max-w-4xl px-2 mx-auto my-auto">            <div              ref={cardRef}              onMouseMove={(e) => {                if (panelHidden || !panelMouseFollow || !cardRef.current) return;                cardRef.current.style.transition = "none";                const rect = cardRef.current.getBoundingClientRect();                const x = e.clientX - rect.left;                const y = e.clientY - rect.top;                const cx = rect.width / 2;                const cy = rect.height / 2;                const moveX = ((x - cx) / cx) * 15;                const moveY = ((y - cy) / cy) * 15;                const rotateX = ((y - cy) / cy) * -10;                const rotateY = ((x - cx) / cx) * 10;                cardRef.current.style.transform = `translate(${moveX}px, ${moveY}px) perspective(800px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;              }}              onMouseLeave={() => {                if (cardRef.current) {                  cardRef.current.style.transition = "transform 0.5s ease-out";                  cardRef.current.style.transform = "";                }              }}              className={`relative ${panelHidden ? "" : "glass-card rounded-3xl p-8 backdrop-blur-2xl shadow-[0_8px_32px_0_rgba(0,0,0,0.37)]"}`} style={{                backgroundColor: (() => {                  const base = accentColor || "rgba(255, 255, 255, 0.05)";                  const opacity = panelHidden ? 0 : (panelOpacity ?? 100) / 100;                  if (base.startsWith("rgba")) {                    return base.replace(/[\d.]+\)$/, `${opacity})`);                  }                  if (base.startsWith("#")) {                    const r = parseInt(base.slice(1, 3), 16);                    const g = parseInt(base.slice(3, 5), 16);                    const b = parseInt(base.slice(5, 7), 16);                    return `rgba(${r}, ${g}, ${b}, ${opacity})`;                  }                  return base;                })(),                borderColor: panelHidden ? "transparent" : (primaryColor || "rgba(255, 255, 255, 0.1)"),                borderWidth: "1px",                borderStyle: "solid",                willChange: "transform",                boxShadow: (() => {                  if (panelHidden || glowMode === "none" || !glowColor) return undefined;                  const Sp = glowSpread ?? 50;                  const B = 10 + Sp * 0.6;                  const T = Sp * 0.6;                  if (glowMode === "gradient" && glowColor2) {                    return `0 0 ${B}px ${T}px ${glowColor}, 0 0 ${B * 0.55}px ${T * 0.5}px ${glowColor2}, 0 0 ${B * 0.28}px ${T * 0.22}px ${glowColor2}`;                  }                  return `0 0 ${B}px ${T}px ${glowColor}`;                })(),              }}            >                {pulseEnabled && pulseColor && !panelHidden ? (                  <div className="pointer-events-none absolute inset-0 rounded-3xl">                    <PanelTracer Type={pulseType || null} Color={pulseColor} Speed={pulseSpeed ?? null} />                  </div>                ) : null}                {bannerEnabled && banner && (                  <div className="pointer-events-none absolute inset-x-0 top-0 z-[1] h-32 overflow-hidden rounded-t-3xl">                    <img                      src={banner}                      className="h-full w-full object-cover"                      style={{                        maskImage: "linear-gradient(to bottom, #000 0%, #000 42%, transparent 100%)",                        WebkitMaskImage: "linear-gradient(to bottom, #000 0%, #000 42%, transparent 100%)",                      }}                    />                    <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/45" />                  </div>                )}                <div className={bannerEnabled && banner ? "pt-24" : ""}>                <motion.div                  drag                  dragMomentum={false}                  dragElastic={0}                  onDragStart={() => { avStart.current = { x: avMX.get(), y: avMY.get() }; }}                  onDrag={(_, info) => onAvatarOffsetChange?.(Math.round(avStart.current.x + info.offset.x), Math.round(avStart.current.y + info.offset.y))}                  className={avatarShape === "rounded"                    ? "rounded-2xl mx-auto mb-4 overflow-hidden bg-white/[0.04] cursor-grab active:cursor-grabbing"                    : "rounded-full mx-auto mb-4 overflow-hidden bg-white/[0.04] cursor-grab active:cursor-grabbing"}                  style={{ width: avSize, height: avSize, x: avMX, y: avMY }}                >                  {avSrc ? (                    <img src={avSrc} alt="" className="w-full h-full object-cover pointer-events-none" />                  ) : (                    <div className="w-full h-full flex items-center justify-center bg-white/[0.04]">                      <svg className="w-8 h-8 text-white/20" fill="none" stroke="currentColor" viewBox="0 0 24 24">                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />                      </svg>                    </div>                  )}                </motion.div>                <motion.div                  drag                  dragMomentum={false}                  dragElastic={0}                  onDragStart={() => { nameStart.current = { x: nameMX.get(), y: nameMY.get() }; }}                  onDrag={(_, info) => onNameOffsetChange?.(Math.round(nameStart.current.x + info.offset.x), Math.round(nameStart.current.y + info.offset.y))}                  style={{ x: nameMX, y: nameMY }}                >                  <h1                    className={`inline-block text-2xl font-black tracking-tight mb-1 ${displayEffect !== "sparkle" && displayEffect !== "none" ? `display-effect-${displayEffect}` : ""}`}                    style={{ color: textColor || "#ffffff", fontFamily: ResolveFontFamily(font, !!customFontUrl) }}                  >                    {displayEffect === "sparkle" ? (                      <SparkleText text={user?.display_name || user?.username || "Your Name"} count={sparkleIntensity ?? 14} />                    ) : (                      user?.display_name || user?.username || "Your Name"                    )}                  </h1>                  {showUsername !== false && (                    <p className="text-xs mb-3" style={{ color: textColor || "#ffffff", opacity: 0.4 }}>@{user?.username || "username"}</p>                  )}                </motion.div>                {(badges?.length || 0) > 0 && (                  <motion.div                    drag                    dragMomentum={false}                    dragElastic={0}                    onDragStart={() => { badgeStart.current = { x: badgeMX.get(), y: badgeMY.get() }; }}                    onDrag={(_, info) => onBadgeOffsetChange?.(Math.round(badgeStart.current.x + info.offset.x), Math.round(badgeStart.current.y + info.offset.y))}                    style={{ x: badgeMX, y: badgeMY }}                  >                    <div className="flex items-center justify-center mb-4">                    <LayoutGroup>                      <motion.div layout className="flex items-center justify-center gap-2 h-11 rounded-xl bg-white/[0.06] px-4" style={{ width: `${(badges?.length || 0) * 32 + 20}px` }}>                      {(badges || []).map((b) => {                        if (b === "verified") {                          return (                            <motion.span key={b} layout className={`flex h-7 w-7 items-center justify-center ${user?.badge_color ? "" : "text-white"}`}                              style={user?.badge_color ? { color: user.badge_color, filter: `drop-shadow(0 0 4px ${user.badge_color}) drop-shadow(0 0 9px ${user.badge_color})` } : undefined}                              whileHover={{ scale: 1.15 }} transition={{ type: "spring", stiffness: 300, damping: 15 }}>                              <VerifiedIcon className="h-7 w-7" />                            </motion.span>                          );                        }                        const src = BADGE_FILES[b] ? `/emojis/${BADGE_FILES[b]}` : null;                        if (!src) return null;                        return (                          user?.badge_color ? (                            <motion.div key={b} layout className="h-7 w-7" whileHover={{ scale: 1.15 }} transition={{ type: "spring", stiffness: 300, damping: 15 }}                              style={{ backgroundColor: user.badge_color,                                WebkitMaskImage: `url(${src})`, maskImage: `url(${src})`,                                WebkitMaskSize: "contain", maskSize: "contain",                                WebkitMaskRepeat: "no-repeat", maskRepeat: "no-repeat",                                WebkitMaskPosition: "center", maskPosition: "center",                                filter: `drop-shadow(0 0 4px ${user.badge_color}) drop-shadow(0 0 9px ${user.badge_color})` }} />                          ) : (                            <motion.img key={b} layout src={src} alt={b} className="h-7 w-7 object-contain" whileHover={{ scale: 1.15 }} transition={{ type: "spring", stiffness: 300, damping: 15 }} />                          )                        );                      })}                    </motion.div>                  </LayoutGroup>                  </div>                  </motion.div>                )}                {(previewLines[0]) && (                  <motion.div                    drag                    dragMomentum={false}                    dragElastic={0}                    onDragStart={() => { descStart.current = { x: descMX.get(), y: descMY.get() }; }}                    onDrag={(_, info) => onDescOffsetChange?.(Math.round(descStart.current.x + info.offset.x), Math.round(descStart.current.y + info.offset.y))}                    style={{ x: descMX, y: descMY }}                  >                  <p className="text-sm max-w-xs mx-auto mb-6" style={{ color: textColor || "#ffffff", display: descEffect === "typewriter" ? "grid" : undefined }}>                    {descEffect === "typewriter" && (                      <span className="invisible" style={{ gridArea: "1/1" }}>{previewLines.reduce((a, b) => a.length >= b.length ? a : b, "")}</span>                    )}                    <span style={descEffect === "typewriter" ? { gridArea: "1/1" } : undefined}>                      {descEffect === "typewriter" ? descPreview + (descPreview ? "|" : "") : previewLines[0]}                    </span>                  </p>                  </motion.div>                )}                {(discordRpcEnabled && discordId) || (songPlatform && songId) ? (                  <div className="flex items-center justify-center gap-3 mb-6 px-4">                    {discordRpcEnabled && discordId && (                      <motion.div                        drag                        dragMomentum={false}                        dragElastic={0}                        onDragStart={() => { rpcStart.current = { x: rpcMX.get(), y: rpcMY.get() }; }}                        onDrag={(_, info) => onRpcOffsetChange?.(Math.round(rpcStart.current.x + info.offset.x), Math.round(rpcStart.current.y + info.offset.y))}                        className="w-full max-w-xs [&_iframe]:pointer-events-none"                        style={{ x: rpcMX, y: rpcMY }}                      >                        <DiscordRPC discordId={discordId} />                      </motion.div>                    )}                    {songPlatform && songId && (                      <motion.div                        drag                        dragMomentum={false}                        dragElastic={0}                        onDragStart={() => { songStart.current = { x: songMX.get(), y: songMY.get() }; }}                        onDrag={(_, info) => onSongOffsetChange?.(Math.round(songStart.current.x + info.offset.x), Math.round(songStart.current.y + info.offset.y))}                        className="w-full max-w-md [&_iframe]:pointer-events-none"                        style={{ x: songMX, y: songMY }}                      >                        <SongPlayer platform={songPlatform as "youtube" | "spotify"} id={songId} fill />                      </motion.div>                    )}                  </div>                ) : null}              </div>            </div>          </div>        </motion.div>      </div>    </div>  );}const HALLOWEEN_END = Date.parse("2026-11-02T00:00:00Z");const BADGE_LIST = [  { id: "verified", file: "verified.png" },  { id: "premium", file: "premium.webp" },  { id: "og", file: "og.gif" },  { id: "booster", file: "booster.png" },  { id: "staff", file: "staff.webp" },  { id: "bug", file: "bug.gif", label: "bug hunter" },  { id: "corrupt", file: "corrupt.gif" },  { id: "owner", file: "owner.gif" },  { id: "halloween", file: "halloween.gif", label: "halloween" },];const BADGE_DESCS: Record<string, string> = {  og: "secured this badge in the early days of sire.lol",  premium: "exclusive badge for premium supporters",  verified: "officially verified account on sire.lol",  booster: "thank you for boosting the discord server",  staff: "member of the sire.lol staff team",  bug: "reported bugs that made sire.lol better",  corrupt: "corrupted... don't ask questions",  owner: "the owner of sire.lol",  halloween: "limited time badge � claimed during halloween",};function BadgeLabel(id: string) {  if (id === "og") return "OG";  if (id === "bug") return "bug hunter";  return id.charAt(0).toUpperCase() + id.slice(1);}function Pill({ onClick, kind, children }: { onClick?: () => void; kind: "action" | "off" | "muted"; children: any }) {  return (    <motion.button      onClick={onClick}      whileHover={onClick ? { scale: 1.05 } : {}}      whileTap={onClick ? { scale: 0.95 } : {}}      className={`shrink-0 rounded-full border px-4 py-1.5 text-xs font-semibold whitespace-nowrap ${onClick ? "cursor-pointer" : "cursor-default"} ${        kind === "action"          ? "border-blue-400/30 bg-blue-500/10 text-blue-300 hover:bg-blue-500/20"          : kind === "off"            ? "border-white/10 bg-white/[0.04] text-white/60 hover:bg-white/[0.08]"            : "border-red-400/15 bg-red-500/[0.07] text-red-300/50"      }`}    >      {children}    </motion.button>  );}function BadgeRow({ id, file, desc, action, claimFx }: { key?: any; id: string; file: string; desc: string; action: any; claimFx?: { badge: string; stamp: number } | null }) {  const Fx = claimFx && claimFx.badge === id;  return (    <motion.div      layout      initial={{ opacity: 0, y: 12 }}      animate={{ opacity: 1, y: 0 }}      transition={{ type: "spring", stiffness: 260, damping: 24 }}      className={`flex items-center gap-4 rounded-2xl border p-4 transition-all duration-700 ${Fx ? "border-emerald-400/40 bg-emerald-400/10 ring-1 ring-emerald-400/50 shadow-[0_0_26px_rgba(74,222,128,0.22)]" : "border-white/[0.06] bg-white/[0.02]"}`}    >      {id === "verified" ? (        <span className="flex h-9 w-9 shrink-0 items-center justify-center text-white"><VerifiedIcon className="h-9 w-9" /></span>      ) : (        <img src={`/emojis/${file}`} alt={id} className="h-9 w-9 object-contain" />      )}      <div className="flex-1 min-w-0">        <p className="text-[15px] font-bold text-white leading-tight">{BadgeLabel(id)}</p>        <p className="text-xs text-white/40 mt-0.5 leading-relaxed">{desc}</p>      </div>      <div className="flex items-center gap-2">{action}</div>    </motion.div>  );}const NEON_BADGE_COLORS = ["#ffffff", "#ff2bd1", "#ff0055", "#ff3b3b", "#ff8a00", "#ffe600", "#a6ff00", "#00ff88", "#00ffe1", "#00b3ff", "#5b6bff", "#b14bff", "#ff5cc8"];function UserBadges({ user, onTab }: { user: User | null; onTab?: (t: TabId) => void }) {  const [badgeColor, setBadgeColor] = useState<string>(user?.badge_color || "");  const [hexDraft, setHexDraft] = useState<string>(user?.badge_color || "");  const [colorErr, setColorErr] = useState("");  const [myBadges, setMyBadges] = useState<string[]>([]);  const [prefs, setPrefs] = useState<Record<string, { hidden: boolean; byName: boolean }>>({});  const [loading, setLoading] = useState(true);  const [syncing, setSyncing] = useState(false);  const [claimFx, setClaimFx] = useState<{ badge: string; stamp: number } | null>(null);  const load = () => {    if (!user) return;    return FetchProfile(user.username).then((J) => {      setMyBadges(Array.isArray(J?.badges) ? J.badges : []);      setPrefs(J?.badgePrefs && typeof J.badgePrefs === "object" ? J.badgePrefs : {});      setLoading(false);    }).catch(() => setLoading(false));  };  useEffect(() => {    load();  }, [user]);  const sync = async () => {    setSyncing(true);    await load();    setSyncing(false);  };  const toggleBadge = async (badge: string) => {    if (!user) return;    const has = myBadges.includes(badge);    let J: any;    if (has) {      J = await apiCall("badge_remove", { badge });      setMyBadges(myBadges.filter((b) => b !== badge));    } else {      J = await apiCall("badge_set", { badge });      setMyBadges([...myBadges, badge]);      if (J && !J.error) { setClaimFx({ badge, stamp: Date.now() }); setTimeout(() => setClaimFx(null), 1600); }    }    if (J?.error) {      alert(J.error);      await load();    }  };  const setPref = async (badge: string, patch: { hidden?: boolean; byName?: boolean }) => {    const cur = prefs[badge] || { hidden: false, byName: false };    const next = { ...cur, ...patch };    setPrefs({ ...prefs, [badge]: next });    await apiCall("badge_pref", { badge, hidden: next.hidden, byName: next.byName });  };  if (loading) return <div className="glass-card rounded-2xl p-6"><p className="text-sm text-white/40">loading...</p></div>;  const applyColor = async (Next: string) => {    const Prev = badgeColor;    setBadgeColor(Next);    setHexDraft(Next);    setColorErr("");    const J = await apiCall("update", { data: { badge_color: Next } });    if (J?.error) {      setBadgeColor(Prev);      setHexDraft(Prev);      setColorErr(String(J.error));    }  };  const rowAction = (b: string) => {    const has = myBadges.includes(b);    if (b === "halloween" && !has) {      if (Date.now() < HALLOWEEN_END) return <Pill kind="action" onClick={() => toggleBadge("halloween")}>claim</Pill>;      return <Pill kind="muted">not available</Pill>;    }    if (b === "og") {      if (has || (user.id && user.id <= 100)) return <Pill kind="action" onClick={() => toggleBadge("og")}>{has ? "unequip" : "claim"}</Pill>;      return <Pill kind="muted">first 100 only</Pill>;    }    if (b === "premium" && !has) {      return <Pill kind="action" onClick={() => onTab && onTab("premium")}>get premium</Pill>;    }    if (!has) {      return <Pill kind="muted">not available</Pill>;    }    const hidden = !!prefs[b]?.hidden;    const byName = !!prefs[b]?.byName;    return (<>      {b === "halloween" && (        <Pill kind="action" onClick={() => toggleBadge(b)}>unequip</Pill>      )}      {b === "verified" && (        <Pill kind="off" onClick={() => setPref(b, { byName: !byName })}>          {byName ? "name on" : "name off"}        </Pill>      )}      <Pill kind={hidden ? "action" : "off"} onClick={() => setPref(b, { hidden: !hidden })}>        {b === "verified" ? (hidden ? "row off" : "row on") : hidden ? "unhide" : "hide"}      </Pill>    </>);  };  return (    <div>      <div className="flex items-start justify-between gap-4 mb-2">        <h2 className="text-xl font-bold text-white">Available badges</h2>        <button          onClick={sync}          className="flex shrink-0 items-center gap-1.5 rounded-full border border-blue-400/30 bg-blue-500/10 px-4 py-1.5 text-xs font-semibold text-blue-300 transition-colors hover:bg-blue-500/20 cursor-pointer"        >          <RefreshCw size={13} className={syncing ? "animate-spin" : ""} />          Sync        </button>      </div>      <p className="text-sm text-white/40 mb-6">Every badge you can earn on sire.lol. Some sync automatically, others you can claim below.</p>      <div className="glass-card rounded-2xl p-5 mb-6">        <div className="flex items-center justify-between gap-4">          <div>            <p className="text-sm font-semibold text-white/90">force badge color</p>            <p className="text-[11px] text-white/40">neon only � recolors every badge you own on your biolink</p>          </div>          {badgeColor ? <Pill kind="action" onClick={() => applyColor("")}>reset</Pill> : <Pill kind="muted">off</Pill>}        </div>        {myBadges.length === 0 ? (          <p className="text-xs text-white/30 mt-4">you don't own any badges yet � claim one below first</p>        ) : (          <>            <div className="flex flex-wrap gap-2 mt-4">              {NEON_BADGE_COLORS.map((C) => (                <button                  key={C}                  onClick={() => applyColor(C)}                  title={C}                  className={`h-8 w-8 rounded-lg transition-transform hover:scale-110 cursor-pointer ${badgeColor.toLowerCase() === C ? "ring-2 ring-white ring-offset-2 ring-offset-[#0b0b0f]" : ""}`}                  style={{ backgroundColor: C, boxShadow: `0 0 12px ${C}` }}                />              ))}            </div>            <div className="flex items-center gap-2 mt-4">              <input                value={hexDraft}                onChange={(E) => setHexDraft(E.target.value)}                placeholder="#ff2bd1"                maxLength={7}                className="w-28 rounded-lg bg-white/5 border border-white/10 px-3 py-1.5 text-xs font-mono text-white/80 outline-none focus:border-white/25"              />              <Pill kind="action" onClick={() => applyColor(hexDraft.trim().toLowerCase())}>apply</Pill>              {badgeColor && <span className="text-[11px] text-white/40">active <span style={{ color: badgeColor }}>{badgeColor}</span></span>}            </div>            {colorErr && <p className="text-[11px] text-red-400 mt-2">{colorErr}</p>}          </>        )}      </div>      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">        {BADGE_LIST.map((meta) => (          <BadgeRow            key={meta.id}            id={meta.id}            file={meta.file}            desc={BADGE_DESCS[meta.id] || "exclusive sire.lol badge"}            action={rowAction(meta.id)}            claimFx={claimFx}          />        ))}      </div>    </div>  );}function AdminBadges() {  const [search, setSearch] = useState("");  const [targetUser, setTargetUser] = useState<{ id: number; username: string; alias: string | null; is_admin: number | null; suspended: number | null; suspended_reason: string | null; hidden: number | null } | null>(null);  const [userBadges, setUserBadges] = useState<string[]>([]);  const [loading, setLoading] = useState(false);  const [msg, setMsg] = useState("");  const [deletingUser, setDeletingUser] = useState(false);  const searchUser = async () => {    if (!search.trim()) return;    setLoading(true);    setMsg("");    const token = getSessionToken();    const R = await fetch(`/api/admin-user?u=${encodeURIComponent(search.trim())}&sessionToken=${encodeURIComponent(token || "")}`);    const J = await R.json().catch(() => null);    if (J?.user) {      setTargetUser(J.user);      setUserBadges(Array.isArray(J.badges) ? J.badges : []);      setAlts([]);      setAltsIp(null);      setRenameInput("");      setSuspendReason("");    } else {      setTargetUser(null);      setUserBadges([]);      setMsg("user not found");    }    setLoading(false);  };  const toggleBadge = async (badge: string) => {    if (!targetUser) return;    const has = userBadges.includes(badge);    if (has) {      await apiCall("admin_badge_remove", { badge, targetUid: targetUser.id });      setUserBadges(userBadges.filter((b) => b !== badge));    } else {      await apiCall("admin_badge_set", { badge, targetUid: targetUser.id });      setUserBadges([...userBadges, badge]);    }  };  const toggleAdmin = async () => {    if (!targetUser) return;    const make = Number(targetUser.is_admin || 0) !== 1;    if (!confirm(`${make ? "Grant" : "Remove"} admin panel access ${make ? "to" : "from"} @${targetUser.username}?`)) return;    const r = await apiCall("admin_set_admin", { targetUid: targetUser.id, admin: make });    if (r.error) { alert(r.error || "Failed to update admin"); return; }    setTargetUser({ ...targetUser, is_admin: make ? 1 : 0 });  };  const toggleFlag = async (flag: "suspended" | "hidden") => {    if (!targetUser) return;    const make = Number(targetUser[flag] || 0) !== 1;    const verb = flag === "suspended" ? (make ? "Suspend" : "Unsuspend") : (make ? "Hide" : "Unhide");    const reason = flag === "suspended" && make ? suspendReason.trim().slice(0, 200) : "";    if (!confirm(`${verb} @${targetUser.username}?${reason ? ` Reason: ${reason}` : ""}${flag === "suspended" && make ? " They will be logged out and blocked from logging in." : ""}${flag === "hidden" && make ? " Their page and leaderboard entry go 404." : ""}`)) return;    const r = await apiCall(flag === "suspended" ? "admin_suspend" : "admin_hide", { targetUid: targetUser.id, value: make, ...(flag === "suspended" ? { reason } : {}) });    if (r.error) { alert(r.error || "Failed"); return; }    setTargetUser({ ...targetUser, [flag]: make ? 1 : 0, ...(flag === "suspended" ? { suspended_reason: make ? (r.reason ?? reason) : null } : {}) });    if (flag === "suspended" && make) setSuspendReason("");  };  const [suspendReason, setSuspendReason] = useState("");  const doReset = async (kind: "views" | "likes" | "dislikes") => {    if (!targetUser) return;    const reason = prompt(`Reason for resetting ALL ${kind} on @${targetUser.username}? This will be shown to them.`);    if (reason === null) return;    if (!reason.trim()) { alert("Add a reason — it will be shown to the user."); return; }    if (!confirm(`Reset ALL ${kind} on @${targetUser.username}? This wipes the counter to zero and cannot be undone.`)) return;    const r = await apiCall(kind === "views" ? "admin_reset_views" : kind === "likes" ? "admin_reset_likes" : "admin_reset_dislikes", { targetUid: targetUser.id, reason: reason.trim().slice(0, 200) });    if (r.error) { alert(r.error || "Failed"); return; }    alert(`${r.wiped ?? 0} ${kind} wiped.`);  };  const [renameInput, setRenameInput] = useState("");  const doRename = async () => {    if (!targetUser || !renameInput.trim()) return;    if (!confirm(`Rename @${targetUser.username} to @${renameInput.trim().toLowerCase()}? Their old URL stops working.`)) return;    const r = await apiCall("admin_rename", { targetUid: targetUser.id, username: renameInput.trim().toLowerCase() });    if (r.error) { alert(r.error || "Rename failed"); return; }    setTargetUser({ ...targetUser, username: r.username });    setRenameInput("");  };  const deleteTemplate = async () => {    if (!targetUser) return;    if (!confirm(`Remove @${targetUser.username}'s shared template from the gallery?`)) return;    const r = await apiCall("admin_template_delete", { targetUid: targetUser.id });    if (r.error) { alert(r.error || "Failed"); return; }    alert("Template removed from gallery.");  };  const [alts, setAlts] = useState<{ id: number; username: string; alias: string | null; email: string | null; created_at: string }[]>([]);  const [altsIp, setAltsIp] = useState<string | null>(null);  const loadAlts = async () => {    if (!targetUser) return;    const r = await apiCall("admin_alts", { targetUid: targetUser.id });    if (r.error) { alert(r.error || "Failed"); return; }    setAltsIp(r.ip || null);    setAlts(Array.isArray(r.alts) ? r.alts : []);  };  const handleDeleteUser = async () => {    if (!targetUser) return;    if (!confirm(`Are you sure you want to permanently delete @${targetUser.username} (uid #${targetUser.id})? This cannot be undone.`)) return;    setDeletingUser(true);    try {      const r = await apiCall("admin_delete_user", { targetUid: targetUser.id });      if (r.error) { alert(r.error || "Failed to delete user"); setDeletingUser(false); return; }      alert(`User @${targetUser.username} deleted permanently.`);      setTargetUser(null);      setUserBadges([]);      setSearch("");    } catch { alert("Something went wrong"); }    setDeletingUser(false);  };  return (    <div>      <h1 className="text-lg font-semibold text-white/40 mb-8 lowercase">admin — badge management</h1>      <div className="glass-card rounded-2xl p-6 space-y-6">        <div className="flex items-center gap-3">          <input            type="text"            placeholder="search username..."            value={search}            onChange={(e) => setSearch(e.target.value)}            onKeyDown={(e) => e.key === "Enter" && searchUser()}            className="flex-1 bg-white/[0.03] border border-white/[0.06] rounded-xl px-4 py-2.5 text-sm text-white outline-none placeholder:text-white/10 focus:border-blue-500/30 transition-colors"          />          <button onClick={searchUser} disabled={loading} className="shimmer rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-40">            {loading ? "..." : "search"}          </button>        </div>        {msg && <p className="text-sm text-red-400/80">{msg}</p>}        {targetUser && (          <>            <div className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/[0.06]">              <div className="h-8 w-8 rounded-full bg-blue-600/20 flex items-center justify-center text-sm font-bold text-blue-300">                {(targetUser.alias || targetUser.username)[0].toUpperCase()}              </div>              <div>                <p className="text-sm font-semibold text-white">{targetUser.alias || targetUser.username}</p>                <p className="text-xs text-white/40">@{targetUser.username} — uid #{targetUser.id}{Number(targetUser.is_admin || 0) === 1 && <span className="ml-2 text-[10px] font-bold uppercase tracking-widest text-amber-300/80">admin</span>}</p>              </div>              {targetUser.id !== 1 && (                <button                  onClick={toggleAdmin}                  className={`ml-auto px-4 py-1.5 rounded-lg text-[10px] font-bold tracking-widest uppercase border transition-colors cursor-pointer ${                    Number(targetUser.is_admin || 0) === 1                      ? "bg-red-500/10 text-red-300/80 border-red-500/30 hover:bg-red-500/20"                      : "bg-amber-500/10 text-amber-300/80 border-amber-500/30 hover:bg-amber-500/20"                  }`}                >                  {Number(targetUser.is_admin || 0) === 1 ? "remove admin" : "make admin"}                </button>              )}            </div>            <p className="text-sm font-semibold text-white/80">Available badges</p>            <div className="grid grid-cols-2 gap-2">              {BADGE_LIST.map((b) => {                const active = userBadges.includes(b.id);                return (                  <button                    key={b.id}                    onClick={() => toggleBadge(b.id)}                    className={`flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer ${                      active ? "bg-blue-600/20 border-blue-500/40" : "bg-white/[0.02] border-white/[0.06] hover:border-white/20"                    }`}                  >                    <div className="h-7 w-7 rounded-full bg-white/10 flex items-center justify-center overflow-hidden">                      <img src={`/emojis/${b.file}`} alt={b.id} className="h-4 w-4 object-contain" />                    </div>                    <span className={`text-sm font-medium ${active ? "text-blue-300" : "text-white/60"}`}>{b.label || b.id}</span>                    <span className={`ml-auto text-xs ${active ? "text-blue-400" : "text-white/20"}`}>{active ? "active" : "off"}</span>                  </button>                );              })}            </div>            <p className="text-sm font-semibold text-white/80 pt-2">Moderation</p>            {targetUser.id !== 1 && Number(targetUser.suspended || 0) !== 1 && (              <input                type="text"                placeholder="suspension reason (shown to the user)..."                value={suspendReason}                onChange={(e) => setSuspendReason(e.target.value)}                className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl px-4 py-2.5 text-sm text-white outline-none placeholder:text-white/10 focus:border-red-500/30 transition-colors"              />            )}            {Number(targetUser.suspended || 0) === 1 && targetUser.suspended_reason && (              <p className="text-xs text-red-300/70 px-1">suspended for: {targetUser.suspended_reason}</p>            )}            <div className="grid grid-cols-2 gap-2">              {targetUser.id !== 1 && (                <>                  <button                    onClick={() => toggleFlag("suspended")}                    className={`p-3 rounded-xl border text-sm font-medium text-left transition-all cursor-pointer ${                      Number(targetUser.suspended || 0) === 1                        ? "bg-red-600/20 border-red-500/40 text-red-300"                        : "bg-white/[0.02] border-white/[0.06] text-white/60 hover:border-white/20"                    }`}                  >                    {Number(targetUser.suspended || 0) === 1 ? "suspended — click to unsuspend" : "suspend account"}                  </button>                  <button                    onClick={() => toggleFlag("hidden")}                    className={`p-3 rounded-xl border text-sm font-medium text-left transition-all cursor-pointer ${                      Number(targetUser.hidden || 0) === 1                        ? "bg-amber-600/20 border-amber-500/40 text-amber-300"                        : "bg-white/[0.02] border-white/[0.06] text-white/60 hover:border-white/20"                    }`}                  >                    {Number(targetUser.hidden || 0) === 1 ? "hidden — click to unhide" : "hide page + leaderboard"}                  </button>                </>              )}              <button                onClick={deleteTemplate}                className="p-3 rounded-xl border text-sm font-medium text-left transition-all cursor-pointer bg-white/[0.02] border-white/[0.06] text-white/60 hover:border-white/20"              >                remove shared template              </button>              <button                onClick={loadAlts}                className="p-3 rounded-xl border text-sm font-medium text-left transition-all cursor-pointer bg-white/[0.02] border-white/[0.06] text-white/60 hover:border-white/20"              >                find alt accounts              </button>              {targetUser.id !== 1 && (                <>                  <button                    onClick={() => doReset("views")}                    className="p-3 rounded-xl border text-sm font-medium text-left transition-all cursor-pointer bg-white/[0.02] border-white/[0.06] text-white/60 hover:border-white/20"                  >                    reset all views                  </button>                  <button                    onClick={() => doReset("likes")}                    className="p-3 rounded-xl border text-sm font-medium text-left transition-all cursor-pointer bg-white/[0.02] border-white/[0.06] text-white/60 hover:border-white/20"                  >                    reset all likes                  </button>                  <button                    onClick={() => doReset("dislikes")}                    className="p-3 rounded-xl border text-sm font-medium text-left transition-all cursor-pointer bg-white/[0.02] border-white/[0.06] text-white/60 hover:border-white/20"                  >                    reset all dislikes                  </button>                </>              )}            </div>            {altsIp !== null && (              <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.06]">                <p className="text-xs text-white/40 mb-2">signup ip: <span className="text-white/70 font-mono">{altsIp || "unknown"}</span></p>                {alts.length === 0 ? (                  <p className="text-xs text-white/30">no other accounts on this ip</p>                ) : (                  alts.map((a) => (                    <p key={a.id} className="text-xs text-white/60 py-0.5">@{a.username} — uid #{a.id} <span className="text-white/25">{a.created_at?.slice(0, 10)}</span></p>                  ))                )}              </div>            )}            {targetUser.id !== 1 && (              <div className="flex items-center gap-3">                <input                  type="text"                  placeholder="force new username..."                  value={renameInput}                  onChange={(e) => setRenameInput(e.target.value)}                  onKeyDown={(e) => e.key === "Enter" && doRename()}                  className="flex-1 bg-white/[0.03] border border-white/[0.06] rounded-xl px-4 py-2.5 text-sm text-white outline-none placeholder:text-white/10 focus:border-blue-500/30 transition-colors"                />                <button onClick={doRename} className="rounded-xl bg-white/[0.04] border border-white/[0.08] px-5 py-2.5 text-sm font-semibold text-white/70 hover:text-white transition-colors">                  rename                </button>              </div>            )}            <div className="pt-4 border-t border-white/[0.06]">              <button                onClick={handleDeleteUser}                disabled={deletingUser}                className="text-sm text-red-400/60 hover:text-red-400 transition-colors disabled:opacity-40"              >                {deletingUser ? "deleting..." : "delete this user"}              </button>            </div>          </>        )}      </div>    </div>  );}function AdminBanUser() {  const [search, setSearch] = useState("");  const [loading, setLoading] = useState(false);  const [deletingUser, setDeletingUser] = useState(false);  const [msg, setMsg] = useState("");  const [targetUser, setTargetUser] = useState<{ id: number; username: string; alias: string | null } | null>(null);  const searchUser = async () => {    if (!search.trim()) { setMsg("enter a username"); return; }    setLoading(true);    setMsg("");    try {      const token = getSessionToken();      const R = await fetch(`/api/admin-user?u=${encodeURIComponent(search.trim().toLowerCase())}&sessionToken=${encodeURIComponent(token || "")}`);      const J = await R.json().catch(() => null);      if (J?.user) {        setTargetUser({ id: J.user.id, username: J.user.username, alias: J.user.alias });      } else {        setMsg("user not found");        setTargetUser(null);      }    } catch {      setMsg("user not found");      setTargetUser(null);    }    setLoading(false);  };  const handleBanUser = async () => {    if (!targetUser) return;    if (!confirm(`PERMANENTLY ban @${targetUser.username} (uid #${targetUser.id})? All data will be deleted.`)) return;    setDeletingUser(true);    try {      const res = await apiCall("admin_delete_user", { targetUid: targetUser.id });      if (!res.ok) throw new Error(res.error || "Failed");      setMsg("user banned");      setTargetUser(null);      setSearch("");    } catch (e) {      setMsg("ban failed: " + (e as Error).message);    }    setDeletingUser(false);  };  return (    <div>      <h1 className="text-lg font-semibold text-white/40 mb-8 lowercase">admin — ban user</h1>      <div className="glass-card rounded-2xl p-6 space-y-6 max-w-md">        <div className="flex items-center gap-3">          <input            type="text"            placeholder="username to ban..."            value={search}            onChange={(e) => setSearch(e.target.value)}            onKeyDown={(e) => e.key === "Enter" && searchUser()}            className="flex-1 bg-white/[0.03] border border-white/[0.06] rounded-xl px-4 py-2.5 text-sm text-white outline-none placeholder:text-white/10 focus:border-blue-500/30 transition-colors"          />          <button onClick={searchUser} disabled={loading} className="shimmer rounded-xl bg-red-600 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-40">            {loading ? "..." : "search"}          </button>        </div>        {msg && <p className="text-sm text-red-400/80">{msg}</p>}        {targetUser && (          <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20">            <div className="flex items-center gap-3 mb-4">              <div className="h-10 w-10 rounded-full bg-red-600/20 flex items-center justify-center text-lg font-bold text-red-300">                {(targetUser.alias || targetUser.username)[0].toUpperCase()}              </div>              <div>                <p className="text-base font-semibold text-white">{targetUser.alias || targetUser.username}</p>                <p className="text-xs text-white/40">@{targetUser.username} — uid #{targetUser.id}</p>              </div>            </div>            <p className="text-sm text-white/60 mb-4">              This will permanently delete the user and ALL associated data:            </p>            <ul className="text-xs text-white/40 space-y-1 mb-4">              <li>• Profile (alias, bio, avatar, banner, settings)</li>              <li>• All links</li>              <li>• All badges</li>              <li>• Page views & analytics</li>              <li>• Saved templates</li>              <li>• Song settings</li>              <li>• Username becomes available</li>            </ul>            <button              onClick={handleBanUser}              disabled={deletingUser}              className="w-full text-sm bg-red-600 hover:bg-red-700 disabled:opacity-40 py-2.5 rounded-lg text-white font-semibold transition-colors cursor-pointer"            >              {deletingUser ? "banning..." : "ban this user permanently"}            </button>          </div>        )}      </div>    </div>  );}function AdminStats() {  const [stats, setStats] = useState<{ users: number; views: number; views7d: number; files: number; bytes: number; signups30d: { day: string; count: number }[] } | null>(null);  useEffect(() => {    apiCall("admin_stats", {}).then((r) => { if (!r.error) setStats(r); }).catch(() => {});  }, []);  const fmtBytes = (b: number) => b > 1048576 ? `${(b / 1048576).toFixed(2)} MB` : `${(b / 1024).toFixed(1)} KB`;  const maxDay = Math.max(1, ...(stats?.signups30d || []).map((s) => s.count));  return (    <div className="mb-10">      <h1 className="text-lg font-semibold text-white/40 mb-8 lowercase">admin — site stats</h1>      <div className="glass-card rounded-2xl p-6 space-y-6">        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">          {[            { label: "users", value: String(stats?.users ?? "…") },            { label: "total views", value: String(stats?.views ?? "…") },            { label: "views 7d", value: String(stats?.views7d ?? "…") },            { label: "files", value: String(stats?.files ?? "…") },            { label: "storage", value: stats ? fmtBytes(stats.bytes) : "…" },          ].map((s) => (            <div key={s.label} className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] text-center">              <p className="text-xl font-black text-white">{s.value}</p>              <p className="text-[10px] uppercase tracking-widest text-white/30 mt-1">{s.label}</p>            </div>          ))}        </div>        <div>          <p className="text-xs uppercase tracking-widest text-white/30 mb-3">signups last 30 days</p>          <div className="flex items-end gap-1 h-20">            {(stats?.signups30d || []).map((s) => (              <div key={s.day} title={`${s.day}: ${s.count}`} className="flex-1 rounded-sm bg-blue-500/50 min-h-[3px]" style={{ height: `${Math.max(4, (s.count / maxDay) * 100)}%` }} />            ))}            {(stats?.signups30d || []).length === 0 && <p className="text-xs text-white/20">no signups in the last 30 days</p>}          </div>        </div>      </div>    </div>  );}function AdminStorage() {  const [rows, setRows] = useState<{ user_id: number; username: string | null; files: number; bytes: number }[]>([]);  const [openUid, setOpenUid] = useState<number | null>(null);  const [files, setFiles] = useState<{ id: string; kind: string; filename: string; content_type: string; size: number; bytes: number; created_at: string }[]>([]);  const fmtBytes = (b: number) => b > 1048576 ? `${(b / 1048576).toFixed(2)} MB` : `${(b / 1024).toFixed(1)} KB`;  const load = () => {    apiCall("admin_storage", {}).then((r) => { if (!r.error) setRows(r.rows || []); }).catch(() => {});  };  useEffect(load, []);  const openFiles = async (uid: number) => {    if (openUid === uid) { setOpenUid(null); return; }    const r = await apiCall("admin_storage_files", { targetUid: uid });    if (r.error) { alert(r.error || "Failed"); return; }    setFiles(r.files || []);    setOpenUid(uid);  };  const delFile = async (fileId: string, name: string) => {    if (!confirm(`Delete file "${name}"? The user loses it permanently.`)) return;    const r = await apiCall("admin_storage_file_delete", { fileId });    if (r.error) { alert(r.error || "Failed"); return; }    setFiles(files.filter((f) => f.id !== fileId));    load();  };  const wipe = async (uid: number, name: string | null) => {    if (!confirm(`Delete ALL hosted files of @${name || uid}? Their profile images/backgrounds are kept, everything in media + file host is wiped.`)) return;    const r = await apiCall("admin_storage_wipe", { targetUid: uid });    if (r.error) { alert(r.error || "Failed"); return; }    alert(`Wiped ${r.deleted} files.`);    setOpenUid(null);    load();  };  return (    <div className="mb-10">      <h1 className="text-lg font-semibold text-white/40 mb-8 lowercase">admin — storage</h1>      <div className="glass-card rounded-2xl p-6 space-y-3">        {rows.length === 0 && <p className="text-xs text-white/20">no stored files</p>}        {rows.map((r) => (          <div key={r.user_id} className="rounded-xl bg-white/[0.02] border border-white/[0.06] overflow-hidden">            <div className="flex items-center gap-3 p-3">              <div className="min-w-0 flex-1">                <p className="text-sm font-semibold text-white truncate">@{r.username || "?"} <span className="text-white/30 font-normal">— uid #{r.user_id}</span></p>                <p className="text-xs text-white/40">{r.files} files · {fmtBytes(Number(r.bytes))}</p>              </div>              <button onClick={() => openFiles(r.user_id)} className="px-4 py-1.5 rounded-lg text-[10px] font-bold tracking-widest uppercase bg-white/[0.04] text-white/50 border border-white/[0.08] hover:text-white transition-colors cursor-pointer">                {openUid === r.user_id ? "close" : "files"}              </button>              <button onClick={() => wipe(r.user_id, r.username)} className="px-4 py-1.5 rounded-lg text-[10px] font-bold tracking-widest uppercase bg-red-500/10 text-red-300/80 border border-red-500/30 hover:bg-red-500/20 transition-colors cursor-pointer">                wipe              </button>            </div>            {openUid === r.user_id && (              <div className="border-t border-white/[0.06] px-3 py-2 space-y-1">                {files.map((f) => (                  <div key={f.id} className="flex items-center gap-2 py-1">                    <p className="text-xs text-white/60 truncate flex-1 font-mono">{f.filename} <span className="text-white/25">({f.kind} · {fmtBytes(Number(f.bytes))})</span></p>                    <button onClick={() => delFile(f.id, f.filename)} className="text-[11px] text-red-400/60 hover:text-red-400 transition-colors cursor-pointer">delete</button>                  </div>                ))}                {files.length === 0 && <p className="text-xs text-white/20 py-1">no files</p>}              </div>            )}          </div>        ))}      </div>    </div>  );}function AdminLog() {  const [log, setLog] = useState<{ id: number; admin_id: number; admin_name: string | null; action: string; target_uid: number | null; target_name: string | null; detail: string | null; created_at: string }[]>([]);  useEffect(() => {    apiCall("admin_log_list", {}).then((r) => { if (!r.error) setLog(r.log || []); }).catch(() => {});  }, []);  return (    <div className="mb-10">      <h1 className="text-lg font-semibold text-white/40 mb-8 lowercase">admin — action log</h1>      <div className="glass-card rounded-2xl p-6 space-y-1 max-h-96 overflow-y-auto">        {log.length === 0 && <p className="text-xs text-white/20">no admin actions yet</p>}        {log.map((e) => (          <p key={e.id} className="text-xs text-white/50 py-1 border-b border-white/[0.03]">            <span className="text-white/80 font-semibold">@{e.admin_name || `#${e.admin_id}`}</span>            <span className="mx-1.5 px-1.5 py-0.5 rounded bg-white/[0.05] font-mono text-white/70">{e.action}</span>            {e.target_uid !== null && <span>@{e.target_name || `#${e.target_uid}`}</span>}            {e.detail && <span className="text-white/30"> — {e.detail}</span>}            <span className="text-white/20 ml-2">{e.created_at?.replace("T", " ").slice(0, 19)}</span>          </p>        ))}      </div>    </div>  );}function Links({ user }: { user: User | null }) {  const [links, setLinks] = useState<Record<string, string>>({});  const [modal, setModal] = useState<string | null>(null);  const [urlInput, setUrlInput] = useState("");  const [customLabel, setCustomLabel] = useState("");  const [customUrl, setCustomUrl] = useState("");  useEffect(() => {    if (!user) return;    FetchProfile(user.username).then((J) => {      if (!J?.links) return;      setLinks(J.links);    }).catch(() => {});  }, [user]);  const saveLink = async (platform: string, url: string) => {    if (!user) return;    const trimmed = url.trim();    if (!trimmed) return;    const full = trimmed.startsWith("http") ? trimmed : `https://${trimmed}`;    await apiCall("link_upsert", { platform, url: full });    setLinks((prev) => ({ ...prev, [platform]: full }));    setModal(null);    setUrlInput("");  };  const removeLink = async (platform: string) => {    if (!user) return;    await apiCall("link_delete", { platform });    setLinks((prev) => { const n = { ...prev }; delete n[platform]; return n; });  };  const openModal = (platform: string) => {    setUrlInput(links[platform] || "");    setModal(platform);  };  const customLinks = Object.keys(links).filter((k) => !PLATFORMS.some((p) => p.id === k));  const addCustomLink = async () => {    const label = customLabel.trim();    if (!label || !customUrl.trim()) return;    await saveLink(label, customUrl);    setCustomLabel("");    setCustomUrl("");  };  return (    <div>      <h1 className="text-lg font-semibold text-white/40 mb-2 lowercase">Link your social media platforms</h1>      <p className="text-sm text-white/20 mb-8">Pick your favorite social medias to add them to your profile</p>      <div className="glass-card rounded-2xl p-6">        <div className="flex flex-wrap justify-center gap-x-0.5 gap-y-3">          {PLATFORMS.map((p) => {            const connected = !!links[p.id];            return (              <button                key={p.id}                onClick={() => connected ? removeLink(p.id) : openModal(p.id)}                className="relative flex flex-col items-center gap-2 p-2 rounded-xl hover:bg-white/[0.02] transition-all group cursor-pointer"              >                <div className="h-11 w-11 rounded-xl bg-white/[0.06] flex items-center justify-center transition-all group-hover:bg-white/[0.1] group-hover:scale-105">                  <img src={p.logoUrl} alt={p.name} className="h-6 w-6" />                </div>                <span className="text-[10px] text-white/40 font-medium">{p.name}</span>                {connected && (                  <div className="absolute top-1 right-1 h-2 w-2 rounded-full bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.6)]" />                )}              </button>            );          })}        </div>        <div className="mt-6 border-t border-white/[0.06] pt-6">          <div className="flex items-center justify-between mb-3">            <p className="text-sm font-semibold text-white/80">Custom links</p>            <span className="text-xs text-white/20">appears with a link icon on your profile</span>          </div>          <div className="flex gap-2 mb-4">            <input              value={customLabel}              onChange={(e) => setCustomLabel(e.target.value)}              placeholder="Label (e.g. My Shop)"              maxLength={40}              className="w-1/3 bg-white/[0.03] border border-white/[0.06] rounded-lg px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/10 focus:border-blue-500/30 transition-colors"            />            <input              value={customUrl}              onChange={(e) => setCustomUrl(e.target.value)}              placeholder="https://..."              className="flex-1 bg-white/[0.03] border border-white/[0.06] rounded-lg px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/10 focus:border-blue-500/30 transition-colors"            />            <button              onClick={addCustomLink}              disabled={!customLabel.trim() || !customUrl.trim()}              className="text-sm bg-blue-600 hover:bg-blue-500 disabled:opacity-30 disabled:cursor-not-allowed px-4 rounded-lg text-white font-semibold transition-all"            >              add            </button>          </div>          {customLinks.length > 0 ? (            <div className="space-y-2">              {customLinks.map((label) => (                <div key={label} className="flex items-center gap-3 rounded-xl bg-white/[0.03] border border-white/[0.06] px-4 py-2.5">                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/10 text-white shrink-0">                    <LucideLink size={14} />                  </span>                  <div className="min-w-0 flex-1">                    <p className="text-sm text-white/80 truncate">{label}</p>                    <p className="text-xs text-white/30 truncate">{links[label]}</p>                  </div>                  <button                    onClick={() => { setCustomLabel(label); setCustomUrl(links[label]); }}                    className="text-xs text-blue-400 hover:text-blue-300 transition-colors"                  >                    edit                  </button>                  <button onClick={() => removeLink(label)} className="text-white/30 hover:text-red-400 transition-colors">                    <Trash2 size={14} />                  </button>                </div>              ))}            </div>          ) : (            <p className="text-xs text-white/20">No custom links yet — add your own site, shop, or anything else.</p>          )}        </div>      </div>      <AnimatePresence>        {modal && (          <motion.div            initial={{ opacity: 0 }}            animate={{ opacity: 1 }}            exit={{ opacity: 0 }}            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"            onClick={() => { setModal(null); setUrlInput(""); }}          >            <motion.div              initial={{ scale: 0.9, opacity: 0 }}              animate={{ scale: 1, opacity: 1 }}              exit={{ scale: 0.9, opacity: 0 }}              transition={{ type: "spring", duration: 0.3 }}              onClick={(e) => e.stopPropagation()}              className="glass-card rounded-2xl p-6 w-full max-w-sm relative"            >              <button                onClick={() => { setModal(null); setUrlInput(""); }}                className="absolute top-4 right-4 text-white/20 hover:text-white/60 transition-colors"              >                <X size={18} />              </button>              {(() => {                const p = PLATFORMS.find((x) => x.id === modal);                if (!p) return null;                return (                  <>                    <div className="flex items-center gap-3 mb-6">                      <img src={p.logoUrl} alt={p.name} className="h-7 w-7" />                      <p className="text-lg font-semibold text-white">{p.name}</p>                    </div>                    <input                      type="url"                      placeholder="Enter your link"                      value={urlInput}                      onChange={(e) => setUrlInput(e.target.value)}                      autoFocus                      className="w-full bg-white/[0.03] border border-white/[0.06] rounded-lg px-4 py-2.5 text-sm text-white outline-none placeholder:text-white/10 focus:border-blue-500/30 transition-colors mb-4"                    />                    <button                      onClick={() => saveLink(modal, urlInput)}                      disabled={!urlInput.trim()}                      className="w-full text-sm bg-blue-600 hover:bg-blue-500 disabled:opacity-30 disabled:cursor-not-allowed py-2.5 rounded-lg text-white font-semibold transition-all"                    >                      add                    </button>                  </>                );              })()}            </motion.div>          </motion.div>        )}      </AnimatePresence>    </div>  );}type Template = {  user_id: number;  username: string;  alias: string | null;  avatar_url: string;  description: string | null;  accent_color: string | null;  text_color: string | null;  background_color: string | null;  icon_color: string | null;  bg_effect_color: string | null;  primary_color: string | null;  secondary_color: string | null;  display_effect: string | null;  sparkle_intensity?: number | null;  font: string | null;  bg_effect: string | null;  entry_text: string | null;  entry_font: string | null;  entry_color: string | null;  entry_effect: string | null;  monochrome_icons: boolean;  monochrome_badges: boolean;  show_username: boolean;  panel_mouse_follow: boolean;  audio_volume: number;  audio_autoplay: boolean;  audio_loop: boolean;  audio_shuffle: boolean;  cursor_effect: string;  avatar_shape: string | null;  avatar_size: number | null;  avatar_offset_x: number | null;  avatar_offset_y: number | null;  name_offset_x: number | null;  name_offset_y: number | null;  badge_offset_x: number | null;  badge_offset_y: number | null;  tags?: string[];};function Templates({ user, onTab, onUpdateUser }: { user: User | null; onTab: (tab: TabId) => void; onUpdateUser?: (u: User) => void }) {  const [enabled, setEnabled] = useState(false);  const [templates, setTemplates] = useState<(Template & { views?: number })[]>([]);  const [loading, setLoading] = useState(true);  const [stats, setStats] = useState<Record<number, { installs: number; stars: number; recent_installs: number }>>({});  const [favorites, setFavorites] = useState<Set<number>>(new Set());  const [tab, setTab] = useState<"community" | "favorites" | "mine">("community");  const [search, setSearch] = useState("");  const [tagFilter, setTagFilter] = useState<string | null>(null);  const [tags, setTags] = useState<string[]>([]);  const [confirming, setConfirming] = useState(false);  const [tagInput, setTagInput] = useState("");  const [shareError, setShareError] = useState<string | null>(null);  useEffect(() => {    if (!user) return;    setLoading(true);    const token = getSessionToken();    fetch(`/api/templates?sessionToken=${encodeURIComponent(token || "")}`).then(async (R) => {      const J = await R.json().catch(() => null);      if (J?.mine) {        setEnabled(true);        const MineTags = Array.isArray(J.mine.tags) ? J.mine.tags : [];        if (MineTags.length) setTags(MineTags);      } else {        setEnabled(false);      }      if (Array.isArray(J?.templates)) setTemplates(J.templates);      if (J?.stats) {        const map: Record<number, { installs: number; stars: number; recent_installs: number }> = {};        for (const [K, V] of Object.entries(J.stats)) {          const S = V as { installs: number; stars: number; recent_installs: number };          map[Number(K)] = { installs: S.installs, stars: S.stars, recent_installs: S.recent_installs };        }        setStats(map);      }      setLoading(false);    }).catch(() => setLoading(false));    apiCall("template_favorites", {}).then((d) => setFavorites(new Set(d.favorites || [])));  }, [user]);  const addTag = () => {    const t = tagInput.trim().toLowerCase().replace(/\s+/g, "-").slice(0, 20);    if (t && !tags.includes(t) && tags.length < 10) setTags((prev) => [...prev, t]);    setTagInput("");  };  const toggleTemplate = () => {    if (!user) return;    if (enabled) {      setConfirming(false);      apiCall("template_toggle", { on: false });      setEnabled(false);      setTemplates((prev) => prev.filter((t) => t.user_id !== user.id));    } else {      setConfirming(true);    }  };  const confirmShare = async () => {    if (!user) return;    setShareError(null);    const saved = [...tags];    setEnabled(true);    setConfirming(false);    setTags(saved);    const mine: Template & { views?: number } = {      user_id: user.id,      username: user.username,      alias: user.alias,      avatar_url: user.avatar_url,      description: user.description,      accent_color: user.accent_color,      text_color: user.text_color,      background_color: user.background_color,      icon_color: user.icon_color,      bg_effect_color: user.bg_effect_color,      primary_color: user.primary_color,      secondary_color: user.secondary_color,      display_effect: user.display_effect,      font: user.font,      bg_effect: user.bg_effect,      entry_text: user.entry_text,      entry_font: user.entry_font,      entry_color: user.entry_color,      entry_effect: user.entry_effect,      monochrome_icons: user.monochrome_icons,      monochrome_badges: user.monochrome_badges,      show_username: user.show_username,      panel_mouse_follow: user.panel_mouse_follow,      audio_volume: user.audio_volume,      audio_autoplay: user.audio_autoplay,      audio_loop: user.audio_loop,      audio_shuffle: user.audio_shuffle,      cursor_effect: user.cursor_effect,      avatar_shape: user.avatar_shape,      avatar_size: user.avatar_size,      avatar_offset_x: user.avatar_offset_x,      avatar_offset_y: user.avatar_offset_y,      name_offset_x: user.name_offset_x,      name_offset_y: user.name_offset_y,      badge_offset_x: user.badge_offset_x,      badge_offset_y: user.badge_offset_y,      tags: saved,    };    setTemplates((prev) => [mine, ...prev.filter((t) => t.user_id !== user.id)]);    const res = await apiCall("template_toggle", { on: true, tags });    if (res.error) {      setShareError(res.error);      setEnabled(false);      setTemplates((prev) => prev.filter((t) => t.user_id !== user.id));      return;    }    if (Array.isArray(res.tags)) {      setTags(res.tags);      setTemplates((prev) => prev.map((t) => (t.user_id === user.id ? { ...t, tags: res.tags } : t)));    }  };  const saveTags = async () => {    if (!user || !enabled) return;    const saved = [...tags];    setTemplates((prev) => prev.map((t) => (t.user_id === user.id ? { ...t, tags: saved } : t)));    const res = await apiCall("template_toggle", { on: true, tags });    if (res.error) { setShareError(res.error); return; }    if (Array.isArray(res.tags)) {      setTags(res.tags);      setTemplates((prev) => prev.map((t) => (t.user_id === user.id ? { ...t, tags: res.tags } : t)));    }  };  const installTemplate = (t: Template) => {    if (!user) return;    const prev = { ...user };    const data: Record<string, unknown> = {};    const Fields = ["description", "accent_color", "text_color", "background_color", "icon_color", "bg_effect_color", "primary_color", "secondary_color", "display_effect", "font", "bg_effect", "entry_text", "entry_font", "entry_color", "entry_effect", "monochrome_icons", "monochrome_badges", "show_username", "panel_mouse_follow", "audio_volume", "audio_autoplay", "audio_loop", "audio_shuffle", "cursor_effect", "avatar_shape", "avatar_size", "avatar_offset_x", "avatar_offset_y", "name_offset_x", "name_offset_y", "badge_offset_x", "badge_offset_y"];    for (const K of Fields) {      const V = (t as unknown as Record<string, unknown>)[K];      if (V !== undefined && V !== null) data[K] = V;    }    setInstallError(null);    onUpdateUser?.({ ...user, ...(data as Partial<User>) });    onTab("customize");    setStats((prevStats) => ({      ...prevStats,      [t.user_id]: {        installs: (prevStats[t.user_id]?.installs || 0) + 1,        stars: prevStats[t.user_id]?.stars || 0,        recent_installs: (prevStats[t.user_id]?.recent_installs || 0) + 1,      },    }));    apiCall("update", { data }).then((res) => {      if (res.error) { onUpdateUser?.(prev); window.alert(res.error); return; }      apiCall("template_install", { targetUserId: t.user_id });      fetchMe().then((d) => { if (d?.user) onUpdateUser?.(d.user); });    });  };  const refreshStats = () => {    const token = getSessionToken();    fetch(`/api/templates?sessionToken=${encodeURIComponent(token || "")}&_=${Date.now()}`).then(async (R) => {      const J = await R.json().catch(() => null);      if (J?.stats) {        const map: Record<number, { installs: number; stars: number; recent_installs: number }> = {};        for (const [K, V] of Object.entries(J.stats)) {          const S = V as { installs: number; stars: number; recent_installs: number };          map[Number(K)] = { installs: S.installs, stars: S.stars, recent_installs: S.recent_installs };        }        setStats(map);      }    }).catch(() => {});  };  const toggleFavorite = (t: Template) => {    if (!user || t.user_id === user.id) return;    const faved = favorites.has(t.user_id);    const bump = faved ? -1 : 1;    setFavorites((prevFav) => { const s = new Set(prevFav); if (faved) s.delete(t.user_id); else s.add(t.user_id); return s; });    setStats((prevStats) => ({ ...prevStats, [t.user_id]: { ...(prevStats[t.user_id] || { installs: 0, stars: 0, recent_installs: 0 }), stars: Math.max(0, (prevStats[t.user_id]?.stars || 0) + bump) } }));    apiCall(faved ? "template_unfavorite" : "template_favorite", { targetUserId: t.user_id }).then((res) => {      if (res.error) {        setFavorites((prevFav) => { const s = new Set(prevFav); if (faved) s.add(t.user_id); else s.delete(t.user_id); return s; });        setStats((prevStats) => ({ ...prevStats, [t.user_id]: { ...(prevStats[t.user_id] || { installs: 0, stars: 0, recent_installs: 0 }), stars: Math.max(0, (prevStats[t.user_id]?.stars || 0) - bump) } }));        return;      }      refreshStats();    });  };  const allTags = Array.from(new Set(templates.flatMap((t) => t.tags || []))).sort();  const filtered = templates    .filter((t) => {      if (tab === "favorites" && !favorites.has(t.user_id)) return false;      if (tab === "mine" && t.user_id !== user?.id) return false;      if (tagFilter && !(t.tags || []).includes(tagFilter)) return false;      if (search) {        const q = search.toLowerCase();        if (!(t.alias || t.username).toLowerCase().includes(q)) return false;      }      return true;    })    .sort((a, b) => (stats[b.user_id]?.installs || 0) - (stats[a.user_id]?.installs || 0));  return (    <div>      <h1 className="text-lg font-semibold text-white/40 mb-8 lowercase">templates</h1>      <div className="relative rounded-2xl p-6 overflow-hidden mb-8 border border-blue-300/20 bg-gradient-to-br from-white via-blue-200 to-blue-500 shadow-[0_4px_24px_rgba(37,99,235,0.15)]">        <div className="absolute -top-20 -right-20 w-52 h-52 rounded-full bg-blue-400/20 blur-3xl" />        <div className="absolute -bottom-16 -left-16 w-40 h-40 rounded-full bg-white/30 blur-3xl" />        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none" />        <div className="relative flex items-center justify-between">          <div>            <h2 className="text-lg font-bold tracking-tight text-slate-900">              Share Your Template            </h2>            <p className="text-[13px] text-slate-600/80 mt-1.5 font-medium">              {confirming                ? "pick some tags so people can find your template."                : "Do you want your biolink template to be available online?"}            </p>          </div>          <button            onClick={toggleTemplate}            className={`relative h-7 w-12 rounded-full transition-colors shrink-0 ${              enabled || confirming ? "bg-blue-600" : "bg-white/30"            }`}          >            <div className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow-md transition-transform ${              enabled || confirming ? "translate-x-5.5" : "translate-x-0.5"            }`} />          </button>        </div>        {(confirming || enabled) && (          <div className="relative mt-6 border-t border-slate-900/10 pt-5">            <p className="text-xs font-bold text-slate-700 mb-3">              {confirming ? "add tags (optional, up to 10)" : "your template tags"}            </p>            {shareError && (              <p className="text-xs font-bold text-red-600 mb-3">couldn't share: {shareError}</p>            )}            <div className="flex flex-wrap gap-1.5 mb-3">              {tags.length === 0 && (                <span className="text-xs text-slate-500/70 italic">no tags yet</span>              )}              {tags.map((tag) => (                <span key={tag} className="inline-flex items-center gap-1 text-xs font-semibold bg-slate-900/10 text-slate-800 rounded-lg px-2.5 py-1">                  #{tag}                  <button onClick={() => setTags((prev) => prev.filter((t) => t !== tag))} className="hover:text-red-500 transition-colors cursor-pointer">                    <X size={11} />                  </button>                </span>              ))}            </div>            <div className="flex items-center gap-2 flex-wrap">              <input                value={tagInput}                onChange={(e) => setTagInput(e.target.value)}                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addTag(); } }}                placeholder="add a tag..."                className="flex-1 min-w-[140px] bg-white/70 border border-slate-900/10 rounded-lg px-3 py-2 text-xs text-slate-800 outline-none placeholder:text-slate-400 focus:border-blue-500/50 transition-colors"              />              <button onClick={addTag} className="text-xs font-bold bg-slate-900/10 text-slate-800 px-3 py-2 rounded-lg hover:bg-slate-900/20 transition-colors cursor-pointer">                add              </button>              {confirming && (                <>                  <button                    onClick={() => setConfirming(false)}                    className="text-xs font-bold text-slate-500 px-3 py-2 rounded-lg hover:bg-slate-900/10 transition-colors cursor-pointer"                  >                    cancel                  </button>                  <button                    onClick={confirmShare}                    className="shimmer text-xs font-bold bg-blue-600 text-white px-4 py-2 rounded-lg hover:scale-105 active:scale-95 transition-transform cursor-pointer shadow-[0_0_20px_rgba(37,99,235,0.4)]"                  >                    share template                  </button>                </>              )}              {enabled && !confirming && (                <button onClick={saveTags} className="text-xs font-bold bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-500 transition-colors cursor-pointer">                  save tags                </button>              )}            </div>          </div>        )}      </div>      <div className="flex gap-2 mb-4">        {(["community", "favorites", "mine"] as const).map((t) => (          <button            key={t}            onClick={() => setTab(t)}            className={`text-xs px-4 py-2 rounded-xl border font-bold transition-all cursor-pointer ${              tab === t                ? "bg-blue-600/20 border-blue-500/40 text-blue-300"                : "bg-white/[0.03] border-white/10 text-white/40 hover:text-white/60"            }`}          >            {t === "community" ? "community templates" : t === "favorites" ? `favorite templates${favorites.size ? ` (${favorites.size})` : ""}` : "my template"}          </button>        ))}      </div>      <div className="relative mb-4">        <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/25 pointer-events-none" />        <input          value={search}          onChange={(e) => setSearch(e.target.value)}          placeholder="search by display name..."          className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl pl-10 pr-4 py-2.5 text-sm text-white outline-none placeholder:text-white/15 focus:border-blue-500/30 transition-colors"        />      </div>      {allTags.length > 0 && (        <div className="flex flex-wrap gap-1.5 mb-6">          <button            onClick={() => setTagFilter(null)}            className={`text-[11px] font-bold px-3 py-1 rounded-full border transition-all cursor-pointer ${              tagFilter === null                ? "bg-blue-600/20 border-blue-500/40 text-blue-300"                : "bg-white/[0.03] border-white/10 text-white/40 hover:text-white/60"            }`}          >            all          </button>          {allTags.map((tag) => (            <button              key={tag}              onClick={() => setTagFilter(tagFilter === tag ? null : tag)}              className={`text-[11px] font-bold px-3 py-1 rounded-full border transition-all cursor-pointer ${                tagFilter === tag                  ? "bg-blue-600/20 border-blue-500/40 text-blue-300"                  : "bg-white/[0.03] border-white/10 text-white/40 hover:text-white/60"              }`}            >              #{tag}            </button>          ))}        </div>      )}      {loading ? (        <div className="glass-card rounded-2xl p-12 flex items-center justify-center">          <p className="text-sm text-white/20 italic">loading templates...</p>        </div>      ) : filtered.length === 0 ? (        <div className="glass-card rounded-2xl p-12 flex items-center justify-center">          <p className="text-sm text-white/10 italic">            {tab === "mine" ? "you haven't shared a template yet" : tab === "favorites" ? "no favorite templates yet" : "no community templates yet"}          </p>        </div>      ) : (        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">          {filtered.map((t) => {            const s = stats[t.user_id] || { installs: 0, stars: 0, recent_installs: 0 };            const isMine = t.user_id === user?.id;            const isFav = favorites.has(t.user_id);            const trending = !isMine && s.recent_installs >= 3;            return (              <div key={t.user_id} className={`glass-card rounded-2xl border overflow-hidden relative ${isMine ? "border-blue-500/30" : "border-white/10"}`}>                <div className="relative overflow-hidden border-b border-white/10" style={{ height: 160 }}>                  <iframe                    src={`/${t.username}?entry=skip`}                    className="w-full h-full border-0"                    title={`${t.username}'s biolink`}                    loading="lazy"                    sandbox="allow-scripts allow-same-origin"                  />                  <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-black/50 to-transparent" />                  {isMine && (                    <span className="absolute top-2 left-2 z-[1] text-[9px] font-semibold uppercase tracking-wider text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-md backdrop-blur-sm">                      your template                    </span>                  )}                  <button                    onClick={() => toggleFavorite(t)}                    disabled={isMine}                    className={`absolute top-2 right-2 z-[1] h-8 w-8 rounded-full backdrop-blur-sm flex items-center justify-center transition-colors cursor-pointer ${                      isMine ? "bg-black/20 opacity-40 cursor-not-allowed" : "bg-black/40 hover:bg-black/60"                    }`}                    title={isMine ? "your own template" : isFav ? "unfavorite" : "favorite"}                  >                    <Star size={15} className={isFav ? "text-yellow-400" : "text-white/70"} fill={isFav ? "currentColor" : "none"} />                  </button>                </div>                <div className="p-4">                  <div className="flex items-center gap-3 mb-3">                    <div className="h-9 w-9 rounded-full bg-white/10 overflow-hidden shrink-0 border border-white/[0.06]">                      {t.avatar_url ? (                        <img src={t.avatar_url} alt="" className="h-full w-full object-cover" />                      ) : (                        <div className="h-full w-full flex items-center justify-center text-white/30 text-xs font-bold">                          {(t.alias || t.username)[0].toUpperCase()}                        </div>                      )}                    </div>                    <div className="min-w-0">                      <p className="text-sm font-semibold text-white truncate">{t.alias || t.username}</p>                      <p className="text-[10px] text-white/40">@{t.username}</p>                    </div>                  </div>                  <div className="flex items-center justify-between text-[11px] font-bold">                    <span className="flex items-center gap-1 text-white/50 tabular-nums">                      <Clock size={12} /> {s.installs.toLocaleString()} user{s.installs === 1 ? "" : "s"}                    </span>                    <span className="flex items-center gap-2.5">                      {trending && (                        <span className="flex items-center gap-1 text-emerald-400">                          <TrendingUp size={12} /> trending                        </span>                      )}                      <span className="flex items-center gap-1 text-white/50 tabular-nums">                        <Star size={12} className="text-yellow-400" fill="currentColor" /> {s.stars.toLocaleString()}                      </span>                    </span>                  </div>                  {t.tags && t.tags.length > 0 && (                    <div className="flex flex-wrap gap-1 mt-3">                      {t.tags.map((tag) => (                        <span key={tag} className="text-[10px] font-semibold text-blue-300/80 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded-full">                          #{tag}                        </span>                      ))}                    </div>                  )}                  <div className="flex gap-2 mt-4">                    <button                      onClick={() => window.open(`/${t.username}`, "_blank")}                      className="flex-1 text-xs bg-white/10 hover:bg-white/20 border border-white/20 py-2 rounded-lg text-white font-medium transition-all cursor-pointer"                    >                      preview                    </button>                    <button                      onClick={() => installTemplate(t)}                      disabled={isMine}                      className={`flex-1 text-xs py-2 rounded-lg text-white font-medium transition-all cursor-pointer ${                        isMine                          ? "bg-white/5 text-white/20 cursor-not-allowed"                          : "bg-blue-600 hover:bg-blue-500"                      }`}                    >                      {isMine ? "installed" : "install template"}                    </button>                  </div>                </div>              </div>            );          })}        </div>      )}    </div>  );}function ProfileLayouts({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (u: User) => void }) {  const [Saving, SetSaving] = useState<string | null>(null);  const [JustSaved, SetJustSaved] = useState<string | null>(null);  const [Hovered, SetHovered] = useState<string | null>(null);  const Active = user?.profile_layout || "classic";  const LAYOUTS = [    { id: "classic", label: "classic", desc: "centered avatar with name, badges and bio stacked underneath", tag: "default" },    { id: "left", label: "left aligned", desc: "identity and bio hug the left edge of the panel", tag: "clean" },    { id: "split", label: "split", desc: "avatar on the left, name, username and badges beside it", tag: "wide" },    { id: "compact", label: "compact", desc: "small inline avatar beside your identity, tighter spacing", tag: "minimal" },    { id: "badges", label: "badges first", desc: "badge row above the avatar, name and bio below", tag: "flex" },  ];  const Pick = async (Id: string) => {    if (!user) return;    SetSaving(Id);    const { error } = await apiCall("update", { data: { profile_layout: Id } });    SetSaving(null);    if (error) { alert(error); return; }    onUpdateUser?.({ ...user, profile_layout: Id });    SetJustSaved(Id);    setTimeout(() => SetJustSaved(null), 1800);  };  const Shown = Hovered || Active;  const Name = user?.display_name || user?.username || "your name";  const Handle = user?.username || "username";  const Avatar = user?.avatar_url;  const Bio = user?.description || "your bio goes here";  const Tc = user?.text_color || "#ffffff";  const Bc = user?.badge_color || "#3b82f6";  const AvatarEl = ({ size = 40 }: { size?: number }) => (    <div      className="rounded-full overflow-hidden border border-white/20 shrink-0 bg-white/10 flex items-center justify-center"      style={{ width: size, height: size }}    >      {Avatar ? (        <img src={Avatar} alt="" className="w-full h-full object-cover" />      ) : (        <span className="text-white/40 text-xs font-bold">{(Name || "?").charAt(0).toUpperCase()}</span>      )}    </div>  );  const BadgeDots = ({ size = "h-2.5 w-2.5" }: { size?: string }) => (    <div className="flex gap-1">      <span className={`${size} rounded bg-white/40`} />      <span className={`${size} rounded`} style={{ backgroundColor: Bc }} />      <span className={`${size} rounded bg-white/20`} />    </div>  );  const Bar = ({ w = "w-20", h = "h-1.5", c = "bg-white/30" }: { w?: string; h?: string; c?: string }) => (    <span className={`${h} ${w} ${c} rounded`} />  );  const LivePreview = ({ layout }: { layout: string }) => {    if (layout === "split") {      return (        <div className="flex items-start gap-5 w-full max-w-md">          <AvatarEl size={80} />          <div className="flex flex-col items-start gap-2 min-w-0 flex-1">            <span className="text-2xl font-black truncate" style={{ color: Tc }}>{Name}</span>            <span className="text-sm opacity-40" style={{ color: Tc }}>@{Handle}</span>            <BadgeDots size="h-3.5 w-3.5" />            <span className="text-sm opacity-50 mt-1 line-clamp-2" style={{ color: Tc }}>{Bio}</span>          </div>        </div>      );    }    if (layout === "compact") {      return (        <div className="flex items-start gap-4 w-full max-w-md">          <AvatarEl size={56} />          <div className="flex flex-col items-start gap-1 min-w-0 flex-1">            <span className="text-xl font-black truncate" style={{ color: Tc }}>{Name}</span>            <span className="text-sm opacity-40" style={{ color: Tc }}>@{Handle}</span>            <BadgeDots size="h-3 w-3" />            <span className="text-sm opacity-50 mt-1 line-clamp-2" style={{ color: Tc }}>{Bio}</span>          </div>        </div>      );    }    if (layout === "badges") {      return (        <div className="flex flex-col items-center gap-3 w-full max-w-md">          <BadgeDots size="h-4 w-4" />          <AvatarEl size={72} />          <span className="text-2xl font-black" style={{ color: Tc }}>{Name}</span>          <span className="text-sm opacity-40" style={{ color: Tc }}>@{Handle}</span>          <span className="text-sm opacity-50 line-clamp-2 text-center" style={{ color: Tc }}>{Bio}</span>        </div>      );    }    return (      <div className={`flex flex-col gap-3 w-full max-w-md ${layout === "left" ? "items-start" : "items-center"}`}>        <AvatarEl size={76} />        <span className="text-2xl font-black" style={{ color: Tc }}>{Name}</span>        <span className="text-sm opacity-40" style={{ color: Tc }}>@{Handle}</span>        <BadgeDots size="h-3.5 w-3.5" />        <span className="text-sm opacity-50 line-clamp-2 text-center" style={{ color: Tc }}>{Bio}</span>      </div>    );  };  const ThumbPreview = ({ id }: { id: string }) => {    if (id === "split") {      return (        <div className="flex items-center gap-2">          <span className="h-8 w-8 shrink-0 rounded-full bg-blue-500/40 border border-white/20" />          <div className="flex flex-col items-start gap-1">            <Bar w="w-14" h="h-1.5" c="bg-white/40" />            <Bar w="w-9" />            <div className="flex gap-0.5">              <span className="h-1.5 w-1.5 rounded bg-white/30" />              <span className="h-1.5 w-1.5 rounded bg-blue-400/40" />            </div>          </div>        </div>      );    }    if (id === "compact") {      return (        <div className="flex items-center gap-2">          <span className="h-6 w-6 shrink-0 rounded-full bg-blue-500/40 border border-white/20" />          <div className="flex flex-col items-start gap-0.5 flex-1">            <Bar w="w-12" h="h-1.5" c="bg-white/40" />            <Bar w="w-8" />          </div>          <div className="flex gap-0.5">            <span className="h-1.5 w-1.5 rounded bg-white/30" />            <span className="h-1.5 w-1.5 rounded bg-blue-400/40" />          </div>        </div>      );    }    if (id === "badges") {      return (        <div className="flex flex-col items-center gap-1.5">          <div className="flex gap-1">            <span className="h-2 w-2 rounded bg-white/40" />            <span className="h-2 w-2 rounded bg-blue-400/40" />            <span className="h-2 w-2 rounded bg-white/20" />          </div>          <span className="h-7 w-7 rounded-full bg-blue-500/40 border border-white/20" />          <Bar w="w-14" h="h-1.5" c="bg-white/40" />          <Bar w="w-10" />        </div>      );    }    return (      <div className={`flex flex-col gap-1.5 ${id === "left" ? "items-start" : "items-center"}`}>        <span className="h-8 w-8 rounded-full bg-blue-500/40 border border-white/20" />        <Bar w="w-14" h="h-1.5" c="bg-white/40" />        <Bar w="w-10" />        <div className="flex gap-0.5">          <span className="h-1.5 w-1.5 rounded bg-white/30" />          <span className="h-1.5 w-1.5 rounded bg-blue-400/40" />        </div>      </div>    );  };  return (    <div>      <div className="flex items-end justify-between mb-6">        <div>          <h1 className="text-lg font-semibold text-white/80 lowercase">profile layouts</h1>          <p className="text-[11px] text-white/35 mt-1">pick a layout � hover to preview � saves instantly</p>        </div>        {JustSaved && (          <motion.p            initial={{ opacity: 0, y: 6 }}            animate={{ opacity: 1, y: 0 }}            exit={{ opacity: 0 }}            className="text-[11px] text-emerald-400/80"          >            layout saved � refresh your page to see it.          </motion.p>        )}      </div>      <motion.div        layout        className="glass-card rounded-2xl p-6 mb-6 border border-white/[0.08] relative overflow-hidden"      >        <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse at 50% 0%, rgba(59,130,246,0.12) 0%, transparent 70%)" }} />        <div className="relative flex items-center justify-between mb-4">          <span className="text-[10px] uppercase tracking-wider text-white/40 font-semibold">live preview � {Shown}</span>          <span className="text-[10px] text-white/25">{Active === Shown ? "selected" : "previewing"}</span>        </div>        <motion.div          key={Shown}          initial={{ opacity: 0, y: 8 }}          animate={{ opacity: 1, y: 0 }}          transition={{ duration: 0.22 }}          className="rounded-xl bg-black/40 border border-white/[0.06] p-8 min-h-[460px] flex items-center justify-center"        >          <LivePreview layout={Shown} />        </motion.div>      </motion.div>      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">        {LAYOUTS.map((L) => {          const isActive = Active === L.id;          const isSaving = Saving === L.id;          return (            <motion.button              key={L.id}              onClick={() => Pick(L.id)}              onMouseEnter={() => SetHovered(L.id)}              onMouseLeave={() => SetHovered(null)}              disabled={isSaving}              whileHover={{ y: -4, scale: 1.01 }}              whileTap={{ scale: 0.98 }}              transition={{ type: "spring", stiffness: 300, damping: 20 }}              className={`glass-card rounded-2xl p-4 text-left cursor-pointer relative overflow-hidden ${                isActive                  ? "border-blue-500/60 bg-blue-500/[0.08] shadow-[0_0_24px_-6px_rgba(59,130,246,0.5)]"                  : "border-white/[0.08] hover:border-white/20"              } ${isSaving ? "opacity-60" : ""}`}            >              {isActive && (                <motion.div                  layoutId="layout-active-glow"                  className="absolute inset-0 pointer-events-none"                  style={{ background: "radial-gradient(ellipse at 50% 0%, rgba(59,130,246,0.18) 0%, transparent 70%)" }}                />              )}              <div className="relative mb-4 h-28 rounded-xl bg-black/30 border border-white/[0.05] flex items-center justify-center overflow-hidden">                <ThumbPreview id={L.id} />              </div>              <div className="relative flex items-center justify-between">                <div className="flex items-center gap-2">                  <p className="text-sm font-semibold text-white/85 capitalize">{L.label}</p>                  <span className="text-[9px] uppercase tracking-wider text-white/25 border border-white/10 rounded px-1.5 py-0.5">{L.tag}</span>                </div>                {isActive ? (                  <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 400, damping: 15 }}>                    <Check size={15} className="text-blue-400" />                  </motion.span>                ) : isSaving ? (                  <span className="text-[10px] text-white/40">saving...</span>                ) : null}              </div>              <p className="relative mt-1 text-[11px] text-white/30 leading-relaxed">{L.desc}</p>            </motion.button>          );        })}      </div>    </div>  );}function PanelDesign({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (u: User) => void }) {  const [accentColor, setAccentColor] = useState(user?.accent_color || "rgba(255, 255, 255, 0.05)");  const [textColor, setTextColor] = useState(user?.text_color || "#ffffff");  const [backgroundColor, setBackgroundColor] = useState(user?.background_color || "#080808");  const [iconColor, setIconColor] = useState(user?.icon_color || "#ffffff");  const [bgEffectColor, setBgEffectColor] = useState(user?.bg_effect_color || "rgba(255, 255, 255, 0.08)");  const [primaryColor, setPrimaryColor] = useState(user?.primary_color || "rgba(255, 255, 255, 0.1)");  const [secondaryColor, setSecondaryColor] = useState(user?.secondary_color || "rgba(255, 255, 255, 0.15)");  const [glowMode, setGlowMode] = useState(user?.panel_glow_mode || "none");  const [glowColor, setGlowColor] = useState(user?.panel_glow_color || "");  const [glowColor2, setGlowColor2] = useState(user?.panel_glow_color_2 || "");  const [glowSpread, setGlowSpread] = useState(user?.panel_glow_spread ?? 50);  const [pulseOn, setPulseOn] = useState(!!user?.panel_pulse_enabled);  const [pulseColor, setPulseColor] = useState(user?.panel_pulse_color || "#3b82f6");  const [pulseSpeed, setPulseSpeed] = useState(user?.panel_pulse_speed ?? 50);  const [pulseType, setPulseType] = useState<string>(user?.panel_pulse_type || "pulse");  const [panelOpacity, setPanelOpacity] = useState(user?.panel_opacity ?? 100);  const [panelHidden, setPanelHidden] = useState(!!user?.panel_hidden);  const [savingColors, setSavingColors] = useState(false);  const [savingPanel, setSavingPanel] = useState(false);  const [Bg, setBg] = useState<string | null>(null);  const [VideoBg, setVideoBg] = useState<string | null>(null);  const [Avatar, setAvatar] = useState<string | null>(null);  const [Cursor, setCursor] = useState<string | null>(null);  const [AudioAsset, setAudioAsset] = useState<string | null>(null);  const [Banner, setBanner] = useState<string | null>(null);  const [Toast, setToast] = useState<string | null>(null);  useEffect(() => {    if (!Toast) return;    const T = window.setTimeout(() => setToast(null), 2500);    return () => window.clearTimeout(T);  }, [Toast]);  useEffect(() => {    if (!user?.username) return;    (async () => {      try {        const R = await fetch(`/api/profile?username=${encodeURIComponent(user.username)}`, { cache: "no-store" });        const J = await R.json();        for (const a of J?.assets || []) {          if (a.type === "background") setBg(a.url);          if (a.type === "video_background") setVideoBg(a.url);          if (a.type === "profile_avatar") setAvatar(a.url);          if (a.type === "custom_cursor") setCursor(a.url);          if (a.type === "audio" || a.type === "audio_1") setAudioAsset(a.url);          if (a.type === "banner") setBanner(a.url);        }      } catch {}    })();  }, [user?.username]);  useEffect(() => {    if (!user) return;    setAccentColor(user.accent_color || "rgba(255, 255, 255, 0.05)");    setTextColor(user.text_color || "#ffffff");    setBackgroundColor(user.background_color || "#080808");    setIconColor(user.icon_color || "#ffffff");    setBgEffectColor(user.bg_effect_color || "rgba(255, 255, 255, 0.08)");    setPrimaryColor(user.primary_color || "rgba(255, 255, 255, 0.1)");    setSecondaryColor(user.secondary_color || "rgba(255, 255, 255, 0.15)");    setGlowMode(user.panel_glow_mode || "none");    setGlowColor(user.panel_glow_color || "");    setGlowColor2(user.panel_glow_color_2 || "");    setGlowSpread(user.panel_glow_spread ?? 50);    setPulseOn(!!user.panel_pulse_enabled);    setPulseColor(user.panel_pulse_color || "#3b82f6");    setPulseSpeed(user.panel_pulse_speed ?? 50);    setPulseType(user.panel_pulse_type || "pulse");    setPanelOpacity(user.panel_opacity ?? 100);    setPanelHidden(!!user.panel_hidden);  }, [user]);  const SaveColors = async () => {    if (!user) return;    setSavingColors(true);    const Data = {      accent_color: accentColor,      text_color: textColor,      background_color: backgroundColor,      icon_color: iconColor,      bg_effect_color: bgEffectColor,      primary_color: primaryColor,      secondary_color: secondaryColor,      panel_glow_mode: glowMode,      panel_glow_color: glowColor,      panel_glow_color_2: glowColor2,      panel_glow_spread: glowSpread,      panel_pulse_enabled: pulseOn,      panel_pulse_color: pulseColor,      panel_pulse_speed: pulseSpeed,  panel_pulse_type: pulseType,    };    const { error } = await apiCall("update", { data: Data });    if (error) alert(error);    else {      if (onUpdateUser) onUpdateUser({ ...user, ...Data } as User);      setToast("colors saved!");    }    setSavingColors(false);  };  const ResetToGlassy = async () => {    setAccentColor("rgba(255, 255, 255, 0.05)");    setTextColor("#ffffff");    setBackgroundColor("#080808");    setIconColor("#ffffff");    setBgEffectColor("rgba(255, 255, 255, 0.08)");    setPrimaryColor("rgba(255, 255, 255, 0.1)");    setSecondaryColor("rgba(255, 255, 255, 0.15)");    setGlowMode("none");    setGlowColor("");    setGlowColor2("");    setGlowSpread(50);    setPulseOn(false);    setPulseColor("");    setPulseSpeed(50);    setPulseType("pulse");    if (!user) return;    setSavingColors(true);    const Data = {      accent_color: "rgba(255, 255, 255, 0.05)",      text_color: "#ffffff",      background_color: "#080808",      icon_color: "#ffffff",      bg_effect_color: "rgba(255, 255, 255, 0.08)",      primary_color: "rgba(255, 255, 255, 0.1)",      secondary_color: "rgba(255, 255, 255, 0.15)",      panel_glow_mode: "none",      panel_glow_color: "",      panel_glow_color_2: "",      panel_glow_spread: 50,      panel_pulse_enabled: false,      panel_pulse_color: "",      panel_pulse_speed: 50,      panel_pulse_type: "pulse",    };    const { error } = await apiCall("update", { data: Data });    if (!error && onUpdateUser) onUpdateUser({ ...user, ...Data } as User);    setSavingColors(false);  };  const SavePanel = async () => {    if (!user) return;    setSavingPanel(true);    const { error } = await apiCall("update", { data: { panel_opacity: panelOpacity, panel_hidden: panelHidden } });    if (!error) setToast("panel saved!");    setSavingPanel(false);  };  return (    <div className="flex flex-col lg:flex-row lg:gap-8 min-h-[calc(100vh-100px)]">      <div className="lg:w-[45%] flex-1">        <h1 className="text-lg font-semibold text-white/40 mb-8 lowercase">panel design</h1>        <div>          <h3 className="text-sm font-semibold text-white/80 mb-4">Panel Opacity</h3>          <div className="glass-card rounded-2xl p-5 space-y-4">            <div className="flex items-center justify-between">              <span className="text-xs text-white/50 font-semibold uppercase tracking-wider">Panel Opacity</span>              <div className="flex items-center gap-3">                <input type="range" min="0" max="100" value={panelOpacity} onChange={(e) => setPanelOpacity(Number(e.target.value))} className="w-24 h-1 accent-blue-500 cursor-pointer" />                <span className="text-xs text-white/40 w-10 text-right">{panelOpacity}%</span>              </div>            </div>            <div className="flex items-center gap-3 pt-2 border-t border-white/[0.04]">              <p className="text-[10px] text-white/30">0% = fully transparent, 100% = opaque</p>              <label className="flex items-center gap-2 text-xs text-white/50 cursor-pointer">                <Toggle checked={panelHidden} onChange={setPanelHidden} />                Hide panel completely              </label>            </div>            <div className="flex justify-end">              <button onClick={SavePanel} disabled={savingPanel} className="text-xs bg-blue-600 hover:bg-blue-500 disabled:opacity-40 px-4 py-2 rounded-lg text-white font-semibold transition-colors cursor-pointer">                {savingPanel ? "saving..." : "save panel"}              </button>            </div>          </div>        </div>        <div className="mt-8">          <h3 className="text-sm font-semibold text-white/80 mb-4">Color Customization</h3>          <div className="rounded-2xl bg-white/[0.02] border border-white/[0.06] overflow-hidden divide-y divide-white/[0.04]">            {[              { label: "accent color", value: accentColor, onChange: setAccentColor },              { label: "text color", value: textColor, onChange: setTextColor },              { label: "background color", value: backgroundColor, onChange: setBackgroundColor },              { label: "icon color", value: iconColor, onChange: setIconColor },              { label: "bg effect color", value: bgEffectColor, onChange: setBgEffectColor },              { label: "primary color", value: primaryColor, onChange: setPrimaryColor },              { label: "secondary color", value: secondaryColor, onChange: setSecondaryColor },            ].map((c) => (              <div key={c.label} className="flex items-center gap-3 p-3.5">                <span className="w-28 shrink-0 text-xs text-white/55 font-medium">{c.label}</span>                <input                  type="color"                  value={c.value.startsWith("#") ? c.value : "#ffffff"}                  onChange={(e) => c.onChange(e.target.value)}                  className="h-8 w-10 shrink-0 rounded-lg border border-white/[0.1] bg-white/[0.03] cursor-pointer p-0 overflow-hidden"                />                <input                  type="text"                  value={c.value}                  onChange={(e) => c.onChange(e.target.value)}                  className="flex-1 min-w-0 bg-white/[0.03] border border-white/[0.06] rounded-lg px-2.5 py-1.5 text-white/80 outline-none focus:border-blue-500/40 transition-colors font-mono text-xs"                />              </div>            ))}          </div>          <div className="mt-6 rounded-2xl bg-white/[0.02] border border-white/[0.06] p-4 space-y-4">            <div>              <p className="text-sm font-semibold text-white/80">panel glow</p>              <p className="text-[10.5px] text-white/30 mt-0.5">glowing edge around your glass panel.</p>            </div>            <div className="grid grid-cols-3 gap-2">              {["none", "solid", "gradient"].map((M) => (                <button key={M} onClick={() => setGlowMode(M)} className={`py-2 rounded-xl text-xs font-medium border transition-all cursor-pointer ${glowMode === M ? "bg-blue-600/20 border-blue-500/40 text-blue-300" : "bg-white/[0.03] border-white/[0.06] text-white/45 hover:text-white/70 hover:bg-white/[0.06]"}`}>                  {M}                </button>              ))}            </div>            {glowMode !== "none" && (              <>                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">                  {glowMode === "solid" && (                    <div className="flex items-center gap-3">                      <span className="w-20 shrink-0 text-xs text-white/55">color</span>                      <input type="color" value={glowColor.startsWith("#") ? glowColor : "#3b82f6"} onChange={(e) => setGlowColor(e.target.value)} className="h-8 w-10 shrink-0 rounded-lg border border-white/[0.1] bg-white/[0.03] cursor-pointer p-0 overflow-hidden" />                      <input type="text" value={glowColor} onChange={(e) => setGlowColor(e.target.value)} placeholder="#3b82f6" className="flex-1 min-w-0 bg-white/[0.03] border border-white/[0.06] rounded-lg px-2.5 py-1.5 text-white/80 outline-none focus:border-blue-500/40 transition-colors font-mono text-xs" />                    </div>                  )}                  {glowMode === "gradient" && (                    <>                      <div className="flex items-center gap-3">                        <span className="w-20 shrink-0 text-xs text-white/55">color 1</span>                        <input type="color" value={glowColor.startsWith("#") ? glowColor : "#3b82f6"} onChange={(e) => setGlowColor(e.target.value)} className="h-8 w-10 shrink-0 rounded-lg border border-white/[0.1] bg-white/[0.03] cursor-pointer p-0 overflow-hidden" />                        <input type="text" value={glowColor} onChange={(e) => setGlowColor(e.target.value)} placeholder="#3b82f6" className="flex-1 min-w-0 bg-white/[0.03] border border-white/[0.06] rounded-lg px-2.5 py-1.5 text-white/80 outline-none focus:border-blue-500/40 transition-colors font-mono text-xs" />                      </div>                      <div className="flex items-center gap-3">                        <span className="w-20 shrink-0 text-xs text-white/55">color 2</span>                        <input type="color" value={glowColor2.startsWith("#") ? glowColor2 : "#a855f7"} onChange={(e) => setGlowColor2(e.target.value)} className="h-8 w-10 shrink-0 rounded-lg border border-white/[0.1] bg-white/[0.03] cursor-pointer p-0 overflow-hidden" />                        <input type="text" value={glowColor2} onChange={(e) => setGlowColor2(e.target.value)} placeholder="#a855f7" className="flex-1 min-w-0 bg-white/[0.03] border border-white/[0.06] rounded-lg px-2.5 py-1.5 text-white/80 outline-none focus:border-blue-500/40 transition-colors font-mono text-xs" />                      </div>                    </>                  )}                </div>                <div className="flex items-center justify-between">                  <span className="text-xs text-white/55">glow spread</span>                  <div className="flex items-center gap-2">                    <input type="range" min={0} max={100} value={glowSpread} onChange={(e) => setGlowSpread(Number(e.target.value))} className="w-28 h-1 accent-blue-500 cursor-pointer" />                    <span className="text-[10px] font-mono text-white/40 w-8 text-right">{glowSpread}%</span>                  </div>                </div>                <p className="text-[10.5px] text-white/30">spread controls how far the glow bleeds out. hit save colors to apply.</p>              </>            )}            <div className="pt-4 border-t border-white/[0.06] space-y-3">              <div className="flex items-center justify-between">                <div>                  <p className="text-xs font-semibold text-white/80">edge pulse</p>                  <p className="text-[10.5px] text-white/30">pick an effect and it travels around the panel edge.</p>                </div>                <Toggle checked={pulseOn} onChange={(V) => setPulseOn(V)} />              </div>              {pulseOn && (                <>                  <div className="grid grid-cols-4 sm:grid-cols-8 gap-1.5">                    {["pulse", "lightning", "flowers", "snow", "fire", "stars", "hearts", "halloween"].map((E) => (                      <button key={E} onClick={() => setPulseType(E)} className={`py-1.5 rounded-lg text-[10px] font-medium border transition-all cursor-pointer ${pulseType === E ? "bg-blue-600/20 border-blue-500/40 text-blue-300" : "bg-white/[0.03] border-white/[0.06] text-white/45 hover:text-white/70 hover:bg-white/[0.06]"}`}>                        {E}                      </button>                    ))}                  </div>                  <div className="flex items-center gap-3">                    <span className="w-20 shrink-0 text-xs text-white/55">color</span>                    <input type="color" value={pulseColor.startsWith("#") ? pulseColor : "#3b82f6"} onChange={(e) => setPulseColor(e.target.value)} className="h-8 w-10 shrink-0 rounded-lg border border-white/[0.1] bg-white/[0.03] cursor-pointer p-0 overflow-hidden" />                    <input type="text" value={pulseColor} onChange={(e) => setPulseColor(e.target.value)} placeholder="#3b82f6" className="flex-1 min-w-0 bg-white/[0.03] border border-white/[0.06] rounded-lg px-2.5 py-1.5 text-white/80 outline-none focus:border-blue-500/40 transition-colors font-mono text-xs" />                  </div>                  <div className="flex items-center justify-between">                    <span className="text-xs text-white/55">pulse speed</span>                    <div className="flex items-center gap-2">                      <input type="range" min={0} max={100} value={pulseSpeed} onChange={(e) => setPulseSpeed(Number(e.target.value))} className="w-28 h-1 accent-blue-500 cursor-pointer" />                      <span className="text-[10px] font-mono text-white/40 w-8 text-right">{pulseSpeed}%</span>                    </div>                  </div>                  <p className="text-[10.5px] text-white/30">higher speed = faster laps around the panel. hit save colors to apply.</p>                </>              )}            </div>          </div>          <div className="mt-4 flex justify-end gap-3">            <button onClick={ResetToGlassy} disabled={savingColors} className="text-xs bg-white/[0.05] hover:bg-white/[0.1] border border-white/[0.1] disabled:opacity-40 px-4 py-2 rounded-lg text-white transition-colors cursor-pointer">              reset to glassy            </button>            <button onClick={SaveColors} disabled={savingColors} className="text-xs bg-blue-600 hover:bg-blue-500 disabled:opacity-40 px-4 py-2 rounded-lg text-white transition-colors cursor-pointer">              {savingColors ? "saving..." : "save colors"}            </button>          </div>        </div>      </div>      <div className="lg:w-[55%] flex-1 space-y-6">        <Preview user={user} desc={user?.description || ""} descEffect={(user as any)?.desc_effect || "none"} descSpeed={user?.desc_effect_speed ?? 50} descLines={user?.desc_lines?.length ? user.desc_lines : (user?.description ? [user.description] : [])} background={Bg} audio={AudioAsset} profileAvatar={Avatar} customCursor={Cursor} displayEffect={user?.display_effect ?? "none"} sparkleIntensity={user?.sparkle_intensity ?? 14} font={user?.font ?? "Inter"} customFontUrl={(user as any)?.custom_font_url ?? null} customFontName={(user as any)?.custom_font_name ?? null} fontScope={(user as any)?.custom_font_scope ?? "all"} videoBg={VideoBg} videoAudio={null} bgEffect={(user as any)?.bg_effect ?? "none"} avatarShape={(user as any)?.avatar_shape ?? "circle"} avatarSize={(user as any)?.avatar_size ?? 48} avatarOffsetX={(user as any)?.avatar_offset_x ?? 0} avatarOffsetY={(user as any)?.avatar_offset_y ?? 0} onAvatarOffsetChange={() => {}} banner={Banner} bannerEnabled={user?.banner_enabled ?? true} entryText={user?.entry_text || "click anywhere to enter"} entryFont={user?.entry_font || "Inter"} entryColor={user?.entry_color || "rgba(255,255,255,0.5)"} entryEffect={user?.entry_effect || "none"} songPlatform={(user as any)?.song_platform ?? ""} songId={(user as any)?.song_id ?? ""} showUsername={user?.show_username !== false} primaryColor={primaryColor} secondaryColor={secondaryColor} accentColor={accentColor} textColor={textColor} backgroundColor={backgroundColor} iconColor={iconColor} bgEffectColor={bgEffectColor} panelMouseFollow={!!user?.panel_mouse_follow} cursorEffect={user?.cursor_effect || "none"} nameOffsetX={(user as any)?.name_offset_x ?? 0} nameOffsetY={(user as any)?.name_offset_y ?? 0} onNameOffsetChange={() => {}} badgeOffsetX={(user as any)?.badge_offset_x ?? 0} badgeOffsetY={(user as any)?.badge_offset_y ?? 0} onBadgeOffsetChange={() => {}} descOffsetX={(user as any)?.desc_offset_x ?? 0} descOffsetY={(user as any)?.desc_offset_y ?? 0} onDescOffsetChange={() => {}} songOffsetX={(user as any)?.song_offset_x ?? 0} songOffsetY={(user as any)?.song_offset_y ?? 0} onSongOffsetChange={() => {}} rpcOffsetX={(user as any)?.rpc_offset_x ?? 0} rpcOffsetY={(user as any)?.rpc_offset_y ?? 0} onRpcOffsetChange={() => {}} badges={[]} panelOpacity={panelOpacity} panelHidden={panelHidden} glowMode={glowMode} glowColor={glowColor} glowColor2={glowColor2} glowSpread={glowSpread} pulseEnabled={pulseOn} pulseColor={pulseColor} pulseSpeed={pulseSpeed} pulseType={pulseType} discordId={null} discordRpcEnabled={false} />      </div>    {Toast ? (      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[300] bg-black/85 border border-white/10 text-white/90 text-xs px-4 py-2 rounded-lg shadow-lg">{Toast}</div>    ) : null}    </div>  );}function Visibility({ user }: { user: User | null }) {  const [seoTitle, setSeoTitle] = useState(user?.seo_title || "");  const [seoDescription, setSeoDescription] = useState(user?.seo_description || "");  const [seoImage, setSeoImage] = useState(user?.seo_image || "");  const [seoFavicon, setSeoFavicon] = useState(user?.seo_favicon || "");  const [embedBtns, setEmbedBtns] = useState<{ label: string; url: string }[]>(() => {    let raw: unknown = user?.embed_buttons;    if (typeof raw === "string") {      try { raw = JSON.parse(raw); } catch { raw = []; }    }    const arr = Array.isArray(raw) ? raw : [];    return [0, 1, 2, 3].map((i) => ({      label: String(arr[i]?.label || ""),      url: String(arr[i]?.url || ""),    }));  });  const [saving, setSaving] = useState(false);  const [saved, setSaved] = useState(false);  const save = async () => {    if (!user) return;    setSaving(true);    const { error } = await apiCall("update", {      data: {        seo_title: seoTitle || null,        seo_description: seoDescription || null,        seo_image: seoImage || null,        seo_favicon: seoFavicon || null,        embed_buttons: embedBtns.filter((b) => b.label.trim() || b.url.trim()),      },    });    if (error) console.error("seo save error:", error);    setSaving(false);    setSaved(true);    setTimeout(() => setSaved(false), 2000);  };  return (    <div>      <h1 className="text-lg font-semibold text-white/40 mb-8 lowercase">visibility</h1>      <div className="glass-card rounded-2xl p-8 bg-blue-500/[0.04] border-blue-500/10 space-y-6">        <div>          <p className="text-sm font-semibold text-white/80 mb-1">SEO Title</p>          <p className="text-[11px] text-white/30 mb-3">Shown as the blue clickable link title when your profile is shared on Discord, Twitter, etc.</p>          <input            value={seoTitle}            onChange={(e) => setSeoTitle(e.target.value)}            placeholder={user?.display_name || user?.username || "Your profile"}            className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl px-4 py-3 text-sm text-white outline-none placeholder:text-white/10 focus:border-blue-500/30 transition-colors"          />        </div>        <div>          <p className="text-sm font-semibold text-white/80 mb-1">SEO Description</p>          <p className="text-[11px] text-white/30 mb-3">The description text shown below the title in link embeds.</p>          <textarea            value={seoDescription}            onChange={(e) => setSeoDescription(e.target.value)}            placeholder={user?.description || "Write something about yourself..."}            rows={3}            className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl px-4 py-3 text-sm text-white outline-none placeholder:text-white/10 focus:border-blue-500/30 transition-colors resize-none"          />        </div>        <div>          <p className="text-sm font-semibold text-white/80 mb-1">SEO Image URL</p>          <p className="text-[11px] text-white/30 mb-3">The large image shown below the link embed. Paste any image URL.</p>          <input            value={seoImage}            onChange={(e) => setSeoImage(e.target.value)}            placeholder="https://example.com/image.png"            className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl px-4 py-3 text-sm text-white outline-none placeholder:text-white/10 focus:border-blue-500/30 transition-colors"          />          {seoImage && (            <div className="mt-3 rounded-xl overflow-hidden border border-white/[0.06]">              <img src={seoImage} alt="" className="w-full max-h-48 object-cover" onError={(e) => (e.currentTarget.style.display = "none")} />            </div>          )}        </div>        <div>          <p className="text-sm font-semibold text-white/80 mb-1">Tab Icon (Favicon)</p>          <p className="text-[11px] text-white/30 mb-3">The icon shown in the browser tab for your biolink page.</p>          <input            value={seoFavicon}            onChange={(e) => setSeoFavicon(e.target.value)}            placeholder="https://example.com/favicon.png"            className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl px-4 py-3 text-sm text-white outline-none placeholder:text-white/10 focus:border-blue-500/30 transition-colors"          />          {seoFavicon && (            <div className="mt-3 flex items-center gap-3 rounded-xl bg-white/[0.02] border border-white/[0.06] px-4 py-3">              <img src={seoFavicon} alt="" className="h-8 w-8 rounded object-cover" onError={(e) => (e.currentTarget.style.display = "none")} />              <span className="text-xs text-white/40">preview</span>            </div>          )}        </div>        <div>          <p className="text-sm font-semibold text-white/80 mb-1">Discord buttons</p>          <p className="text-[11px] text-white/30 mb-3">Up to 4 link buttons shown under your Discord embed. Empty rows are skipped.</p>          <div className="space-y-2">            {embedBtns.map((b, i) => (              <div key={i} className="flex gap-2">                <input                  value={b.label}                  onChange={(e) => setEmbedBtns(embedBtns.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))}                  placeholder={`Button ${i + 1} name`}                  maxLength={80}                  className="w-1/3 bg-white/[0.03] border border-white/[0.06] rounded-xl px-4 py-2.5 text-sm text-white outline-none placeholder:text-white/10 focus:border-blue-500/30 transition-colors"                />                <input                  value={b.url}                  onChange={(e) => setEmbedBtns(embedBtns.map((x, j) => (j === i ? { ...x, url: e.target.value } : x)))}                  placeholder="https://..."                  className="flex-1 bg-white/[0.03] border border-white/[0.06] rounded-xl px-4 py-2.5 text-sm text-white outline-none placeholder:text-white/10 focus:border-blue-500/30 transition-colors"                />              </div>            ))}          </div>        </div>        <div>          <p className="text-sm font-semibold text-white/80 mb-1">Discord preview</p>          <p className="text-[11px] text-white/30 mb-3">Live preview of how your link looks when pasted in Discord.</p>          <div className="rounded-lg overflow-hidden" style={{ backgroundColor: "#2b2d31" }}>            <div className="flex" style={{ borderLeft: `3px solid #3b82f6` }}>              <div className="flex-1 min-w-0 px-4 py-3">                <div className="flex items-start gap-3">                  <div className="flex-1 min-w-0">                    <p className="text-[13px] font-semibold text-white leading-snug">                      {seoTitle || user?.display_name || user?.username || "Your profile"}                    </p>                    <p className="text-[13px] mt-1 leading-snug" style={{ color: "#b5bac1" }}>                      {seoDescription || user?.description || "your bio shows here"}                    </p>                  </div>                  <img src="/api/embed?mode=thumb" alt="" className="h-16 w-16 rounded-lg shrink-0 object-cover" />                </div>                <div className="mt-3 rounded-lg overflow-hidden">                  <img                    src={seoImage || (user?.username ? `/api/og?username=${encodeURIComponent(user.username)}` : "")}                    alt=""                    className="w-full max-h-56 object-cover"                    onError={(e) => (e.currentTarget.style.display = "none")}                  />                </div>                {embedBtns.some((x) => x.label.trim() || x.url.trim()) && (                  <div className="mt-3 flex flex-wrap gap-2">                    {embedBtns.filter((x) => x.label.trim() || x.url.trim()).map((x, j) => (                      <span                        key={j}                        className="inline-flex items-center gap-1.5 rounded px-3 py-1.5 text-[13px] font-medium text-white"                        style={{ backgroundColor: "#4e5058" }}                      >                        {x.label.trim() || (() => { try { return new URL(x.url).hostname.replace(/^www\./, ""); } catch { return "open"; } })()}                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M7 17L17 7" /><path d="M8 7h9v9" /></svg>                      </span>                    ))}                  </div>                )}              </div>            </div>          </div>        </div>        <div className="flex justify-end pt-2">          <button            onClick={save}            disabled={saving}            className="text-xs bg-blue-600 hover:bg-blue-500 disabled:opacity-40 px-4 py-2 rounded-lg text-white font-semibold transition-all cursor-pointer"          >            {saving ? "saving..." : saved ? "saved!" : "save"}          </button>        </div>      </div>    </div>  );}function Placeholder({ title }: { title: string }) {  return (    <div>      <h1 className="text-lg font-semibold text-white/40 mb-8 lowercase">{title}</h1>      <div className="glass-card rounded-2xl p-12 flex items-center justify-center">        <p className="text-sm text-white/10 italic">nothing here yet</p>      </div>    </div>  );}type HostedFile = {  id: string;  kind: "media" | "file";  filename: string;  content_type: string;  size: number;  views: number;  created_at: string;  url: string;};function Premium({ user }: { user: User | null }) {  const [premium, setPremium] = useState(false);  const [loaded, setLoaded] = useState(false);  useEffect(() => {    if (!user) return;    FetchProfile(user.username).then((J) => {      setPremium(Array.isArray(J?.badges) && J.badges.includes("premium"));      setLoaded(true);    }).catch(() => setLoaded(true));  }, [user]);  return (    <div className="relative">      <div className="absolute inset-0 pointer-events-none -z-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_0%,rgba(37,99,235,0.12),transparent_70%)]" />      <div className="relative z-10">        <div className="flex items-center gap-3 mb-8">          <h1 className="text-lg font-semibold text-gradient-blue lowercase">premium</h1>          <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-blue-300 bg-blue-600/15 border border-blue-500/30 rounded-full px-2.5 py-1 shadow-[0_0_15px_rgba(37,99,235,0.25)]">            <Crown size={10} /> premium          </span>        </div>        <div className="relative shine-effect rounded-2xl p-10 border border-blue-500/30 bg-gradient-to-br from-blue-600/15 via-blue-500/5 to-white/5 flex flex-col items-center justify-center gap-3 text-center glow-blue">          <div className="absolute inset-0 rounded-2xl bg-[radial-gradient(ellipse_60%_40%_at_50%_0%,rgba(255,255,255,0.1),transparent_70%)] pointer-events-none" />          {loaded && premium ? (            <>              <img src="/emojis/premium.webp" alt="premium" className="relative h-14 w-14 object-contain drop-shadow-[0_0_15px_rgba(37,99,235,0.5)]" />              <p className="relative text-gradient-blue font-bold text-lg">you have premium</p>              <p className="relative text-sm text-white/50">thanks for supporting sire.lol.</p>            </>          ) : (            <>              <div className="relative h-14 w-14 rounded-2xl bg-blue-600/20 border border-blue-400/40 flex items-center justify-center shadow-[0_0_25px_rgba(37,99,235,0.4)]">                <Crown size={22} className="text-blue-300" />              </div>              <p className="relative text-gradient-blue font-bold text-lg">you're on the free plan</p>              <p className="relative text-sm text-white/50 max-w-sm">premium unlocks 4 widget pages, exclusive effects, the premium badge, and more.</p>            </>          )}        </div>        <div className="mt-8">          <p className="text-sm font-semibold text-white/80 mb-4">included features</p>          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">            <div className="group relative rounded-2xl overflow-hidden border border-blue-500/20 bg-white/[0.03] p-4 transition-all hover:border-blue-400/50 hover:shadow-[0_0_30px_rgba(37,99,235,0.25)]">              <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-blue-400/60 to-transparent" />              <div className="flex items-center gap-2">                <Image size={15} className="text-blue-300" />                <span className="text-sm font-semibold text-white/80">media host</span>                {loaded && (                  <span className={`ml-auto text-[10px] font-bold uppercase tracking-widest rounded-full px-2 py-0.5 ${                    premium                      ? "text-green-300 bg-green-600/15 border border-green-500/30"                      : "text-blue-300 bg-blue-600/15 border border-blue-500/30"                  }`}>                    {premium ? "unlocked" : "premium"}                  </span>                )}              </div>              <p className="text-[11px] text-white/40 mt-1">upload images, videos and audio up to 10mb, get a sire.lol link for each one.</p>            </div>            <div className="group relative rounded-2xl overflow-hidden border border-blue-500/20 bg-white/[0.03] p-4 transition-all hover:border-blue-400/50 hover:shadow-[0_0_30px_rgba(37,99,235,0.25)]">              <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-blue-400/60 to-transparent" />              <div className="flex items-center gap-2">                <HardDrive size={15} className="text-blue-300" />                <span className="text-sm font-semibold text-white/80">file host</span>                {loaded && (                  <span className={`ml-auto text-[10px] font-bold uppercase tracking-widest rounded-full px-2 py-0.5 ${                    premium                      ? "text-green-300 bg-green-600/15 border border-green-500/30"                      : "text-blue-300 bg-blue-600/15 border border-blue-500/30"                  }`}>                    {premium ? "unlocked" : "premium"}                  </span>                )}              </div>              <p className="text-[11px] text-white/40 mt-1">share any file up to 10mb from sire.lol/f links.</p>            </div>            <div className="group relative rounded-2xl overflow-hidden border border-blue-500/20 bg-white/[0.03] p-4 transition-all hover:border-blue-400/50 hover:shadow-[0_0_30px_rgba(37,99,235,0.25)]">              <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-blue-400/60 to-transparent" />              <div className="flex items-center gap-2">                <Award size={15} className="text-blue-300" />                <span className="text-sm font-semibold text-white/80">profile badge</span>                {loaded && (                  <span className={`ml-auto text-[10px] font-bold uppercase tracking-widest rounded-full px-2 py-0.5 ${                    premium                      ? "text-green-300 bg-green-600/15 border border-green-500/30"                      : "text-blue-300 bg-blue-600/15 border border-blue-500/30"                  }`}>                    {premium ? "unlocked" : "premium"}                  </span>                )}              </div>              <p className="text-[11px] text-white/40 mt-1">show the exclusive premium badge on your biolink.</p>            </div>            <div className="group relative rounded-2xl overflow-hidden border border-blue-500/20 bg-white/[0.03] p-4 transition-all hover:border-blue-400/50 hover:shadow-[0_0_30px_rgba(37,99,235,0.25)]">              <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-blue-400/60 to-transparent" />              <div className="flex items-center gap-2">                <Layers size={15} className="text-blue-300" />                <span className="text-sm font-semibold text-white/80">background effects</span>                {loaded && (                  <span className={`ml-auto text-[10px] font-bold uppercase tracking-widest rounded-full px-2 py-0.5 ${                    premium                      ? "text-green-300 bg-green-600/15 border border-green-500/30"                      : "text-blue-300 bg-blue-600/15 border border-blue-500/30"                  }`}>                    {premium ? "unlocked" : "premium"}                  </span>                )}              </div>              <p className="text-[11px] text-white/40 mt-1">premium bg effects: particles, galaxy, matrix, spotlight.</p>            </div>            <div className="group relative rounded-2xl overflow-hidden border border-blue-500/20 bg-white/[0.03] p-4 transition-all hover:border-blue-400/50 hover:shadow-[0_0_30px_rgba(37,99,235,0.25)]">              <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-blue-400/60 to-transparent" />              <div className="flex items-center gap-2">                <Type size={15} className="text-blue-300" />                <span className="text-sm font-semibold text-white/80">profile effects</span>                {loaded && (                  <span className={`ml-auto text-[10px] font-bold uppercase tracking-widest rounded-full px-2 py-0.5 ${                    premium                      ? "text-green-300 bg-green-600/15 border border-green-500/30"                      : "text-blue-300 bg-blue-600/15 border border-blue-500/30"                  }`}>                    {premium ? "unlocked" : "premium"}                  </span>                )}              </div>              <p className="text-[11px] text-white/40 mt-1">premium name effects: glitch, neon, gradient flow, shine sweep.</p>            </div>            <div className="relative rounded-2xl border border-white/10 bg-white/[0.02] p-4">              <div className="flex items-center gap-2">                <Crown size={15} className="text-white/30" />                <span className="text-sm font-semibold text-white/40">more coming soon</span>              </div>              <p className="text-[11px] text-white/20 mt-1">new premium perks are on the way.</p>            </div>          </div>        </div>      </div>    </div>  );}function HostManager({  user,  kind,  title,  accept,  hint,  emptyText,  lockedDesc,}: {  user: User | null;  kind: "media" | "file";  title: string;  accept: string;  hint: string;  emptyText: string;  lockedDesc: string;}) {  const [loaded, setLoaded] = useState(false);  const [premium, setPremium] = useState(false);  const [premiumChecked, setPremiumChecked] = useState(false);  const [items, setItems] = useState<HostedFile[]>([]);  const [uploading, setUploading] = useState(false);  const [error, setError] = useState("");  const [copied, setCopied] = useState("");  const inputRef = useRef<HTMLInputElement>(null);  useEffect(() => {    if (!user) return;    loadItems().finally(() => setLoaded(true));    FetchProfile(user.username).then((J) => {      setPremium(Array.isArray(J?.badges) && J.badges.includes("premium"));      setPremiumChecked(true);    }).catch(() => setPremiumChecked(true));  }, [user]);  const loadItems = async () => {    const token = getSessionToken();    if (!token) return;    try {      const r = await fetch(`/api/me?action=hostList&sessionToken=${encodeURIComponent(token)}`);      if (!r.ok) { setError("Couldn't load your files (server returned " + r.status + ")."); return; }      const d = await r.json();      if (d.items) setItems(d.items);    } catch {      setError("Couldn't load your files. Try again later.");    }  };  useEffect(() => {    loadItems();  }, [user]);  const upload = async (file: File) => {    setError("");    if (file.size > 10 * 1024 * 1024) { setError("File too large (max 10MB). Please compress your file to reduce the file size and try again."); return; }    setUploading(true);    try {      await uploadFile(file, kind);      await loadItems();    } catch (e) {      setError(e instanceof Error ? e.message : "Upload failed. Try again.");    } finally {      setUploading(false);    }  };  const remove = async (id: string) => {    const token = getSessionToken();    await fetch(`/api/me?action=hostDelete&id=${encodeURIComponent(id)}&sessionToken=${encodeURIComponent(token)}`, { method: "DELETE" });    setItems(items.filter((i) => i.id !== id));  };  const copy = async (url: string) => {    try {      await navigator.clipboard.writeText(url);      setCopied(url);      setTimeout(() => setCopied(""), 1500);    } catch {}  };  const formatSize = (bytes: number) => {    if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)}mb`;    if (bytes >= 1024) return `${Math.round(bytes / 1024)}kb`;    return `${bytes}b`;  };  if (premiumChecked && !premium) {    return (      <div className="relative">        <div className="absolute inset-0 pointer-events-none -z-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_0%,rgba(37,99,235,0.12),transparent_70%)]" />        <div className="relative z-10 flex flex-col items-center justify-center text-center py-20 gap-4">          <div className="h-14 w-14 rounded-2xl bg-blue-600/20 border border-blue-400/40 flex items-center justify-center shadow-[0_0_25px_rgba(37,99,235,0.4)]">            <Crown size={24} className="text-blue-300" />          </div>          <h1 className="text-lg font-semibold text-gradient-blue lowercase">{title} is premium</h1>          <p className="text-sm text-white/50 max-w-sm">{lockedDesc}</p>        </div>      </div>    );  }  return (    <div className="relative">      <div className="absolute inset-0 pointer-events-none -z-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_0%,rgba(37,99,235,0.12),transparent_70%)]" />      <div className="relative z-10">        <div className="flex items-center gap-3 mb-8">          <h1 className="text-lg font-semibold text-gradient-blue lowercase">{title}</h1>        </div>        <div          className="relative shine-effect rounded-2xl p-10 border border-blue-500/30 bg-gradient-to-br from-blue-600/15 via-blue-500/5 to-white/5 flex flex-col items-center justify-center gap-3 text-center cursor-pointer transition-all hover:border-blue-400/60 hover:shadow-[0_0_45px_rgba(37,99,235,0.35)] glow-blue"          onClick={() => inputRef.current?.click()}          onDragOver={(e) => e.preventDefault()}          onDrop={(e) => {            e.preventDefault();            const file = e.dataTransfer.files?.[0];            if (file) upload(file);          }}        >          <div className="absolute inset-0 rounded-2xl bg-[radial-gradient(ellipse_60%_40%_at_50%_0%,rgba(255,255,255,0.12),transparent_70%)] pointer-events-none" />          <div className="relative h-12 w-12 rounded-xl bg-blue-600/20 border border-blue-400/40 flex items-center justify-center shadow-[0_0_20px_rgba(37,99,235,0.4)]">            {uploading ? (              <span className="h-5 w-5 border-2 border-blue-300 border-t-transparent rounded-full animate-spin" />            ) : (              <Upload size={20} className="text-blue-300" />            )}          </div>          <p className="relative text-sm text-white/80">            {uploading              ? "uploading..."              : kind === "media"                ? "drop an image or video here, or click to browse"                : "drop a file here, or click to browse"}          </p>          <p className="relative text-[11px] text-blue-200/50">{hint}</p>          {error && <p className="relative text-xs text-red-400">{error}</p>}          <input            ref={inputRef}            type="file"            accept={accept}            className="hidden"            onChange={(e) => {              const file = e.target.files?.[0];              if (file) upload(file);              e.target.value = "";            }}          />        </div>        <div className="mt-8">          <p className="text-sm font-semibold text-white/80 mb-4">your files ({items.length})</p>          {items.length === 0 ? (            <div className="glass-card rounded-2xl p-8 flex items-center justify-center border-blue-500/10">              <p className="text-sm text-white/15 italic">{emptyText}</p>            </div>          ) : (            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">              {items.map((item) => (                <div key={item.id} className="group relative rounded-2xl overflow-hidden border border-blue-500/20 bg-white/[0.03] transition-all hover:border-blue-400/50 hover:shadow-[0_0_30px_rgba(37,99,235,0.25)]">                  <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-blue-400/60 to-transparent" />                  <div className="h-32 bg-[radial-gradient(circle_at_50%_30%,rgba(37,99,235,0.15),transparent_70%)] bg-black/40 flex items-center justify-center overflow-hidden">                    {kind === "media" ? (                      item.content_type.startsWith("video/") ? (                        <video src={item.url} controls className="max-h-full max-w-full object-contain" />                      ) : (                        <img src={item.url} alt={item.filename} className="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-300" loading="lazy" />                      )                    ) : (                      <div className="flex flex-col items-center gap-2 text-center px-4">                        <HardDrive size={26} className="text-blue-300" />                        <span className="text-[10px] uppercase tracking-wider text-white/30 break-all line-clamp-2">{item.content_type}</span>                      </div>                    )}                  </div>                  <div className="p-3">                    <p className="text-xs text-white/70 truncate">{item.filename}</p>                    <p className="text-[10px] text-white/30 mt-1">                      {formatSize(item.size)} · {item.views} view{item.views === 1 ? "" : "s"} · {new Date(item.created_at).toLocaleDateString()}                    </p>                    <div className="flex items-center gap-2 mt-3">                      <button                        onClick={() => copy(item.url)}                        className="flex-1 text-[11px] bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-sky-400 transition-all rounded-lg py-1.5 text-white font-semibold flex items-center justify-center gap-1.5 cursor-pointer shadow-[0_0_15px_rgba(37,99,235,0.3)]"                      >                        {copied === item.url ? <Check size={12} /> : <Copy size={12} />}                        {copied === item.url ? "copied!" : "copy link"}                      </button>                      <button                        onClick={() => remove(item.id)}                        className="text-[11px] bg-white/[0.04] hover:bg-red-500/10 hover:text-red-400 transition-colors rounded-lg px-3 py-1.5 text-white/50 flex items-center justify-center gap-1.5 cursor-pointer"                      >                        <Trash2 size={12} />                        delete                      </button>                    </div>                  </div>                </div>              ))}            </div>          )}        </div>      </div>    </div>  );}function MediaHost({ user }: { user: User | null }) {  return (    <HostManager      user={user}      kind="media"      title="media host"      accept="image/png,image/jpeg,image/gif,image/webp,image/avif,image/bmp,video/mp4,video/webm,video/quicktime,video/x-matroska,audio/mpeg,audio/wav,audio/ogg,audio/mp4,audio/flac"      hint="png, jpg, gif, webp, avif, bmp, mp4, webm, mov, mkv, mp3, wav, ogg, m4a, flac — max 10mb"      emptyText="no media hosted yet"      lockedDesc="media host lets you upload images and videos and get a sire.lol link for each one. only premium users can use it."    />  );}function FileHost({ user }: { user: User | null }) {  return (    <HostManager      user={user}      kind="file"      title="file host"      accept="*/*"      hint="any type of file — max 10mb"      emptyText="no files hosted yet"      lockedDesc="file host lets you upload any file up to 30mb and share it with a sire.lol link. only premium users can use it."    />  );}function Widgets({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (u: User) => void }) {  const [premium, setPremium] = useState(false);  const [widgets, setWidgets] = useState<WidgetsConfig>(emptyWidgets);  const [pinHint, setPinHint] = useState("");  const [tagInput, setTagInput] = useState("");  const [saving, setSaving] = useState(false);  const [locating, setLocating] = useState(false);  const [savedMsg, setSavedMsg] = useState("");  const hydrated = useRef(false);  useEffect(() => {    if (!user) return;    FetchProfile(user.username).then((J) => {      setPremium(Array.isArray(J?.badges) && J.badges.includes("premium"));    }).catch(() => {});  }, [user]);  useEffect(() => {    if (!user || hydrated.current) return;    hydrated.current = true;    setWidgets(normalizeWidgets(user.widgets));  }, [user]);  const save = async () => {    setSaving(true);    const d = await apiCall("update", { data: { widgets } });    setSaving(false);    if (d.error) { alert(d.error); return; }    if (d.user) onUpdateUser?.(d.user);    setSavedMsg("widgets saved — can take a few seconds for changes to take place");    setTimeout(() => setSavedMsg(""), 3500);  };  const setPages = (n: number) =>    setWidgets((prev) => {      const capped = premium ? n : Math.min(n, 2);      const next = { ...prev, pages: capped };      if (capped >= 2 && !next.about) next.about = defaultAboutPage();      if (capped >= 3 && !next.song) next.song = defaultSongPage();      if (capped >= 4 && !next.projects) next.projects = defaultProjectsPage();      return next;    });  const patchAbout = (patch: Partial<AboutPageConfig>) =>    setWidgets((prev) => ({ ...prev, about: prev.about ? { ...prev.about, ...patch } : prev.about }));  const patchClock = (patch: Partial<ClockWidgetConfig>) =>    setWidgets((prev) => ({ ...prev, about: prev.about?.clock ? { ...prev.about, clock: { ...prev.about.clock, ...patch } } : prev.about }));  const addTag = (raw: string) => {    const tag = raw.trim().replace(/[#@]/g, "");    if (!tag) return;    setWidgets((prev) => {      const cur = prev.about?.tags || [];      if (cur.length >= MAX_TAGS || cur.some((x) => x.toLowerCase() === tag.toLowerCase())) return prev;      return { ...prev, about: prev.about ? { ...prev.about, tags: [...cur, tag] } : prev.about };    });  };  const removeTag = (idx: number) =>    setWidgets((prev) =>      prev.about ? { ...prev, about: { ...prev.about, tags: (prev.about.tags || []).filter((_, i) => i !== idx) } } : prev    );  const patchSong = (patch: Partial<SongPageConfig>) =>    setWidgets((prev) => ({ ...prev, song: prev.song ? { ...prev.song, ...patch } : prev.song }));  const patchProject = (idx: number, patch: Partial<ProjectItem>) =>    setWidgets((prev) => {      if (!prev.projects) return prev;      return {        ...prev,        projects: {          ...prev.projects,          projects: prev.projects.projects.map((pr, i) => (i === idx ? { ...pr, ...patch } : pr)),        },      };    });  const addProject = () =>    setWidgets((prev) => {      if (!prev.projects || prev.projects.projects.length >= MAX_PROJECTS) return prev;      return { ...prev, projects: { ...prev.projects, projects: [...prev.projects.projects, emptyProject()] } };    });  const removeProject = (idx: number) =>    setWidgets((prev) => {      if (!prev.projects || prev.projects.projects.length <= 1) return prev;      return {        ...prev,        projects: { ...prev.projects, projects: prev.projects.projects.filter((_, i) => i !== idx) },      };    });  const findLocation = async () => {    setLocating(true);    try {      const tz = await findMyTimeZone();      patchClock({ timeZone: tz, label: defaultLabel(tz) });    } catch (e) {      alert(e instanceof Error ? e.message : "Couldn't detect your location.");    } finally {      setLocating(false);    }  };  const tzOptions = (currentTz: string) => {    const list = TIMEZONE_PRESETS.some((p) => p.tz === currentTz)      ? TIMEZONE_PRESETS      : [{ tz: currentTz, label: defaultLabel(currentTz), offset: tzOffsetHours(currentTz) }, ...TIMEZONE_PRESETS];    return [...list].sort((a, b) => a.offset - b.offset || a.tz.localeCompare(b.tz));  };  const clock = widgets.about?.clock ?? null;  return (    <div className="relative">      <div className="absolute inset-0 pointer-events-none -z-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_0%,rgba(37,99,235,0.12),transparent_70%)]" />      <div className="relative z-10">        <div className="flex items-center gap-3 mb-8">          <h1 className="text-lg font-semibold text-gradient-blue lowercase">widgets</h1>          {premium ? (            <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-blue-300 bg-blue-600/15 border border-blue-500/30 rounded-full px-2.5 py-1 shadow-[0_0_15px_rgba(37,99,235,0.25)]">              <Crown size={10} /> premium            </span>          ) : (            <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-300 bg-emerald-600/15 border border-emerald-500/30 rounded-full px-2.5 py-1">              free · up to 2 pages            </span>          )}        </div>        <div className="flex items-center gap-3 mb-6">          <button            onClick={save}            disabled={saving}            className="text-sm shimmer rounded-xl bg-white/[0.06] border border-white/10 px-4 py-2.5 text-white/80 font-semibold disabled:opacity-40 cursor-pointer"          >            {saving ? "saving..." : "save widgets"}          </button>          {savedMsg && <span className="text-xs text-blue-300 font-semibold">{savedMsg}</span>}        </div>        <div className="glass-card rounded-2xl p-6 mb-6 border-blue-500/10">          <p className="text-[11px] text-white/40 mb-3">number of pages on your biolink{premium ? "" : " · premium unlocks pages 3–4"}</p>          <div className="flex gap-2">            {[1, 2, 3, 4].map((n) => {              const locked = !premium && n > 2;              return (                <button                  key={n}                  onClick={() => { if (!locked) setPages(n); }}                  disabled={locked}                  className={`h-10 w-10 rounded-xl text-sm font-bold transition-all border ${widgets.pages === n ? "bg-gradient-to-br from-blue-600 to-blue-500 text-white border-blue-400 shadow-[0_0_15px_rgba(37,99,235,0.4)]" : locked ? "bg-white/[0.02] text-white/20 border-white/5 cursor-not-allowed" : "bg-white/[0.03] text-white/50 border-white/10 hover:border-blue-500/40 hover:text-white/80 cursor-pointer"}`}                  title={locked ? "premium unlocks pages 3–4" : `${n} page${n > 1 ? "s" : ""}`}                >                  {n}                </button>              );            })}          </div>          <p className="text-[10px] text-white/30 mt-3">            {widgets.pages === 1              ? "page 1 · glasscard"              : `pages 1–${widgets.pages} · glasscard, about, ${widgets.pages >= 3 ? "song, " : ""}${widgets.pages >= 4 ? "projects" : ""}`}          </p>        </div>        {widgets.pages >= 2 && widgets.about && (          <div className="glass-card rounded-2xl p-6 mb-6 border-blue-500/10">            <p className="text-[10px] font-bold uppercase tracking-widest text-blue-300/80 mb-4">page 2 · about me</p>            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">              <div className="space-y-4">                <div>                  <label className="text-[11px] text-white/40 block mb-1">title</label>                  <input                    type="text"                    value={widgets.about.title}                    onChange={(e) => patchAbout({ title: e.target.value })}                    placeholder="About me"                    className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none placeholder:text-white/10 focus:border-blue-500/50 transition-colors"                  />                </div>                <div>                  <label className="text-[11px] text-white/40 block mb-1">description</label>                  <textarea                    value={widgets.about.description}                    onChange={(e) => patchAbout({ description: e.target.value })}                    rows={4}                    placeholder="a short description about yourself"                    className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none placeholder:text-white/10 focus:border-blue-500/50 transition-colors resize-none"                  />                </div>                <div>                  <label className="text-[11px] text-white/40 block mb-2">                    skill tags ({widgets.about.tags.length}/{MAX_TAGS})                  </label>                  {widgets.about.tags.length > 0 && (                    <div className="flex flex-wrap gap-2 mb-3">                      {widgets.about.tags.map((t, i) => (                        <span key={i} className="flex items-center gap-2 rounded-full bg-[#171717] border border-white/[0.08] py-1.5 pl-3.5 pr-1.5 text-xs font-bold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]">                          <TagIcon tag={t} size={13} />                          {t}                          <button                            onClick={() => removeTag(i)}                            className="flex h-4 w-4 items-center justify-center rounded-full bg-white/10 text-white/70 transition-colors hover:bg-red-500/60 cursor-pointer"                          >                            <X size={10} />                          </button>                        </span>                      ))}                    </div>                  )}                  <div className="flex gap-2 mb-3">                    <input                      type="text"                      value={tagInput}                      onChange={(e) => setTagInput(e.target.value)}                      onKeyDown={(e) => {                        if (e.key === "Enter") {                          e.preventDefault();                          addTag(tagInput);                          setTagInput("");                        }                      }}                      placeholder="add your own tag..."                      disabled={widgets.about.tags.length >= MAX_TAGS}                      className="flex-1 bg-white/[0.03] border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none placeholder:text-white/10 focus:border-blue-500/50 transition-colors disabled:opacity-40"                    />                    <button                      onClick={() => { addTag(tagInput); setTagInput(""); }}                      disabled={widgets.about.tags.length >= MAX_TAGS || !tagInput.trim()}                      className="text-xs font-semibold text-blue-300 hover:text-blue-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"                    >                      add                    </button>                  </div>                  {widgets.about.tags.length < MAX_TAGS && (                    <div className="flex flex-wrap gap-1.5">                      {LANGUAGE_TAGS                        .filter((l) => !(widgets.about.tags || []).some((t) => t.toLowerCase() === l.toLowerCase()))                        .slice(0, MAX_TAGS - widgets.about.tags.length)                        .map((l) => (                          <button                            key={l}                            onClick={() => addTag(l)}                            className="flex items-center gap-1.5 text-[11px] rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-1 text-white/40 transition-colors hover:border-blue-500/40 hover:bg-blue-600/20 hover:text-blue-300 cursor-pointer"                          >                            <TagIcon tag={l} size={11} />                            {l}                          </button>                        ))}                    </div>                  )}                </div>                {clock && (                  <>                    <div>                      <label className="text-[11px] text-white/40 block mb-1">clock location label</label>                      <input                        type="text"                        value={clock.label}                        onChange={(e) => patchClock({ label: e.target.value })}                        placeholder="e.g. Istanbul"                        className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none placeholder:text-white/10 focus:border-blue-500/50 transition-colors"                      />                    </div>                    <div>                      <label className="text-[11px] text-white/40 block mb-1">timezone</label>                      <select                        value={clock.timeZone}                        onChange={(e) => {                          const tz = e.target.value;                          patchClock({ timeZone: tz, label: defaultLabel(tz) });                        }}                        className="w-full bg-[#131316] border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-blue-500/50 transition-colors"                      >                        {tzOptions(clock.timeZone).map((o) => (                          <option key={o.tz} value={o.tz}>                            {o.label} (GMT{o.offset >= 0 ? "+" : ""}{o.offset})                          </option>                        ))}                      </select>                    </div>                    <button                      onClick={findLocation}                      disabled={locating}                      className="text-[11px] bg-white/[0.04] hover:bg-blue-600/20 hover:text-blue-300 border border-white/10 hover:border-blue-500/40 transition-colors rounded-lg px-3 py-2 text-white/50 flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40 w-full"                    >                      <Search size={12} />                      {locating ? "detecting..." : "find my location"}                    </button>                    <div className="flex items-center justify-between">                      <span className="text-[11px] text-white/40">mouse follow clock</span>                      <Toggle checked={!!clock.mouseFollow} onChange={(v) => patchClock({ mouseFollow: v })} />                    </div>                  </>                )}                <div>                  <label className="text-[11px] text-white/40 block mb-1">discord server invite</label>                  <input                    type="text"                    value={widgets.about.discordServer?.inviteCode || ""}                    onChange={(e) => patchAbout({ discordServer: parseInviteCode(e.target.value) ? { inviteCode: parseInviteCode(e.target.value) } : null })}                    placeholder="discord.gg/hauntgg"                    className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none placeholder:text-white/10 focus:border-blue-500/50 transition-colors"                  />                  <p className="text-[10px] text-white/30 mt-1">shows server icon, online + member counts and a join button</p>                </div>                <div>                  <label className="text-[11px] text-white/40 block mb-1">last.fm username</label>                  <input                    type="text"                    value={widgets.about.lastfm?.username || ""}                    onChange={(e) => patchAbout({ lastfm: e.target.value.trim() ? { username: e.target.value.trim().slice(0, 64) } : null })}                    placeholder="your last.fm username"                    className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none placeholder:text-white/10 focus:border-blue-500/50 transition-colors"                  />                  <p className="text-[10px] text-white/30 mt-1">shows scrobbles, artists and your 4 most recent tracks</p>                </div>                <div>                  <label className="text-[11px] text-white/40 block mb-1">roblox username</label>                  <input                    type="text"                    value={widgets.about.roblox?.username || ""}                    onChange={(e) => {                      const v = e.target.value.trim().replace(/^@/, "").slice(0, 32);                      patchAbout({ roblox: v ? { username: v } : null });                    }}                    placeholder="your roblox username"                    className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none placeholder:text-white/10 focus:border-blue-500/50 transition-colors"                  />                  <p className="text-[10px] text-white/30 mt-1">shows avatar, display name, friends + follower counts</p>                </div>                <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4">                  <div className="flex items-center justify-between mb-1">                    <label className="text-[11px] font-semibold text-white/60">pin to main panel</label>                    <span className="text-[10px] font-mono text-white/40">{(widgets.about.side || []).length}/{MAX_SIDE_WIDGETS}</span>                  </div>                  <p className="text-[10px] text-white/30 mb-3 leading-relaxed">pick up to 2 widgets to dock on the right side of your main page, next to your info. off by default — pinned widgets stay on your about page too. hit save below when done.</p>                  <div className="flex gap-1.5 mb-3">                    <div className="flex-1 rounded-lg border border-white/10 bg-white/[0.03] px-2 py-2 text-center text-[10px] text-white/50">profile info</div>                    {(widgets.about.side || []).map((k) => (                      <div key={k} className="flex-1 truncate rounded-lg border border-blue-500/40 bg-blue-600/20 px-2 py-2 text-center text-[10px] text-blue-300">{SIDE_WIDGET_LABELS[k]}</div>                    ))}                    {Array.from({ length: Math.max(0, MAX_SIDE_WIDGETS - (widgets.about.side || []).length) }).map((_, i) => (                      <div key={`empty-${i}`} className="flex-1 rounded-lg border border-dashed border-white/10 px-2 py-2 text-center text-[10px] text-white/20">empty</div>                    ))}                  </div>                  <div className="flex flex-wrap gap-2">                    {SIDE_WIDGET_KEYS.map((k) => {                      const side = widgets.about.side || [];                      const selected = side.includes(k);                      const full = !selected && side.length >= MAX_SIDE_WIDGETS;                      const ready = k === "rpc"                        ? !!(user?.discord_id && user?.discord_rpc_enabled)                        : k === "clock"                          ? !!widgets.about.clock                          : k === "server"                            ? !!widgets.about.discordServer                            : k === "lastfm"                              ? !!widgets.about.lastfm                              : !!widgets.about.roblox;                      return (                        <button                          key={k}                          onClick={() => {                            if (selected) {                              patchAbout({ side: side.filter((x) => x !== k) });                              setPinHint("");                              return;                            }                            if (full) { setPinHint("max 3 — unpin one first"); return; }                            if (!ready) { setPinHint(`set up your ${SIDE_WIDGET_LABELS[k].toLowerCase()} above first`); return; }                            patchAbout({ side: [...side, k] });                            setPinHint("");                          }}                          className={`flex items-center gap-1.5 text-[11px] px-3 py-1.5 rounded-lg border transition-colors cursor-pointer ${                            selected                              ? "bg-blue-600/20 border-blue-500/40 text-blue-300"                              : full || !ready                                ? "bg-white/[0.03] border-white/10 text-white/25"                                : "bg-white/[0.03] border-white/10 text-white/40 hover:text-white/60"                          }`}                        >                          {selected ? `${side.indexOf(k) + 1} · ` : null}{SIDE_WIDGET_LABELS[k]}                          {!ready && !selected ? <span className="text-white/20">· off</span> : null}                        </button>                      );                    })}                  </div>                  {pinHint ? <p className="text-[10px] text-amber-300/80 mt-2">{pinHint}</p> : null}                </div>              </div>              <div className="flex items-center justify-center rounded-2xl border border-white/[0.06] bg-black/20 p-6">                <AboutPage config={widgets.about} discordId={user?.discord_id} discordEnabled={user?.discord_rpc_enabled} instant />              </div>            </div>          </div>        )}        {widgets.pages >= 3 && widgets.song && (          <div className="glass-card rounded-2xl p-6 mb-6 border-blue-500/10">            <p className="text-[10px] font-bold uppercase tracking-widest text-blue-300/80 mb-4">page 3 · song + live lyrics</p>            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">              <div className="space-y-4">                <div>                  <label className="text-[11px] text-white/40 block mb-1">spotify track link</label>                  <input                    type="text"                    value={widgets.song.url}                    onChange={(e) => patchSong({ url: e.target.value })}                    placeholder="https://open.spotify.com/track/..."                    className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none placeholder:text-white/10 focus:border-blue-500/50 transition-colors"                  />                </div>                <p className="text-[11px] text-white/30 leading-relaxed">                  paste a spotify track link — the page will show the track embed plus live synced lyrics below it.                </p>              </div>              <div className="flex items-center justify-center rounded-2xl border border-white/[0.06] bg-black/20 p-6">                <SongPage url={widgets.song.url} instant />              </div>            </div>          </div>        )}        {widgets.pages >= 4 && widgets.projects && (          <div className="glass-card rounded-2xl p-6 mb-6 border-blue-500/10">            <div className="flex items-center justify-between mb-4">              <p className="text-[10px] font-bold uppercase tracking-widest text-blue-300/80">                page 4 · my projects ({widgets.projects.projects.length}/{MAX_PROJECTS})              </p>              <button                onClick={addProject}                disabled={widgets.projects.projects.length >= MAX_PROJECTS}                className="text-xs font-semibold text-blue-300 hover:text-blue-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"              >                + add project              </button>            </div>            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">              <div className="space-y-6">                {widgets.projects.projects.map((pr, i) => (                  <div key={i} className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4 space-y-4">                    <div className="flex items-center justify-between">                      <span className="text-xs font-bold text-white/50">project {i + 1}</span>                      {widgets.projects!.projects.length > 1 && (                        <button onClick={() => removeProject(i)} className="text-xs text-red-400/70 hover:text-red-300 transition-colors">                          remove                        </button>                      )}                    </div>                    <div>                      <label className="text-[11px] text-white/40 block mb-1">banner image link</label>                      <input                        type="text"                        value={pr.banner}                        onChange={(e) => patchProject(i, { banner: e.target.value })}                        placeholder="https://example.com/banner.png"                        className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none placeholder:text-white/10 focus:border-blue-500/50 transition-colors"                      />                    </div>                    <div>                      <label className="text-[11px] text-white/40 block mb-1">project name</label>                      <input                        type="text"                        value={pr.name}                        onChange={(e) => patchProject(i, { name: e.target.value })}                        placeholder="e.g. My Python Project"                        className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none placeholder:text-white/10 focus:border-blue-500/50 transition-colors"                      />                    </div>                    <div>                      <label className="text-[11px] text-white/40 block mb-1">description</label>                      <textarea                        value={pr.description}                        onChange={(e) => patchProject(i, { description: e.target.value })}                        rows={2}                        placeholder="what does it do?"                        className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none placeholder:text-white/10 focus:border-blue-500/50 transition-colors resize-none"                      />                    </div>                  </div>                ))}              </div>              <div className="flex items-center justify-center overflow-hidden rounded-2xl border border-white/[0.06] bg-black/20 p-6">                <ProjectsPage config={widgets.projects} instant />              </div>            </div>          </div>        )}      </div>    </div>  );}function DataSettings({ user }: { user: User | null }) {  const [deleting, setDeleting] = useState(false);  const [showConfirm, setShowConfirm] = useState(false);  const [deleteConfirm, setDeleteConfirm] = useState("");  const handleDeleteAccount = async () => {    if (deleteConfirm !== user?.username) return;    setDeleting(true);    try {      const r = await apiCall("delete_account");      if (r.error) { alert(r.error || "Failed to delete account"); setDeleting(false); return; }      localStorage.removeItem("sl_auth");      window.location.href = "/";    } catch { alert("Something went wrong"); setDeleting(false); }  };  return (    <div>      <h1 className="text-lg font-semibold text-white/40 mb-6 lowercase">data management</h1>      <div className="glass-card rounded-2xl p-6">        <h3 className="text-sm font-semibold text-red-400/80 mb-1">delete account</h3>        <p className="text-xs text-white/30 mb-4">This permanently deletes your account and all associated data. This cannot be undone.</p>        {deleting ? (          <p className="text-sm text-white/40">deleting...</p>        ) : showConfirm ? (          <div className="space-y-3">            <p className="text-xs text-white/50">Type <span className="text-white font-semibold">{user?.username}</span> to confirm deletion:</p>            <input              type="text"              value={deleteConfirm}              onChange={(e) => setDeleteConfirm(e.target.value)}              placeholder={user?.username || ""}              className="w-full bg-white/[0.03] border border-red-500/30 rounded-xl px-4 py-2.5 text-sm text-white outline-none placeholder:text-white/10 focus:border-red-500/50 transition-colors"            />            <div className="flex gap-2">              <button onClick={() => { setDeleteConfirm(""); setShowConfirm(false); setDeleting(false); }} className="flex-1 rounded-xl bg-white/[0.05] py-2.5 text-sm text-white/50 hover:text-white/80 transition-colors">                cancel              </button>              <button onClick={handleDeleteAccount} disabled={deleteConfirm !== user?.username} className="flex-1 shimmer rounded-xl bg-red-600 py-2.5 text-sm font-semibold text-white disabled:opacity-40 disabled:cursor-not-allowed">                permanently delete              </button>            </div>          </div>        ) : (          <button onClick={() => { setDeleteConfirm(""); setShowConfirm(true); }} className="text-sm text-red-400/70 hover:text-red-400 transition-colors">            delete my account          </button>        )}      </div>    </div>  );}
+﻿import { useEffect, useState, useRef } from "react";
+import { useNavigate, useSearchParams, Link as RouterLink, Link } from "react-router-dom";
+import { motion, AnimatePresence, LayoutGroup, useMotionValue } from "motion/react";
+import { User, Paintbrush, Link as LucideLink, Image, Crown, Layout, Shield, Home, AtSign, Hash, Eye, User as UserIcon, Volume2, X, Music, Play, Pause, Trash2, Upload, LogOut, Check, Database, Award, Copy, HardDrive, Layers, Type, Star, Clock, Search, TrendingUp, RefreshCw, Trophy, ChevronDown, LayoutTemplate, Palette } from "lucide-react";
+import { PLATFORMS } from "../lib/platforms";
+import { FONTS, CUSTOM_FONT_FAMILY, CUSTOM_FONT_NAME, ResolveFontFamily, CustomFontFace, ToSameOriginUrl } from "../lib/fonts";
+import { SparkleText } from "../components/SparkleText";
+import { VerifiedIcon } from "../components/VerifiedIcon";
+import { RainEffect, SnowEffect, AuroraEffect, TvStaticEffect, ParticlesEffect, GalaxyEffect, MatrixEffect, SpotlightEffect, FireEffect, StarsEffect, BubblesEffect, FogEffect, HeartsEffect, LeavesEffect, LightningEffect, WavesEffect } from "../components/BackgroundEffect";
+import { parseSongUrl } from "../lib/song";
+import SongPlayer from "../components/SongPlayer";
+import DiscordRPC from "../components/DiscordRPC";
+import { CursorEffect } from "../components/CursorEffect";
+import AboutPage from "../components/AboutPage";
+import SongPage from "../components/SongPage";
+import ProjectsPage from "../components/ProjectsPage";
+import { TIMEZONE_PRESETS, MAX_PROJECTS, MAX_TAGS, LANGUAGE_TAGS, SIDE_WIDGET_KEYS, SIDE_WIDGET_LABELS, MAX_SIDE_WIDGETS, defaultLabel, defaultAboutPage, defaultProjectsPage, defaultSongPage, emptyProject, emptyWidgets, findMyTimeZone, normalizeWidgets, parseInviteCode, tzOffsetHours, type AboutPageConfig, type ClockWidgetConfig, type ProjectItem, type SideWidgetKey, type SongPageConfig, type WidgetsConfig } from "../lib/widgets";
+import TagIcon from "../components/TagIcon";
+import { CLICK_SOUNDS, PlayClickSound } from "../lib/click-sounds";
+import { PanelTracer } from "../components/PanelTracer";
+
+type User = {
+  id: number;
+  username: string;
+  alias: string | null;
+  display_name: string | null;
+  email: string;
+  avatar_url: string;
+  provider: string;
+  provider_id: string | null;
+  discord_id: string | null;
+  discord_rpc_enabled: boolean | null;
+  description: string | null;
+  accent_color: string | null;
+  text_color: string | null;
+  background_color: string | null;
+  icon_color: string | null;
+  bg_effect_color: string | null;
+  primary_color: string | null;
+  secondary_color: string | null;
+  panel_glow_mode: string | null;
+  panel_glow_color: string | null;
+  panel_glow_color_2: string | null;
+  panel_glow_spread: number | null;
+  panel_pulse_enabled: boolean | null;
+  panel_pulse_color: string | null;
+  panel_pulse_speed: number | null;
+  panel_pulse_type: string | null;
+  display_effect: string | null;
+  sparkle_intensity?: number | null;
+  font: string | null;
+  bg_effect: string | null;
+  song_platform: string | null;
+  song_id: string | null;
+  entry_text: string | null;
+  entry_font: string | null;
+  entry_color: string | null;
+  entry_effect: string | null;
+  desc_effect: string | null;
+  desc_effect_speed: number | null;
+  desc_lines: string[] | null;
+  monochrome_icons: boolean;
+  monochrome_badges: boolean;
+  badge_color: string | null;
+  banner_enabled: boolean;
+  show_username: boolean;
+  show_joindate: boolean;
+  country: string | null;
+  show_views: boolean;
+  show_votes: boolean;
+  custom_font_scope: string | null;
+  video_audio: boolean;
+  seo_title: string | null;
+  seo_description: string | null;
+  seo_image: string | null;
+  seo_favicon: string | null;
+  embed_buttons: { label: string; url: string }[] | string | null;
+  panel_mouse_follow: boolean;
+  audio_volume: number;
+  audio_autoplay: boolean;
+  audio_loop: boolean;
+  audio_shuffle: boolean;
+  cursor_effect: string;
+  avatar_shape: string;
+  avatar_size: number;
+  avatar_offset_x: number;
+  avatar_offset_y: number;
+  name_offset_x: number;
+  name_offset_y: number;
+  badge_offset_x: number;
+  badge_offset_y: number;
+  desc_offset_x: number;
+  desc_offset_y: number;
+  song_offset_x: number;
+  song_offset_y: number;
+  discord_rpc_offset_x: number;
+  discord_rpc_offset_y: number;
+  panel_opacity: number | null;
+  panel_hidden: boolean | null;
+  is_admin: number | null;
+  reset_notices: { kind: string; reason: string; at: string }[] | null;
+  widgets: unknown;
+  click_sound: string | null;
+  profile_layout: string | null;
+};
+
+const tabs = [
+  { id: "overview", label: "account overview", icon: User },
+  { id: "customize", label: "customize", icon: Paintbrush },
+  { id: "layouts", label: "profile layouts", icon: LayoutTemplate },
+  { id: "design", label: "panel design", icon: Palette },
+  { id: "visibility", label: "visibility", icon: Eye },
+  { id: "links", label: "links", icon: LucideLink },
+  { id: "templates", label: "templates", icon: Layout },
+  { id: "data", label: "data", icon: Database },
+  { id: "badges", label: "badges", icon: Award },
+  { id: "premium", label: "premium", icon: Crown },
+  { id: "imagehost", label: "media host", icon: Image },
+  { id: "filehost", label: "file host", icon: HardDrive },
+  { id: "widgets", label: "widgets", icon: Clock },
+  { id: "leaderboard", label: "leaderboard", icon: Trophy },
+  { id: "admin", label: "admin", icon: Shield },
+] as const;
+
+type TabId = (typeof tabs)[number]["id"];
+
+const Countries = [
+  "Afghanistan","Albania","Algeria","Andorra","Angola","Argentina","Armenia","Australia","Austria","Azerbaijan",
+  "Bahamas","Bahrain","Bangladesh","Barbados","Belarus","Belgium","Belize","Benin","Bhutan","Bolivia","Bosnia and Herzegovina","Botswana","Brazil","Brunei","Bulgaria","Burkina Faso","Burundi",
+  "Cambodia","Cameroon","Canada","Chad","Chile","China","Colombia","Costa Rica","Croatia","Cuba","Cyprus","Czechia",
+  "Denmark","Djibouti","Dominica","Dominican Republic",
+  "Ecuador","Egypt","El Salvador","Estonia","Eswatini","Ethiopia",
+  "Fiji","Finland","France",
+  "Gabon","Gambia","Georgia","Germany","Ghana","Greece","Grenada","Guatemala","Guinea","Guyana",
+  "Haiti","Honduras","Hong Kong","Hungary",
+  "Iceland","India","Indonesia","Iran","Iraq","Ireland","Israel","Italy",
+  "Jamaica","Japan","Jordan",
+  "Kazakhstan","Kenya","Kiribati","Kosovo","Kuwait","Kyrgyzstan",
+  "Laos","Latvia","Lebanon","Lesotho","Liberia","Libya","Liechtenstein","Lithuania","Luxembourg",
+  "Macau","Madagascar","Malawi","Malaysia","Maldives","Mali","Malta","Mauritania","Mauritius","Mexico","Moldova","Monaco","Mongolia","Montenegro","Morocco","Mozambique","Myanmar",
+  "Namibia","Nauru","Nepal","Netherlands","New Zealand","Nicaragua","Niger","Nigeria","North Korea","North Macedonia","Norway",
+  "Oman",
+  "Pakistan","Palau","Palestine","Panama","Papua New Guinea","Paraguay","Peru","Philippines","Poland","Portugal",
+  "Qatar",
+  "Romania","Russia","Rwanda",
+  "Saint Kitts and Nevis","Saint Lucia","Samoa","San Marino","Saudi Arabia","Senegal","Serbia","Seychelles","Sierra Leone","Singapore","Slovakia","Slovenia","Somalia","South Africa","South Korea","South Sudan","Spain","Sri Lanka","Sudan","Suriname","Sweden","Switzerland","Syria",
+  "Taiwan","Tajikistan","Tanzania","Thailand","Timor-Leste","Togo","Tonga","Trinidad and Tobago","Tunisia","Turkey","Turkmenistan","Tuvalu",
+  "Uganda","Ukraine","United Arab Emirates","United Kingdom","United States","Uruguay","Uzbekistan",
+  "Vanuatu","Vatican City","Venezuela","Vietnam",
+  "Yemen",
+  "Zambia","Zimbabwe",
+];
+
+const TAB_SUBS: Record<string, string[]> = {
+  overview: ["profile info", "security", "danger zone"],
+  customize: ["fonts", "element positions", "name effects", "entry overlay", "background effects", "banner & audio", "other"],
+  design: ["color customization", "panel opacity"],
+  visibility: ["seo", "discord buttons", "counters"],
+  links: ["my links", "platforms"],
+  templates: ["my template", "gallery", "favorites"],
+  data: ["analytics", "resets"],
+  badges: ["my badges", "name / row"],
+  premium: ["upgrade", "what you get"],
+  imagehost: ["uploaded media", "limits"],
+  filehost: ["uploaded files", "limits"],
+  widgets: ["pages", "about", "song", "projects", "pinned widgets"],
+  admin: ["users", "admin log"],
+};
+
+const apiCall = async (action: string, payload: Record<string, unknown> = {}) => {
+  let sessionToken: string | null = null;
+  try {
+    const saved = localStorage.getItem("sl_auth");
+    if (saved) sessionToken = JSON.parse(saved).sessionToken;
+  } catch {}
+  const r = await fetch("/api/me", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action, sessionToken, ...payload }),
+  });
+  return r.json();
+};
+
+const getSessionToken = () => {
+  try {
+    const saved = localStorage.getItem("sl_auth");
+    if (saved) return JSON.parse(saved).sessionToken || null;
+  } catch {}
+  return null;
+};
+
+const FetchProfile = async (Username: string) => {
+  const R = await fetch(`/api/profile?username=${encodeURIComponent(Username)}`);
+  if (!R.ok) return null;
+  return R.json().catch(() => null);
+};
+
+const FileToBase64 = (File: File): Promise<string> => new Promise((Resolve, Reject) => {
+  const Reader = new FileReader();
+  Reader.onload = () => {
+    const Result = String(Reader.result || "");
+    const Marker = Result.indexOf("base64,");
+    Resolve(Marker === -1 ? Result : Result.slice(Marker + 7));
+  };
+  Reader.onerror = () => Reject(new Error("Could not read file"));
+  Reader.readAsDataURL(File);
+});
+
+const uploadFile = async (file: File, kind: "media" | "file") => {
+  const token = getSessionToken();
+  const contentBase64 = await FileToBase64(file);
+  const r = await fetch(`/api/me?action=hostPrepare`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ sessionToken: token, filename: file.name, contentBase64, contentType: file.type || null, kind }),
+  });
+  const d = await r.json();
+  if (!r.ok || d.error) throw new Error(d.error || "Upload failed");
+  return d;
+};
+
+const fetchMe = async () => {
+  let sessionToken: string | null = null;
+  try {
+    const saved = localStorage.getItem("sl_auth");
+    if (saved) sessionToken = JSON.parse(saved).sessionToken;
+  } catch {}
+  const r = await fetch(`/api/me?sessionToken=${encodeURIComponent(sessionToken || "")}`);
+  const d = await r.json();
+  return d;
+};
+
+export default function Dashboard() {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const [user, setUser] = useState<User | null>(null);
+  const [activeTab, setActiveTab] = useState<TabId>("overview");
+  const [openNav, setOpenNav] = useState<string | null>("customize");
+  const [activeSub, setActiveSub] = useState<{ tab: string; sub: string } | null>({ tab: "customize", sub: "colors" });
+  const [unauth, setUnauth] = useState(false);
+  const [suspendedMsg, setSuspendedMsg] = useState<string | null>(null);
+  const [noticesAcked, setNoticesAcked] = useState(false);
+  const activeNotices = !noticesAcked && user && Array.isArray(user.reset_notices) ? user.reset_notices : [];
+  const dismissNotices = async () => {
+    setNoticesAcked(true);
+    setUser((u) => (u ? { ...u, reset_notices: [] } : u));
+    try { await apiCall("dismiss_notices", {}); } catch {}
+  };
+
+  useEffect(() => {
+    const uid = searchParams.get("uid");
+    const token = searchParams.get("token");
+    if (!uid) { navigate("/", { replace: true }); return; }
+    let storedToken: string | null = null;
+    try {
+      const saved = JSON.parse(localStorage.getItem("sl_auth") || "null");
+      storedToken = saved?.sessionToken || null;
+    } catch {}
+    const qs = token ? `token=${encodeURIComponent(token)}` : (storedToken ? `s=${encodeURIComponent(storedToken)}` : "");
+    const loadMe = () => {
+      fetchMe().then((data) => {
+        const u = data?.user || null;
+        if (data?.suspended) setSuspendedMsg(typeof data?.reason === "string" && data.reason ? data.reason : "");
+        if (u && !u.onboarding_done) { navigate(`/welcome?uid=${u.id}`, { replace: true }); return; }
+        if (u) setUser(u);
+        else { localStorage.clear(); setUnauth(true); }
+      });
+    };
+    fetch(`/api/auth/verify?${qs}`).then(r => r.json()).then((session) => {
+      if (session?.authed) {
+        if (session.sessionToken) {
+          localStorage.setItem("sl_auth", JSON.stringify({ uid: session.uid, sessionToken: session.sessionToken }));
+        }
+        if (session.uid !== Number(uid)) {
+          navigate(`/dashboard?uid=${session.uid}`, { replace: true });
+          return;
+        }
+        if (token) navigate(`/dashboard?uid=${session.uid}`, { replace: true });
+        loadMe();
+        return;
+      }
+      if (token && storedToken) {
+        fetch(`/api/auth/verify?s=${encodeURIComponent(storedToken)}`).then(r => r.json()).then((s2) => {
+          if (s2?.authed) {
+            navigate(`/dashboard?uid=${s2.uid}`, { replace: true });
+            return;
+          }
+          localStorage.clear(); setUnauth(true);
+        }).catch(() => { localStorage.clear(); setUnauth(true); });
+        return;
+      }
+      localStorage.clear(); setUnauth(true);
+    }).catch(() => { localStorage.clear(); setUnauth(true); });
+  }, [searchParams]);
+
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    if (tab && tabs.some((t) => t.id === tab)) setActiveTab(tab as TabId);
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (!unauth) return;
+    localStorage.clear();
+    try {
+      const h = window.location.hostname;
+      const labels = h.split(".");
+      const apex = labels.length > 2 ? labels.slice(1).join(".") : h;
+      for (const d of [h, "." + h, apex, "." + apex]) {
+        document.cookie = `sl_session=; Max-Age=0; Path=/; Domain=${d}`;
+      }
+      document.cookie = "sl_session=; Max-Age=0; Path=/";
+    } catch {}
+    fetch("/api/auth/logout").catch(() => {});
+  }, [unauth]);
+
+  if (unauth) return (
+    <div className="relative min-h-screen flex items-center justify-center bg-black">
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(37,99,235,0.08),transparent_70%)]" />
+      <div className="text-center relative">
+        <p className="text-6xl font-black text-white/10 mb-4">404</p>
+        <p className="text-white/20 text-sm mb-6">{suspendedMsg !== null ? `This account has been suspended${suspendedMsg ? `: ${suspendedMsg}` : ""}` : "Session expired, please sign in again"}</p>
+        <Link to="/auth" className="text-sm text-blue-400 hover:text-blue-300 transition-colors">
+          back to login
+        </Link>
+      </div>
+    </div>
+  );
+
+return (
+    <div className="relative min-h-screen bg-black">
+      {activeNotices.length > 0 && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="glass-card rounded-2xl p-6 max-w-md w-full space-y-4 border-red-500/30">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-full bg-red-500/15 border border-red-500/30 flex items-center justify-center">
+                <Shield className="h-5 w-5 text-red-300" />
+              </div>
+              <h2 className="text-base font-bold text-white">Moderation notice</h2>
+            </div>
+            {activeNotices.map((n, i) => (
+              <div key={i} className="rounded-xl bg-white/[0.03] border border-white/[0.06] p-4 space-y-2">
+                <p className="text-sm text-white/80">Your {n.kind} have been reset for violating the terms of service.</p>
+                <p className="text-xs text-white/40">Moderator statement: <span className="text-white/70">â€œ{n.reason}â€</span></p>
+              </div>
+            ))}
+            <button onClick={dismissNotices} className="w-full rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-500 transition-colors">
+              I understand
+            </button>
+          </div>
+        </div>
+      )}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(37,99,235,0.08),transparent_70%)]" />
+
+      <div className="relative flex flex-col min-h-[calc(100vh-1px)]">
+        <div className="relative flex flex-1 min-h-0">
+          <nav className="w-48 shrink-0 border-r border-white/[0.04] flex flex-col pt-2 sticky top-0 h-screen self-start">
+            <button onClick={() => navigate("/")} className="font-display text-xl font-black tracking-tighter text-white hover:text-blue-500 transition-colors px-6 mb-4 text-left">
+              sire<span className="text-blue-500">.</span>lol
+            </button>
+            <div className="px-3 mb-4">
+              <input
+                type="text"
+                placeholder="search..."
+                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white/60 placeholder-white/20 outline-none focus:border-blue-500/40 transition-colors"
+              />
+            </div>
+            <div className="flex flex-col gap-0.5 px-3 overflow-y-auto flex-1 min-h-0 pr-1">
+              {tabs.filter((t) => t.id !== "admin" || user?.id === 1 || user?.is_admin === 1).map((t) => {
+                const Icon = t.icon;
+                const isPremiumTab = t.id === "premium" || t.id === "imagehost" || t.id === "filehost";
+                const isWidgetsTab = t.id === "widgets";
+                const subs = TAB_SUBS[t.id] || null;
+                const isOpen = !!subs && openNav === t.id;
+                const jumpSub = (sub: string) => {
+                  setActiveTab(t.id);
+                  setActiveSub({ tab: t.id, sub });
+                  requestAnimationFrame(() => {
+                    const heads = Array.from(document.querySelectorAll<HTMLElement>("main h3"));
+                    const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "");
+                    const want = norm(sub);
+                    const hit = heads.find((h) => { const have = norm(h.textContent || ""); return have.includes(want) || want.includes(have) || (want === "colors" && have.includes("color")); });
+                    if (hit) hit.scrollIntoView({ behavior: "smooth", block: "center" });
+                    else window.scrollTo({ top: 0, behavior: "smooth" });
+                  });
+                };
+                return (
+                  <div key={t.id}>
+                    <button
+                      onClick={() => {
+                        if (t.id === "leaderboard") { navigate("/leaderboard"); return; }
+                        setActiveTab(t.id);
+                        setOpenNav(isOpen ? null : t.id);
+                        if (!isOpen && subs) setActiveSub({ tab: t.id, sub: subs[0] });
+                      }}
+                      className={`relative flex w-full items-center gap-2.5 px-2.5 py-2.5 rounded-xl text-[13px] font-medium transition-all ${
+                        isWidgetsTab
+                          ? "shimmer text-emerald-300 border border-emerald-500/30 bg-emerald-600/15 shadow-[0_0_25px_rgba(16,185,129,0.35)]"
+                          : isPremiumTab
+                            ? "shimmer text-blue-300 border border-blue-500/30 bg-blue-600/15 shadow-[0_0_25px_rgba(37,99,235,0.35)]"
+                            : activeTab === t.id
+                              ? "bg-blue-600/20 text-blue-300"
+                              : "text-white/30 hover:text-white/60 hover:bg-white/[0.03]"
+                      }`}
+                    >
+                      <Icon size={16} className={isWidgetsTab ? "text-emerald-400" : isPremiumTab ? "text-blue-400" : undefined} />
+                      <span className={`whitespace-nowrap ${isWidgetsTab ? "text-emerald-300 font-bold" : isPremiumTab ? "text-gradient-blue font-bold" : undefined}`}>{t.label}</span>
+                      {isPremiumTab && (
+                        <Crown size={12} className="text-blue-300 absolute right-6 top-1/2 -translate-y-1/2 animate-pulse" />
+                      )}
+                      {subs && (
+                        <ChevronDown
+                          size={13}
+                          className={`absolute right-2.5 top-1/2 -translate-y-1/2 transition-transform duration-300 ${isOpen ? "rotate-180 text-white/50" : "text-white/25"}`}
+                        />
+                      )}
+                    </button>
+                    {subs && (
+                      <div
+                        className="overflow-hidden opacity-0 transition-[max-height,opacity] duration-300"
+                        style={{ maxHeight: isOpen ? 500 : 0, opacity: isOpen ? 1 : 0, transitionTimingFunction: "cubic-bezier(.4,0,.2,1)" }}
+                      >
+                        <div className="ml-4 my-0.5 pl-3 border-l border-white/10 flex flex-col">
+                          {subs.map((s) => {
+                            const on = activeSub?.tab === t.id && activeSub?.sub === s;
+                            return (
+                              <button
+                                key={s}
+                                onClick={() => jumpSub(s)}
+                                className={`relative text-left flex items-center gap-2 pl-4 pr-2 py-1.5 rounded-lg text-[11.5px] transition-all ${
+                                  on ? "text-blue-300 bg-blue-600/15" : "text-white/35 hover:text-white/70 hover:bg-white/[0.03]"
+                                }`}
+                              >
+                                <span className={`absolute -left-3 top-1/2 h-px w-3 ${on ? "bg-blue-400/70" : "bg-white/15"}`} />
+                                {s}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            <div className="mt-auto px-3 pb-6">
+              {user && (
+                <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/[0.03]">
+                  <div className="h-8 w-8 rounded-lg bg-white/[0.06] overflow-hidden shrink-0">
+                    {user.avatar_url ? (
+                      <img src={user.avatar_url} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      <div className="h-full w-full flex items-center justify-center text-white/30">
+                        <UserIcon size={14} />
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-white/70 truncate">{user.username || user.email}</p>
+                    <p className="text-[10px] text-white/30 capitalize">{user.provider}</p>
+                  </div>
+                  <button
+                    onClick={async () => {
+                      localStorage.removeItem("sl_auth");
+                      window.location.href = "/api/auth/logout";
+                    }}
+                    className="h-7 w-7 rounded-lg flex items-center justify-center text-white/20 hover:text-red-400 hover:bg-red-500/10 transition-all shrink-0"
+                    title="Sign out"
+                  >
+                    <LogOut size={14} />
+                  </button>
+                </div>
+              )}
+            </div>
+          </nav>
+
+          <div className="flex-1 flex flex-col min-w-0">
+            <header className="flex items-center justify-end h-10 px-6 border-b border-white/[0.04] bg-black/50 backdrop-blur-sm shrink-0">
+              <nav className="flex items-center gap-6 text-sm">
+                <RouterLink to="/privacy" className="text-white/40 hover:text-white/70 transition-colors">Privacy</RouterLink>
+                <RouterLink to="/terms" className="text-white/40 hover:text-white/70 transition-colors">Terms</RouterLink>
+                <a
+                  href="https://discord.gg/npN6H47KEn"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 text-white/40 hover:text-white/70 transition-colors"
+                >
+                  <svg className="w-4 h-4 text-[#5865F2]" viewBox="0 0 127.14 96.36" fill="currentColor">
+                    <path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z"/>
+                  </svg>
+                  Discord
+                </a>
+              </nav>
+            </header>
+
+            <main className="flex-1 px-8 py-10">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeTab}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.15 }}
+              >
+                {activeTab === "overview" && <AccountOverview user={user} onTab={setActiveTab} onUpdateUser={setUser} />}
+                {activeTab === "customize" && <Customize user={user} onUpdateUser={setUser} />}
+                {activeTab === "layouts" && <ProfileLayouts user={user} onUpdateUser={setUser} />}
+                {activeTab === "design" && <PanelDesign user={user} onUpdateUser={setUser} />}
+                {activeTab === "visibility" && <Visibility user={user} />}
+                {activeTab === "links" && <Links user={user} />}
+                {activeTab === "imagehost" && <MediaHost user={user} />}
+                {activeTab === "filehost" && <FileHost user={user} />}
+                {activeTab === "widgets" && <Widgets user={user} onUpdateUser={setUser} />}
+                {activeTab === "premium" && <Premium user={user} />}
+                {activeTab === "templates" && <Templates user={user} onTab={setActiveTab} onUpdateUser={setUser} />}
+                {activeTab === "data" && <DataSettings user={user} />}
+                {activeTab === "badges" && <UserBadges user={user} onTab={setActiveTab} />}
+                {activeTab === "admin" && <> <AdminStats /> <AdminStorage /> <AdminBadges /> <AdminBanUser /> <AdminLog /> </>}
+              </motion.div>
+            </AnimatePresence>
+            </main>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function smoothPath(pts: [number, number][]): string {
+  if (pts.length === 0) return "";
+  if (pts.length === 1) return `M${pts[0][0]},${pts[0][1]}`;
+  let d = `M${pts[0][0]},${pts[0][1]}`;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[Math.max(0, i - 1)], p1 = pts[i], p2 = pts[i + 1], p3 = pts[Math.min(pts.length - 1, i + 2)];
+    const c1x = p1[0] + (p2[0] - p0[0]) / 6, c1y = p1[1] + (p2[1] - p0[1]) / 6;
+    const c2x = p2[0] - (p3[0] - p1[0]) / 6, c2y = p2[1] - (p3[1] - p1[1]) / 6;
+    d += `C${c1x},${c1y} ${c2x},${c2y} ${p2[0]},${p2[1]}`;
+  }
+  return d;
+}
+
+type ChartPt = { date: string; full: string; iso: string; count: number };
+
+const CountryNames: Record<string, string> = {
+  US: "United States", GB: "United Kingdom", CA: "Canada", AU: "Australia", DE: "Germany", FR: "France",
+  NL: "Netherlands", SE: "Sweden", NO: "Norway", DK: "Denmark", FI: "Finland", IE: "Ireland", ES: "Spain",
+  IT: "Italy", PT: "Portugal", PL: "Poland", CH: "Switzerland", AT: "Austria", BE: "Belgium", GR: "Greece",
+  VN: "Vietnam", PH: "Philippines", ID: "Indonesia", TW: "Taiwan", TH: "Thailand", PK: "Pakistan",
+  BD: "Bangladesh", IN: "India", JP: "Japan", KR: "South Korea", CN: "China", HK: "Hong Kong",
+  SG: "Singapore", MY: "Malaysia", AE: "UAE", SA: "Saudi Arabia", QA: "Qatar", TR: "Turkey",
+  BR: "Brazil", MX: "Mexico", AR: "Argentina", CL: "Chile", CO: "Colombia", PE: "Peru",
+  ZA: "South Africa", NG: "Nigeria", EG: "Egypt", UA: "Ukraine", RU: "Russia", NZ: "New Zealand", IL: "Israel"
+};
+
+function CountryFlag(Code: string): string {
+  const C = Code.toUpperCase();
+  if (!/^[A-Z]{2}$/.test(C)) return "";
+  return String.fromCodePoint(...[...C].map((ch) => 0x1F1E6 + ch.charCodeAt(0) - 65));
+}
+
+function InsightPanel({ title, rows, flag }: { title: string; rows: { k: string; c: number }[]; flag?: boolean }) {
+  const Max = rows.length ? Math.max(...rows.map((r) => r.c)) : 0;
+  return (
+    <div className="glass-card rounded-xl p-4">
+      <p className="text-sm font-bold text-white mb-3">{title}</p>
+      {rows.length === 0 ? (
+        <p className="text-xs text-white/35 py-2">No data yet â€” share your page to start collecting.</p>
+      ) : (
+        <div className="flex flex-col gap-1.5">
+          {rows.map((r) => (
+            <div key={r.k} className="flex items-center gap-2">
+              <div
+                className="flex items-center gap-1.5 rounded-md bg-blue-600/20 px-2 py-1 overflow-hidden whitespace-nowrap"
+                style={{ width: `${Math.max(18, (r.c / Max) * 100)}%` }}
+              >
+                {flag && r.k.length === 2 ? <span className="text-xs leading-none">{CountryFlag(r.k)}</span> : null}
+                <span className="text-xs text-white/80 truncate">{flag ? (CountryNames[r.k.toUpperCase()] || r.k) : r.k}</span>
+              </div>
+              <span className="text-xs text-white/50 tabular-nums">{r.c}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AccountOverview({ user, onTab, onUpdateUser }: { user: User | null; onTab: (tab: TabId) => void; onUpdateUser?: (u: User) => void }) {
+  const [newUsername, setNewUsername] = useState(user?.username || "");
+  const [isEditing, setIsEditing] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+  const [newAlias, setNewAlias] = useState(user?.alias || "");
+  const [isEditingAlias, setIsEditingAlias] = useState(false);
+  const [aliasError, setAliasError] = useState("");
+  const [isSavingAlias, setIsSavingAlias] = useState(false);
+  const [totalUsers, setTotalUsers] = useState<number>(100);
+  const [totalViews, setTotalViews] = useState<number>(0);
+  const [recentViews, setRecentViews] = useState<number>(0);
+  const [dailyViews, setDailyViews] = useState<{ date: string; count: number }[]>([]);
+  const [viewsHourly, setViewsHourly] = useState<ChartPt[]>([]);
+  const [viewsDaily, setViewsDaily] = useState<ChartPt[]>([]);
+  const [likesHourly, setLikesHourly] = useState<ChartPt[]>([]);
+  const [likesDaily, setLikesDaily] = useState<ChartPt[]>([]);
+  const [chartMetric, setChartMetric] = useState<"Views" | "Likes">("Views");
+  const [chartRange, setChartRange] = useState<"24h" | "7d" | "14d" | "30d" | "custom">("7d");
+  const [customFrom, setCustomFrom] = useState("");
+  const [customTo, setCustomTo] = useState("");
+  const [hoverIdx, setHoverIdx] = useState<number | null>(null);
+  const [metricOpen, setMetricOpen] = useState(false);
+  const [calOpen, setCalOpen] = useState(false);
+  const [uniqueVisitors, setUniqueVisitors] = useState<number>(0);
+  const [countries, setCountries] = useState<{ k: string; c: number }[]>([]);
+  const [referrers, setReferrers] = useState<{ k: string; c: number }[]>([]);
+  const [devices, setDevices] = useState<{ k: string; c: number }[]>([]);
+  const [topLinks, setTopLinks] = useState<{ k: string; c: number }[]>([]);
+  const [likes, setLikes] = useState<number>(0);
+  const [dislikes, setDislikes] = useState<number>(0);
+  const [newDisplayName, setNewDisplayName] = useState(user?.display_name || "");
+  const [isEditingDisplayName, setIsEditingDisplayName] = useState(false);
+  const [isSavingDisplayName, setIsSavingDisplayName] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [profileAvatar, setProfileAvatar] = useState<string | null>(null);
+  const [ovMsg, setOvMsg] = useState<string | null>(null);
+  const showSaved = (msg: string, _note?: boolean) => {
+    setOvMsg(msg);
+    setTimeout(() => setOvMsg(null), 2500);
+  };
+
+  useEffect(() => {
+    if (!user) return;
+    const token = getSessionToken();
+    if (!token) return;
+    fetch(`/api/stats?sessionToken=${encodeURIComponent(token)}`).then(async (R) => {
+      const J = await R.json().catch(() => null);
+      if (!J || J.error) return;
+      if (typeof J.totalViews === "number") setTotalViews(J.totalViews);
+      if (typeof J.recentViews === "number") setRecentViews(J.recentViews);
+      if (Array.isArray(J.daily)) setDailyViews(J.daily);
+      if (Array.isArray(J.viewsHourly)) setViewsHourly(J.viewsHourly);
+      if (Array.isArray(J.viewsDaily)) setViewsDaily(J.viewsDaily);
+      if (Array.isArray(J.likesHourly)) setLikesHourly(J.likesHourly);
+      if (Array.isArray(J.likesDaily)) setLikesDaily(J.likesDaily);
+      if (typeof J.uniqueVisitors === "number") setUniqueVisitors(J.uniqueVisitors);
+      if (typeof J.totalUsers === "number") setTotalUsers(J.totalUsers);
+      if (Array.isArray(J.countries)) setCountries(J.countries);
+      if (Array.isArray(J.referrers)) setReferrers(J.referrers);
+      if (Array.isArray(J.devices)) setDevices(J.devices);
+      if (Array.isArray(J.topLinks)) setTopLinks(J.topLinks);
+    }).catch(() => {});
+  }, [user]);
+
+  useEffect(() => {
+    if (user?.username) setNewUsername(user.username);
+    setNewAlias(user?.alias || "");
+    setNewDisplayName(user?.display_name || "");
+  }, [user]);
+
+  useEffect(() => {
+    if (!user?.username) return;
+    fetch(`/api/profile?username=${encodeURIComponent(user.username)}`).then(async (R) => {
+      const J = await R.json().catch(() => null);
+      if (!J) return;
+      if (typeof J.likes === "number") setLikes(J.likes);
+      if (typeof J.dislikes === "number") setDislikes(J.dislikes);
+      if (Array.isArray((J as any).assets)) {
+        const pa = (J as any).assets.find((a: any) => a.type === "profile_avatar");
+        if (pa?.url) setProfileAvatar(pa.url);
+      }
+    }).catch(() => {});
+  }, [user?.username]);
+
+  const likeRate = likes + dislikes > 0 ? Math.round((likes / (likes + dislikes)) * 100) : 100;
+
+  const hasAvatar = !!profileAvatar || (user?.avatar_url && user?.avatar_url !== "") || false;
+  const hasDescription = (user?.description && user?.description.trim() !== "") || (user?.desc_effect === "typewriter" && !!user?.desc_lines?.some((l) => l.trim()));
+  const hasDiscord = user?.provider === "discord" || !!user?.discord_id || false;
+  const completion = [hasAvatar, hasDescription, hasDiscord].filter(Boolean).length * 33 + (user ? 1 : 0);
+
+  const handleSaveAlias = async () => {
+    if (!user) return;
+    const target = newAlias.trim().toLowerCase();
+    if (target === (user.alias || "")) {
+      setIsEditingAlias(false);
+      return;
+    }
+    if (target && !/^[a-zA-Z0-9_]{1,20}$/.test(target)) {
+      setAliasError("alias can only contain letters, numbers, and underscores");
+      return;
+    }
+    setIsSavingAlias(true);
+    setAliasError("");
+    const { error } = await apiCall("update", { data: { alias: target || null } });
+    if (error) {
+      setAliasError("failed to update alias");
+      setIsSavingAlias(false);
+      return;
+    }
+    if (onUpdateUser) {
+      onUpdateUser({ ...user, alias: target || null });
+    }
+    setIsSavingAlias(false);
+    setIsEditingAlias(false);
+  };
+
+  const handleSaveDisplayName = async () => {
+    if (!user) return;
+    const target = newDisplayName.trim();
+    if (target === (user.display_name || "")) {
+      setIsEditingDisplayName(false);
+      return;
+    }
+    setIsSavingDisplayName(true);
+    const { error } = await apiCall("update", { data: { display_name: target || null } });
+    if (error) {
+      setIsSavingDisplayName(false);
+      return;
+    }
+    if (onUpdateUser) {
+      onUpdateUser({ ...user, display_name: target || null });
+    }
+    setIsSavingDisplayName(false);
+    setIsEditingDisplayName(false);
+  };
+
+  const copyProfileLink = async () => {
+    if (!user?.username) return;
+    try {
+      await navigator.clipboard.writeText(`https://sire.lol/${user.username}`);
+    } catch {}
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1200);
+  };
+
+  const getRecentChanges = () => {
+    if (!user) return [];
+    try {
+      const raw = localStorage.getItem(`sire_uname_changes_${user.id}`);
+      if (!raw) return [];
+      const timestamps: number[] = JSON.parse(raw);
+      const oneWeekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+      return timestamps.filter((t) => t > oneWeekAgo);
+    } catch {
+      return [];
+    }
+  };
+
+  const handleSaveUsername = async () => {
+    if (!user) return;
+    const target = newUsername.trim().toLowerCase();
+    if (!target) {
+      setErrorMsg("username cannot be empty");
+      return;
+    }
+    if (!/^[a-zA-Z0-9_]{1,20}$/.test(target)) {
+      setErrorMsg("username can only contain letters, numbers, and underscores");
+      return;
+    }
+    if (target === user.username) {
+      setIsEditing(false);
+      return;
+    }
+    const recent = getRecentChanges();
+    if (recent.length >= 2) {
+      setErrorMsg("you can only change your username 2 times per week");
+      return;
+    }
+    setIsSaving(true);
+    setErrorMsg("");
+
+    const CheckR = await fetch(`/api/check-username?u=${encodeURIComponent(target)}`);
+    const CheckJ = await CheckR.json().catch(() => null);
+    if (CheckJ && CheckJ.available === false) {
+      setErrorMsg("username is already taken");
+      setIsSaving(false);
+      return;
+    }
+
+    const { error } = await apiCall("update", { data: { username: target } });
+    if (error) {
+      setErrorMsg("failed to update username");
+      setIsSaving(false);
+      return;
+    }
+
+    const updatedTimestamps = [...recent, Date.now()];
+    localStorage.setItem(`sire_uname_changes_${user.id}`, JSON.stringify(updatedTimestamps));
+
+    if (onUpdateUser) {
+      onUpdateUser({ ...user, username: target });
+    }
+    setIsSaving(false);
+    setIsEditing(false);
+  };
+
+
+
+  return (
+    <div>
+      <div className="relative rounded-2xl p-6 overflow-hidden mb-8 border border-blue-300/20 bg-gradient-to-br from-white via-blue-200 to-blue-500 shadow-[0_4px_24px_rgba(37,99,235,0.15)] animate-gradient-shift">
+        <div className="absolute -top-20 -right-20 w-52 h-52 rounded-full bg-blue-400/20 blur-3xl" />
+        <div className="absolute -bottom-16 -left-16 w-40 h-40 rounded-full bg-white/30 blur-3xl" />
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shine pointer-events-none" />
+        <div className="relative flex items-center justify-between">
+          <div className="z-10">
+            <h2 className="text-xl font-bold tracking-tight text-slate-900">
+              Welcome back, {user?.display_name || user?.username || "User"}
+            </h2>
+            <p className="text-[13px] text-slate-600/80 mt-1.5 font-medium">
+              Here's what's happening with your profile today.
+            </p>
+          </div>
+          <div className="shrink-0 flex items-center gap-2">
+            <Link
+              to={`/${user?.username}`}
+              className="h-8 px-3 rounded-lg bg-white/20 hover:bg-white/30 transition-colors flex items-center text-xs font-semibold text-slate-800 gap-1.5"
+            >
+              view profile
+            </Link>
+            <div className="h-9 w-9 rounded-full bg-blue-600/15 border border-blue-400/25 flex items-center justify-center text-sm font-bold text-blue-700">
+              {(user?.display_name || user?.username || "S")[0].toUpperCase()}
+          </div>
+        </div>
+      </div>
+    </div>
+
+      {/* profile header */}
+      <div className="grid grid-cols-1 justify-items-center md:grid-cols-[1fr_auto_1fr] md:justify-items-stretch items-center gap-6 mb-6">
+        <div className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-4 md:justify-self-end w-full max-w-[260px]">
+          <p className="text-sm font-semibold text-white">Your Likes</p>
+          <p className="text-xs text-white/35 mt-0.5">Your profile has been liked <span className="text-white/70 font-medium">{likes.toLocaleString("en-US")}</span> times!</p>
+          <p className="text-3xl font-semibold text-white tabular-nums tracking-tight mt-3">{likes.toLocaleString("en-US")}</p>
+          <div className="w-full h-1 rounded-full bg-white/[0.07] overflow-hidden my-3">
+            <div className="h-full rounded-full bg-emerald-400/80" style={{ width: `${likeRate}%` }} />
+          </div>
+          <div className="flex items-center justify-between text-[11px] text-white/40">
+            <span>{dislikes.toLocaleString("en-US")} dislikes</span>
+            <span>{likeRate}% positive</span>
+          </div>
+        </div>
+        <div className="relative shrink-0 flex flex-col items-center text-center">
+          <div className="relative">
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-96 w-[900px] max-w-none rounded-[100%] bg-[radial-gradient(ellipse,rgba(37,99,235,0.5)_0%,rgba(37,99,235,0.22)_40%,rgba(37,99,235,0.08)_60%,rgba(0,0,0,0)_80%)] blur-3xl pointer-events-none" />
+            <div className="relative h-40 w-40 rounded-full p-[2px] bg-cyan-200/70">
+              {(profileAvatar || user?.avatar_url) ? (
+                <img src={profileAvatar || user!.avatar_url} alt="profile picture" className="h-full w-full rounded-full object-cover bg-[#131316] border-4 border-black" />
+              ) : (
+                <div className="h-full w-full rounded-full bg-white/[0.06] border-4 border-black flex items-center justify-center text-5xl font-bold text-white/70">
+                  {(user?.display_name || user?.username || "S")[0].toUpperCase()}
+                </div>
+              )}
+            </div>
+          </div>
+          <p className="relative mt-3 text-4xl font-bold tracking-tight text-white flex items-center gap-2">
+            {user?.display_name || user?.username || "â€”"}
+            <svg className="w-6 h-6 shrink-0" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#3b82f6" /><path d="M8 12.5l2.7 2.7L16.5 9" stroke="#fff" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          </p>
+          <p className="relative text-xs text-white/35 font-mono mt-0.5">sire.lol/{user?.username}</p>
+          <div className="relative mt-3 flex items-center justify-center gap-2">
+            <Link to="/leaderboard" className="text-xs font-medium text-white/55 px-3 py-1.5 rounded-lg transition-all border border-white/10 hover:text-white hover:bg-white/[0.07] flex items-center gap-1.5">
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" /><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" /><path d="M4 22h16" /><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" /><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" /><path d="M18 2H6v7a6 6 0 0 0 12 0V2z" /></svg>
+              leaderboard
+            </Link>
+            <Link to="/terms" className="text-xs font-medium text-white/55 px-3 py-1.5 rounded-lg transition-all border border-white/10 hover:text-white hover:bg-white/[0.07] flex items-center gap-1.5">
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z" /><path d="M14 2v4a2 2 0 0 0 2 2h4" /><path d="M10 9H8M16 13H8M16 17H8" /></svg>
+              terms
+            </Link>
+          </div>
+        </div>
+        <div className="min-w-0 md:justify-self-start text-center md:text-left">
+          <div className="flex items-center justify-center md:justify-start gap-5 text-[13px]">
+            <span className="text-white/60"><strong className="text-white font-semibold">{totalViews}</strong> views</span>
+            <span className="text-white/60"><strong className="text-white font-semibold">#{user?.id}</strong> uid</span>
+            <span className="text-white/60"><strong className="text-white font-semibold">{likes.toLocaleString("en-US")}</strong> likes</span>
+          </div>
+          <div className="flex items-center justify-center md:justify-start gap-2 mt-4">
+            <button onClick={() => onTab("customize")} className="text-xs font-semibold text-white bg-white/[0.12] px-3 py-1.5 rounded-lg transition-colors hover:bg-white/[0.2] cursor-pointer">âœŽ customize</button>
+            <button onClick={copyProfileLink} className="text-xs font-medium text-white/55 px-3 py-1.5 rounded-lg transition-all border border-white/10 hover:text-white hover:bg-white/[0.07] cursor-pointer">{copied ? "copied!" : "â§‰ copy link"}</button>
+          </div>
+        </div>
+      </div>
+
+      <p className="text-[11px] font-semibold tracking-[0.08em] uppercase text-white/35 mb-3">Essentials</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 mb-5">
+        {/* Username Card */}
+        <div className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-4 transition-colors hover:border-white/[0.14]">
+          <div className="relative">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-[11px] font-semibold tracking-[0.08em] uppercase text-white/35">Username</p>
+              {!isEditing ? (
+                <button
+                  onClick={() => { setIsEditing(true); setErrorMsg(""); }}
+                  className="text-xs font-medium text-white/50 hover:text-white transition-colors cursor-pointer"
+                >
+                  change
+                </button>
+              ) : (
+                <button
+                  onClick={() => { setIsEditing(false); setErrorMsg(""); setNewUsername(user?.username || ""); }}
+                  className="text-xs font-medium text-white/50 hover:text-white transition-colors cursor-pointer"
+                >
+                  cancel
+                </button>
+              )}
+            </div>
+            {!isEditing ? (
+              <>
+                <p className="text-sm font-semibold text-white">{user?.username || "â€”"}</p>
+                <p className="text-xs text-white/35 mt-1">{2 - getRecentChanges().length} of 2 changes left this week</p>
+              </>
+            ) : (
+              <div className="space-y-2">
+                <div className="flex items-center bg-white/[0.04] border border-white/[0.09] rounded-lg overflow-hidden">
+                  <span className="text-xs text-white/30 select-none pl-2.5">sire.lol/</span>
+                  <input
+                    type="text"
+                    value={newUsername}
+                    onChange={(e) => setNewUsername(e.target.value)}
+                    placeholder="new username"
+                    className="flex-1 bg-transparent text-xs text-white outline-none font-mono px-1 py-[7px]"
+                  />
+                </div>
+                {errorMsg && <p className="text-[11px] text-red-400">{errorMsg}</p>}
+                <button
+                  disabled={isSaving}
+                  onClick={handleSaveUsername}
+                  className="w-full text-xs font-semibold text-white bg-white/[0.12] py-2 rounded-lg hover:bg-white/[0.2] disabled:opacity-40 transition-colors cursor-pointer"
+                >
+                  {isSaving ? "saving..." : "save username"}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Alias Card */}
+        <div className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-4 transition-colors hover:border-white/[0.14]">
+          <div className="relative">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-[11px] font-semibold tracking-[0.08em] uppercase text-white/35">Alias</p>
+              {!isEditingAlias ? (
+                <button
+                  onClick={() => { setIsEditingAlias(true); setAliasError(""); }}
+                  className="text-xs font-medium text-white/50 hover:text-white transition-colors cursor-pointer"
+                >
+                  change
+                </button>
+              ) : (
+                <button
+                  onClick={() => { setIsEditingAlias(false); setAliasError(""); setNewAlias(user?.alias || ""); }}
+                  className="text-xs font-medium text-white/50 hover:text-white transition-colors cursor-pointer"
+                >
+                  cancel
+                </button>
+              )}
+            </div>
+            {!isEditingAlias ? (
+              <>
+                <p className="text-sm font-semibold text-white">{user?.alias || "â€”"}</p>
+                <p className="text-xs text-white/35 mt-1">custom link alias</p>
+              </>
+            ) : (
+              <div className="space-y-2">
+                <input
+                  type="text"
+                  value={newAlias}
+                  onChange={(e) => setNewAlias(e.target.value)}
+                  placeholder="alias"
+                  className="w-full bg-white/[0.04] border border-white/[0.09] rounded-lg px-2.5 py-[7px] text-xs text-white outline-none font-mono placeholder:text-white/25"
+                />
+                {aliasError && <p className="text-[11px] text-red-400">{aliasError}</p>}
+                <button
+                  disabled={isSavingAlias}
+                  onClick={handleSaveAlias}
+                  className="w-full text-xs font-semibold text-white bg-white/[0.12] py-2 rounded-lg hover:bg-white/[0.2] disabled:opacity-40 transition-colors cursor-pointer"
+                >
+                  {isSavingAlias ? "saving..." : "save alias"}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Display Name Card */}
+        <div className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-4 transition-colors hover:border-white/[0.14]">
+          <div className="relative">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-[11px] font-semibold tracking-[0.08em] uppercase text-white/35">Display name</p>
+              {!isEditingDisplayName ? (
+                <button
+                  onClick={() => setIsEditingDisplayName(true)}
+                  className="text-xs font-medium text-white/50 hover:text-white transition-colors cursor-pointer"
+                >
+                  change
+                </button>
+              ) : (
+                <button
+                  onClick={() => { setIsEditingDisplayName(false); setNewDisplayName(user?.display_name || ""); }}
+                  className="text-xs font-medium text-white/50 hover:text-white transition-colors cursor-pointer"
+                >
+                  cancel
+                </button>
+              )}
+            </div>
+            {!isEditingDisplayName ? (
+              <>
+                <p className="text-sm font-semibold text-white">{user?.display_name || "â€”"}</p>
+                <p className="text-xs text-white/35 mt-1">shown on your profile</p>
+              </>
+            ) : (
+              <div className="space-y-2">
+                <input
+                  type="text"
+                  value={newDisplayName}
+                  onChange={(e) => setNewDisplayName(e.target.value)}
+                  placeholder="display name"
+                  className="w-full bg-white/[0.04] border border-white/[0.09] rounded-lg px-2.5 py-[7px] text-xs text-white outline-none placeholder:text-white/25"
+                />
+                <button
+                  disabled={isSavingDisplayName}
+                  onClick={handleSaveDisplayName}
+                  className="w-full text-xs font-semibold text-white bg-white/[0.12] py-2 rounded-lg hover:bg-white/[0.2] disabled:opacity-40 transition-colors cursor-pointer"
+                >
+                  {isSavingDisplayName ? "saving..." : "save name"}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Profile Link Card */}
+        <div className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-4 transition-colors hover:border-white/[0.14]">
+          <p className="text-[11px] font-semibold tracking-[0.08em] uppercase text-white/35 mb-3">Profile link</p>
+          <p className="text-sm font-mono font-semibold text-white truncate">sire.lol/{user?.username}</p>
+          <button onClick={copyProfileLink} className="text-xs font-medium text-white/55 px-3 py-1.5 rounded-lg transition-all border border-white/10 hover:text-white hover:bg-white/[0.07] w-full mt-2 cursor-pointer">{copied ? "copied!" : "â§‰ copy link"}</button>
+        </div>
+      </div>
+
+      <p className="text-[11px] font-semibold tracking-[0.08em] uppercase text-white/35 mb-3">Setup</p>
+
+      <div className="glass-card rounded-2xl p-5 bg-blue-500/[0.04] border-blue-500/10 mb-5">
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-sm font-medium text-white">Profile completion</p>
+          <span className="text-sm font-semibold text-blue-400">{completion}%</span>
+        </div>
+
+        <div className="w-full h-1.5 rounded-full bg-white/[0.07] overflow-hidden mb-2">
+          <div className="h-full rounded-full bg-blue-500 transition-all duration-300" style={{ width: `${completion}%` }} />
+        </div>
+
+        <p className="text-[13px] text-white/70 mb-4">{completion === 100 ? "Your profile is complete!" : "Your profile isn't complete yet!"}</p>
+
+        <div className="space-y-1">
+          <button onClick={() => onTab("customize")} className="flex items-center gap-3 cursor-pointer group w-full text-left px-2 py-1.5 -mx-2 rounded-lg hover:bg-white/[0.04] transition-colors">
+            <div className="h-[18px] w-[18px] rounded-[6px] border border-white/15 flex items-center justify-center transition-colors">
+              {hasAvatar && (
+                <svg className="w-3 h-3 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              )}
+            </div>
+            <span className="text-[13px] text-white/60 group-hover:text-white/85 transition-colors">Upload an avatar</span>
+          </button>
+          <button onClick={() => onTab("customize")} className="flex items-center gap-3 cursor-pointer group w-full text-left px-2 py-1.5 -mx-2 rounded-lg hover:bg-white/[0.04] transition-colors">
+            <div className="h-[18px] w-[18px] rounded-[6px] border border-white/15 flex items-center justify-center transition-colors">
+              {hasDescription && (
+                <svg className="w-3 h-3 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              )}
+            </div>
+            <span className="text-[13px] text-white/60 group-hover:text-white/85 transition-colors">Add a description</span>
+          </button>
+          <a href="/api/auth/discord" className="flex items-center gap-3 cursor-pointer group w-full text-left px-2 py-1.5 -mx-2 rounded-lg hover:bg-white/[0.04] transition-colors">
+            <div className="h-[18px] w-[18px] rounded-[6px] border border-white/15 flex items-center justify-center transition-colors">
+              {hasDiscord && (
+                <svg className="w-3 h-3 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              )}
+            </div>
+            <span className="text-[13px] text-white/60 group-hover:text-white/85 transition-colors">Link Discord account</span>
+          </a>
+        </div>
+      </div>
+
+      <p className="text-[11px] font-semibold tracking-[0.08em] uppercase text-white/35 mb-3">Analytics</p>
+
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-3">
+        <div className="glass-card rounded-xl p-4">
+          <p className="text-[10px] font-semibold tracking-wider text-white/40 mb-1">total views</p>
+          <p className="text-xl font-bold text-white tabular-nums">{totalViews}</p>
+          <p className="text-xs font-medium text-emerald-400 mt-1">+{recentViews} in the last 7 days</p>
+        </div>
+        <div className="glass-card rounded-xl p-4">
+          <p className="text-[10px] font-semibold tracking-wider text-white/40 mb-1">unique visitors</p>
+          <p className="text-xl font-bold text-white tabular-nums">{uniqueVisitors}</p>
+        </div>
+        <div className="glass-card rounded-xl p-4">
+          <p className="text-[10px] font-semibold tracking-wider text-white/40 mb-1">registered users</p>
+          <p className="text-xl font-bold text-white tabular-nums">{totalUsers}</p>
+        </div>
+      </div>
+
+      <div className="glass-card rounded-2xl p-6">
+        <div className="flex flex-wrap items-start justify-between gap-3 mb-1">
+          <div>
+            <p className="text-sm font-semibold text-white/80">{chartMetric}</p>
+            <p className="text-xs text-white/35 mt-1">Your profile {chartMetric === "Views" ? "activity" : "likes"} over the selected range.</p>
+            {chartRange === "custom" && customFrom && customTo ? (
+              <button onClick={() => setChartRange("7d")} className="mt-1.5 text-[11px] text-blue-300/80 hover:text-blue-300 cursor-pointer">
+                {customFrom} â†’ {customTo} Ã—
+              </button>
+            ) : null}
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <button onClick={() => { setMetricOpen(!metricOpen); setCalOpen(false); }} className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs text-white/70 cursor-pointer">
+                {chartMetric}
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m6 9 6 6 6-6" /></svg>
+              </button>
+              {metricOpen ? (
+                <div className="absolute right-0 z-20 mt-1 w-32 overflow-hidden rounded-lg border border-white/10 bg-[#141416] shadow-xl">
+                  {(["Views", "Likes"] as const).map((m) => (
+                    <button key={m} onClick={() => { setChartMetric(m); setMetricOpen(false); }} className={`flex w-full items-center justify-between px-3 py-2 text-xs cursor-pointer hover:bg-white/5 ${chartMetric === m ? "text-white" : "text-white/60"}`}>
+                      {m}<span className={chartMetric === m ? "text-blue-400" : "hidden"}>âœ“</span>
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+            <div className="flex items-center gap-1 rounded-lg border border-white/10 bg-white/[0.03] p-1">
+              {(["24h", "7d", "14d", "30d"] as const).map((r) => (
+                <button key={r} onClick={() => setChartRange(r)} className={`rounded-md px-2.5 py-1 text-xs cursor-pointer ${chartRange === r ? "bg-blue-600/25 text-blue-300" : "text-white/40 hover:text-white/70"}`}>{r}</button>
+              ))}
+            </div>
+            <div className="relative">
+              <button onClick={() => { setCalOpen(!calOpen); setMetricOpen(false); }} className="rounded-lg border border-white/10 bg-white/[0.03] p-2 text-white/40 hover:text-white/70 cursor-pointer" title="pick date">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></svg>
+              </button>
+              {calOpen ? (
+                <div className="absolute right-0 z-20 mt-1 w-52 rounded-lg border border-white/10 bg-[#141416] p-3 shadow-xl">
+                  <p className="text-[11px] font-semibold text-white/60 mb-2">Custom range</p>
+                  <label className="block text-[10px] text-white/40 mb-1">From</label>
+                  <input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} className="mb-2 w-full rounded-md border border-white/10 bg-white/[0.04] px-2 py-1.5 text-xs text-white/80 outline-none" />
+                  <label className="block text-[10px] text-white/40 mb-1">To</label>
+                  <input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} className="mb-3 w-full rounded-md border border-white/10 bg-white/[0.04] px-2 py-1.5 text-xs text-white/80 outline-none" />
+                  <button onClick={() => {
+                    if (!customFrom || !customTo) { showSaved("pick both dates first!", false); return; }
+                    if (customFrom > customTo) { showSaved("invalid range!", false); return; }
+                    setChartRange("custom"); setCalOpen(false);
+                  }} className="w-full rounded-md bg-blue-600/25 py-1.5 text-xs text-blue-300 cursor-pointer hover:bg-blue-600/35">Apply</button>
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </div>
+        {(metricOpen || calOpen) ? (
+          <div className="fixed inset-0 z-10" onClick={() => { setMetricOpen(false); setCalOpen(false); }} />
+        ) : null}
+        <div className="relative">
+          {(() => {
+            const src = chartMetric === "Views"
+              ? (chartRange === "24h" ? viewsHourly : chartRange === "7d" ? viewsDaily.slice(-7) : chartRange === "14d" ? viewsDaily.slice(-14) : chartRange === "30d" ? viewsDaily : viewsDaily.filter((p) => (!customFrom || p.iso >= customFrom) && (!customTo || p.iso <= customTo)))
+              : (chartRange === "24h" ? likesHourly : chartRange === "7d" ? likesDaily.slice(-7) : chartRange === "14d" ? likesDaily.slice(-14) : chartRange === "30d" ? likesDaily : likesDaily.filter((p) => (!customFrom || p.iso >= customFrom) && (!customTo || p.iso <= customTo)));
+            if (src.length === 0) return <p className="text-sm text-white/20 italic py-8 text-center">no data yet</p>;
+            const W = 700, H = 260, PL = 36, PB = 30, PT = 10, base = H - PB;
+            const max = Math.max(...src.map((d) => d.count), 1);
+            const raw = max / 4;
+            const step = raw <= 1 ? 1 : raw <= 2 ? 2 : raw <= 5 ? 5 : raw <= 10 ? 10 : raw <= 25 ? 25 : Math.ceil(raw / 25) * 25;
+            const top = step * 4;
+            const X = (i: number) => src.length === 1 ? (PL + W) / 2 : PL + (i / (src.length - 1)) * (W - PL);
+            const Y = (v: number) => base - (v / top) * (base - PT);
+            const pts: [number, number][] = src.map((d, i) => [X(i), Y(d.count)]);
+            const line = smoothPath(pts);
+            const area = `${line}L${X(src.length - 1)},${base}L${X(0)},${base}Z`;
+            const labStep = Math.ceil(src.length / 7);
+            const hov = hoverIdx !== null && hoverIdx >= 0 && hoverIdx < src.length ? src[hoverIdx] : null;
+            return (
+              <>
+                <svg
+                  viewBox={`0 0 ${W} ${H}`}
+                  className="w-full h-auto overflow-visible select-none"
+                  onMouseMove={(e) => {
+                    const r = e.currentTarget.getBoundingClientRect();
+                    const mx = ((e.clientX - r.left) / r.width) * W;
+                    let best = 0, bd = 1e9;
+                    for (let i = 0; i < src.length; i++) {
+                      const dd = Math.abs(X(i) - mx);
+                      if (dd < bd) { bd = dd; best = i; }
+                    }
+                    setHoverIdx(best);
+                  }}
+                  onMouseLeave={() => setHoverIdx(null)}
+                >
+                  <defs>
+                    <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.45" />
+                      <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.02" />
+                    </linearGradient>
+                  </defs>
+                  {[0, 1, 2, 3, 4].map((g) => {
+                    const v = step * g, y = Y(v);
+                    return (
+                      <g key={g}>
+                        <line x1={PL} y1={y} x2={W} y2={y} stroke="rgba(255,255,255,0.07)" strokeWidth="1" />
+                        <text x={PL - 8} y={y + 4} textAnchor="end" fill="rgba(255,255,255,0.3)" fontSize="11">{v}</text>
+                      </g>
+                    );
+                  })}
+                  {src.map((d, i) => i % labStep === 0 ? (
+                    <text key={i} x={X(i)} y={H - 8} textAnchor="middle" fill="rgba(255,255,255,0.3)" fontSize="11">{d.date}</text>
+                  ) : null)}
+                  <path d={area} fill="url(#areaGrad)" />
+                  <path d={line} fill="none" stroke="#3b82f6" strokeWidth="2.5" strokeLinecap="round" />
+                  {hov ? (
+                    <>
+                      <line x1={X(hoverIdx!)} y1={PT} x2={X(hoverIdx!)} y2={base} stroke="rgba(255,255,255,0.25)" strokeWidth="1" />
+                      <circle cx={X(hoverIdx!)} cy={Y(hov.count)} r="5" fill="#3b82f6" stroke="#0a0a0a" strokeWidth="2" />
+                    </>
+                  ) : null}
+                </svg>
+                {hov ? (
+                  <div
+                    className="absolute z-10 pointer-events-none rounded-lg border border-white/10 bg-[#141416] px-3 py-2 shadow-xl"
+                    style={{
+                      left: `min(${(X(hoverIdx!) / W) * 100}% + 14px, calc(100% - 130px))`,
+                      top: `max(${(Y(hov.count) / H) * 100}% - ${(70 / H) * 100}%, 0%)`,
+                    }}
+                  >
+                    <p className="text-xs font-semibold text-white whitespace-nowrap">{hov.full}</p>
+                    <p className="mt-1 flex items-center gap-1.5 text-xs text-white/60">
+                      <span className="h-2 w-2 rounded-full bg-blue-500" />{chartMetric}
+                      <span className="ml-2 font-bold text-white tabular-nums">{hov.count}</span>
+                    </p>
+                  </div>
+                ) : null}
+              </>
+            );
+          })()}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3 mt-5">
+        <InsightPanel title="Countries" rows={countries} flag />
+        <InsightPanel title="Referrers" rows={referrers} />
+        <InsightPanel title="Devices" rows={devices} />
+        <InsightPanel title="Top links" rows={topLinks} />
+      </div>
+
+      <p className="text-[11px] font-semibold tracking-[0.08em] uppercase text-white/35 mb-3 mt-5">Your Likes</p>
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-3">
+        <div className="glass-card rounded-xl p-4">
+          <p className="text-[10px] font-semibold tracking-wider text-white/40 mb-1">total likes</p>
+          <p className="text-xl font-bold text-white tabular-nums">{likes.toLocaleString("en-US")}</p>
+        </div>
+        <div className="glass-card rounded-xl p-4">
+          <p className="text-[10px] font-semibold tracking-wider text-white/40 mb-1">dislikes</p>
+          <p className="text-xl font-bold text-white tabular-nums">{dislikes.toLocaleString("en-US")}</p>
+        </div>
+        <div className="glass-card rounded-xl p-4">
+          <p className="text-[10px] font-semibold tracking-wider text-white/40 mb-1">like rate</p>
+          <p className="text-xl font-bold text-white tabular-nums">{likeRate}%</p>
+        </div>
+      </div>
+      {ovMsg && (
+        <div className="fixed bottom-6 right-6 z-[100] bg-red-600/90 backdrop-blur-md text-white text-xs font-medium px-4 py-2.5 rounded-xl shadow-2xl border border-white/10 pointer-events-none">
+          {ovMsg}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (u: User) => void }) {
+  const [displayName, setDisplayName] = useState(user?.display_name || "");
+  const [savingDisplayName, setSavingDisplayName] = useState(false);
+  const [desc, setDesc] = useState(user?.description || "");
+  const [savingDesc, setSavingDesc] = useState(false);
+  const [background, setBackground] = useState<string | null>(null);
+  const [profileAvatar, setProfileAvatar] = useState<string | null>(null);
+  const [customCursor, setCustomCursor] = useState<string | null>(null);
+  const [saving, setSaving] = useState<string | null>(null);
+  const [audio1, setAudio1] = useState<string | null>(null);
+  const [audio2, setAudio2] = useState<string | null>(null);
+  const [shuffleAudio, setShuffleAudio] = useState(user?.audio_shuffle || false);
+  const [audio1Duration, setAudio1Duration] = useState<string | null>(null);
+  const [audio2Duration, setAudio2Duration] = useState<string | null>(null);
+  const [videoBg, setVideoBg] = useState<string | null>(null);
+  const [videoAudio, setVideoAudio] = useState(user?.video_audio || false);
+  const [banner, setBanner] = useState<string | null>(null);
+  const [bannerEnabled, setBannerEnabled] = useState(user?.banner_enabled || false);
+  const [clickSound, setClickSound] = useState(user?.click_sound || "");
+
+  useEffect(() => {
+    if (!audio1) { setAudio1Duration(null); return; }
+    const a = new Audio(audio1);
+    a.onloadedmetadata = () => {
+      if (a.duration && !isNaN(a.duration)) {
+        const m = Math.floor(a.duration / 60); const s = Math.floor(a.duration % 60);
+        setAudio1Duration(`${m}:${s < 10 ? "0" : ""}${s}`);
+      }
+    };
+  }, [audio1]);
+
+  useEffect(() => {
+    if (!audio2) { setAudio2Duration(null); return; }
+    const a = new Audio(audio2);
+    a.onloadedmetadata = () => {
+      if (a.duration && !isNaN(a.duration)) {
+        const m = Math.floor(a.duration / 60); const s = Math.floor(a.duration % 60);
+        setAudio2Duration(`${m}:${s < 10 ? "0" : ""}${s}`);
+      }
+    };
+  }, [audio2]);
+  const [isAudioModalOpen, setIsAudioModalOpen] = useState(false);
+  const [isBgModalOpen, setIsBgModalOpen] = useState(false);
+  const [audioVolume, setAudioVolume] = useState(user?.audio_volume ?? 30);
+  const [audioAutoplay, setAudioAutoplay] = useState(user?.audio_autoplay ?? true);
+  const [audioLoop, setAudioLoop] = useState(user?.audio_loop ?? true);
+
+  const [accentColor, setAccentColor] = useState(user?.accent_color || "rgba(255, 255, 255, 0.05)");
+  const [textColor, setTextColor] = useState(user?.text_color || "#ffffff");
+  const [backgroundColor, setBackgroundColor] = useState(user?.background_color || "#080808");
+  const [iconColor, setIconColor] = useState(user?.icon_color || "#ffffff");
+  const [bgEffectColor, setBgEffectColor] = useState(user?.bg_effect_color || "rgba(255, 255, 255, 0.08)");
+  const [primaryColor, setPrimaryColor] = useState(user?.primary_color || "rgba(255, 255, 255, 0.1)");
+  const [secondaryColor, setSecondaryColor] = useState(user?.secondary_color || "rgba(255, 255, 255, 0.15)");
+  const [glowMode, setGlowMode] = useState(user?.panel_glow_mode || "none");
+  const [glowColor, setGlowColor] = useState(user?.panel_glow_color || "");
+  const [glowColor2, setGlowColor2] = useState(user?.panel_glow_color_2 || "");
+  const [glowSpread, setGlowSpread] = useState(user?.panel_glow_spread ?? 50);
+  const [pulseOn, setPulseOn] = useState(!!user?.panel_pulse_enabled);
+  const [pulseColor, setPulseColor] = useState(user?.panel_pulse_color || "#3b82f6");
+  const [pulseSpeed, setPulseSpeed] = useState(user?.panel_pulse_speed ?? 50);
+  const [pulseType, setPulseType] = useState<string>(user?.panel_pulse_type || "pulse");
+  const [savingColors, setSavingColors] = useState(false);
+  const [displayEffect, setDisplayEffect] = useState(user?.display_effect || "none");
+  const [sparkleIntensity, setSparkleIntensity] = useState(user?.sparkle_intensity ?? 14);
+  const [font, setFont] = useState(user?.font || "Inter");
+  const [fontScope, setFontScope] = useState("all");
+  const [customFontUrl, setCustomFontUrl] = useState("");
+  const [customFontName, setCustomFontName] = useState("");
+  const [bgEffect, setBgEffect] = useState(user?.bg_effect || "none");
+  const [entryText, setEntryText] = useState(user?.entry_text || "click anywhere to enter");
+  const [entryFont, setEntryFont] = useState(user?.entry_font || "Inter");
+  const [entryColor, setEntryColor] = useState(user?.entry_color || "rgba(255,255,255,0.5)");
+  const [entryEffect, setEntryEffect] = useState(user?.entry_effect || "none");
+  const [descEffect, setDescEffect] = useState(user?.desc_effect || "none");
+  const [descSpeed, setDescSpeed] = useState(user?.desc_effect_speed ?? 50);
+  const [descLines, setDescLines] = useState<string[]>(user?.desc_lines?.length ? user.desc_lines : (desc ? [desc] : []));
+  const [descPreview, setDescPreview] = useState(descLines[0] || "");
+  useEffect(() => {
+    if (descEffect === "typewriter" && descLines.length === 0 && desc.trim()) {
+      setDescLines([desc]);
+    }
+  }, [descEffect]);
+  const [savingEntry, setSavingEntry] = useState(false);
+  const [monochromeIcons, setMonochromeIcons] = useState(user?.monochrome_icons || false);
+  const [monochromeBadges, setMonochromeBadges] = useState(user?.monochrome_badges || false);
+  const [panelMouseFollow, setPanelMouseFollow] = useState(user?.panel_mouse_follow || false);
+  const [cursorEffect, setCursorEffect] = useState(user?.cursor_effect || "none");
+  const [avatarShape, setAvatarShape] = useState(user?.avatar_shape || "circle");
+  const [avatarSize, setAvatarSize] = useState(user?.avatar_size || 96);
+  const [avatarOffsetX, setAvatarOffsetX] = useState(user?.avatar_offset_x || 0);
+  const [avatarOffsetY, setAvatarOffsetY] = useState(user?.avatar_offset_y || 0);
+  const [nameOffsetX, setNameOffsetX] = useState(user?.name_offset_x || 0);
+  const [nameOffsetY, setNameOffsetY] = useState(user?.name_offset_y || 0);
+  const [badgeOffsetX, setBadgeOffsetX] = useState(user?.badge_offset_x || 0);
+  const [badgeOffsetY, setBadgeOffsetY] = useState(user?.badge_offset_y || 0);
+  const [descOffsetX, setDescOffsetX] = useState(user?.desc_offset_x || 0);
+  const [descOffsetY, setDescOffsetY] = useState(user?.desc_offset_y || 0);
+  const [songOffsetX, setSongOffsetX] = useState(user?.song_offset_x || 0);
+  const [songOffsetY, setSongOffsetY] = useState(user?.song_offset_y || 0);
+  const [rpcOffsetX, setRpcOffsetX] = useState(user?.discord_rpc_offset_x || 0);
+  const [rpcOffsetY, setRpcOffsetY] = useState(user?.discord_rpc_offset_y || 0);
+  const [panelOpacity, setPanelOpacity] = useState(user?.panel_opacity ?? 100);
+  const [panelHidden, setPanelHidden] = useState(user?.panel_hidden || false);
+  const [savingAvatar, setSavingAvatar] = useState(false);
+  const [myBadges, setMyBadges] = useState<string[]>([]);
+  const [entryPreview, setEntryPreview] = useState(entryText);
+  const [songPlatform, setSongPlatform] = useState(user?.song_platform || "");
+  const [songId, setSongId] = useState(user?.song_id || "");
+  const [songLink, setSongLink] = useState("");
+  const [songError, setSongError] = useState("");
+  const songTouched = useRef(false);
+  const [discordRpcEnabled, setDiscordRpcEnabled] = useState(user?.discord_rpc_enabled || false);
+  const [showUsername, setShowUsername] = useState(user?.show_username !== false);
+  const [showJoindate, setShowJoindate] = useState(user?.show_joindate !== false);
+  const [country, setCountry] = useState(user?.country || "");
+  const [showViews, setShowViews] = useState(user?.show_views !== false);
+  const [showVotes, setShowVotes] = useState(user?.show_votes !== false);
+  const linkedDiscordId = user?.discord_id || (user?.provider === "discord" ? user?.provider_id : null) || null;
+  const [savedMsg, setSavedMsg] = useState<string | null>(null);
+  const showSaved = (msg: string, delayNote = true) => {
+    setSavedMsg(delayNote ? `${msg} â€” can take a few seconds for changes to take place` : msg);
+    setTimeout(() => setSavedMsg(null), 3500);
+  };
+
+  useEffect(() => {
+    if (entryEffect !== "typewriter") { setEntryPreview(entryText); return; }
+    let i = 0;
+    setEntryPreview("");
+    const timer = setInterval(() => {
+      i++;
+      setEntryPreview(entryText.slice(0, i));
+      if (i >= entryText.length) clearInterval(timer);
+    }, 50);
+    return () => clearInterval(timer);
+  }, [entryText, entryEffect]);
+
+  useEffect(() => {
+    const lines = descLines.length > 0 ? descLines : (desc ? [desc] : []);
+    if (descEffect !== "typewriter" || lines.length === 0) { setDescPreview(lines[0] || ""); return; }
+    let lineIdx = 0, charIdx = 0, dir = 1, pause = 0;
+    setDescPreview("");
+    const timer = setInterval(() => {
+      if (pause > 0) { pause--; return; }
+      charIdx += dir;
+      const line = lines[lineIdx] || "";
+      if (dir === 1) {
+        setDescPreview(line.slice(0, charIdx));
+        if (charIdx >= line.length) { pause = 4; dir = -1; }
+      } else {
+        setDescPreview(line.slice(0, charIdx));
+        if (charIdx <= 0) { pause = 2; lineIdx = (lineIdx + 1) % lines.length; dir = 1; }
+      }
+    }, descSpeed);
+    return () => clearInterval(timer);
+  }, [desc, descEffect, descSpeed, descLines]);
+
+  const bgRef = useRef<HTMLInputElement>(null);
+  const audio1Ref = useRef<HTMLInputElement>(null);
+  const audio2Ref = useRef<HTMLInputElement>(null);
+  const paRef = useRef<HTMLInputElement>(null);
+  const cursorRef = useRef<HTMLInputElement>(null);
+  const videoBgRef = useRef<HTMLInputElement>(null);
+  const bannerRef = useRef<HTMLInputElement>(null);
+  const clickSoundRef = useRef<HTMLInputElement>(null);
+
+  const hydrated = useRef(false);
+  useEffect(() => {
+    if (!user || hydrated.current) return;
+    hydrated.current = true;
+    setDisplayName(user.display_name || "");
+    setDesc(user.description || "");
+    setShuffleAudio(!!user.audio_shuffle);
+    setVideoAudio(!!user.video_audio);
+    setBannerEnabled(!!user.banner_enabled);
+    setClickSound(user.click_sound || "");
+    setAudioVolume(user.audio_volume ?? 30);
+    setAudioAutoplay(user.audio_autoplay ?? true);
+    setAudioLoop(user.audio_loop ?? true);
+    setAccentColor(user.accent_color || "rgba(255, 255, 255, 0.05)");
+    setTextColor(user.text_color || "#ffffff");
+    setBackgroundColor(user.background_color || "#080808");
+    setIconColor(user.icon_color || "#ffffff");
+    setBgEffectColor(user.bg_effect_color || "rgba(255, 255, 255, 0.08)");
+    setPrimaryColor(user.primary_color || "rgba(255, 255, 255, 0.1)");
+    setSecondaryColor(user.secondary_color || "rgba(255, 255, 255, 0.15)");
+    setGlowMode(user.panel_glow_mode || "none");
+    setGlowColor(user.panel_glow_color || "");
+    setGlowColor2(user.panel_glow_color_2 || "");
+    setGlowSpread(user.panel_glow_spread ?? 50);
+  setPulseOn(!!user.panel_pulse_enabled);
+  setPulseColor(user.panel_pulse_color || "#3b82f6");
+  setPulseSpeed(user.panel_pulse_speed ?? 50);
+  setPulseType(user.panel_pulse_type || "pulse");
+    setDisplayEffect(user.display_effect || "none");
+    setSparkleIntensity(user.sparkle_intensity ?? 14);
+    setFont(user.font || "Inter");
+    setFontScope(user.custom_font_scope === "name" ? "name" : "all");
+    setBgEffect(user.bg_effect || "none");
+    setEntryText(user.entry_text || "click anywhere to enter");
+    setEntryFont(user.entry_font || "Inter");
+    setEntryColor(user.entry_color || "rgba(255,255,255,0.5)");
+    setEntryEffect(user.entry_effect || "none");
+    setDescEffect(user.desc_effect || "none");
+    setDescSpeed(user.desc_effect_speed ?? 50);
+    setDescLines(user.desc_lines?.length ? user.desc_lines : (user.description ? [user.description] : []));
+    setMonochromeIcons(!!user.monochrome_icons);
+    setMonochromeBadges(!!user.monochrome_badges);
+    setPanelMouseFollow(!!user.panel_mouse_follow);
+    setCursorEffect(user.cursor_effect || "none");
+    setAvatarShape(user.avatar_shape || "circle");
+    setAvatarSize(user.avatar_size || 96);
+    setAvatarOffsetX(user.avatar_offset_x || 0);
+    setAvatarOffsetY(user.avatar_offset_y || 0);
+    setNameOffsetX(user.name_offset_x || 0);
+    setNameOffsetY(user.name_offset_y || 0);
+    setBadgeOffsetX(user.badge_offset_x || 0);
+    setBadgeOffsetY(user.badge_offset_y || 0);
+    setDescOffsetX(user.desc_offset_x || 0);
+    setDescOffsetY(user.desc_offset_y || 0);
+    setSongOffsetX(user.song_offset_x || 0);
+    setSongOffsetY(user.song_offset_y || 0);
+    setRpcOffsetX(user.discord_rpc_offset_x || 0);
+    setRpcOffsetY(user.discord_rpc_offset_y || 0);
+    setPanelOpacity(user.panel_opacity ?? 100);
+    setPanelHidden(!!user.panel_hidden);
+    setShowUsername(user.show_username !== false);
+    setShowJoindate(user.show_joindate !== false);
+    setCountry(user.country || "");
+    setShowViews(user.show_views !== false);
+    setShowVotes(user.show_votes !== false);
+    setDiscordRpcEnabled(!!user.discord_rpc_enabled);
+    if (user.song_platform) setSongPlatform(user.song_platform);
+    if (user.song_id) setSongId(user.song_id);
+  }, [user]);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (!songLink.trim()) {
+        if (songTouched.current) { setSongPlatform(""); setSongId(""); setSongError(""); }
+        return;
+      }
+      const info = parseSongUrl(songLink);
+      if (info) { setSongPlatform(info.platform); setSongId(info.id); setSongError(""); }
+      else setSongError("Invalid YouTube or Spotify link");
+    }, 400);
+    return () => clearTimeout(t);
+  }, [songLink]);
+
+  useEffect(() => {
+    if (!user) return;
+    FetchProfile(user.username).then((J) => {
+      if (!J) return;
+      for (const a of J.assets || []) {
+        if (a.type === "background") setBackground(a.url);
+        if (a.type === "audio" || a.type === "audio_1") setAudio1(a.url);
+        if (a.type === "audio_2") setAudio2(a.url);
+        if (a.type === "profile_avatar") setProfileAvatar(a.url);
+        if (a.type === "custom_cursor") setCustomCursor(a.url);
+        if (a.type === "video_background") setVideoBg(a.url);
+        if (a.type === "banner") setBanner(a.url);
+        if (a.type === "custom_font") { setCustomFontUrl(String(a.url || "")); if ((a as any).filename) setCustomFontName(String((a as any).filename)); }
+      }
+      if (Array.isArray(J.badges)) setMyBadges(J.badges);
+    }).catch(() => {});
+  }, [user]);
+
+  const saveDesc = async () => {
+    if (!user) return;
+    setSavingDesc(true);
+    const { error } = await apiCall("update", { data: { description: descEffect === "typewriter" ? null : desc, desc_effect: descEffect, desc_effect_speed: descSpeed, desc_lines: descEffect === "typewriter" ? descLines.filter(l => l.trim()) : null } });
+    if (error) console.error("saveDesc error:", error);
+    setSavingDesc(false);
+  };
+
+  const saveDisplayName = async () => {
+    if (!user) return;
+    setSavingDisplayName(true);
+    const target = displayName.trim() || null;
+    const { error } = await apiCall("update", { data: { display_name: target } });
+    if (error) console.error("saveDisplayName error:", error);
+    setSavingDisplayName(false);
+    if (onUpdateUser) onUpdateUser({ ...user, display_name: target });
+  };
+
+  const saveColors = async () => {
+    if (!user) return;
+    setSavingColors(true);
+    const { error } = await apiCall("update", {
+      data: {
+        accent_color: accentColor,
+        text_color: textColor,
+        background_color: backgroundColor,
+        icon_color: iconColor,
+        bg_effect_color: bgEffectColor,
+        primary_color: primaryColor,
+        secondary_color: secondaryColor,
+        panel_glow_mode: glowMode,
+        panel_glow_color: glowColor,
+        panel_glow_color_2: glowColor2,
+        panel_glow_spread: glowSpread,
+  panel_pulse_enabled: pulseOn,
+  panel_pulse_color: pulseColor,
+  panel_pulse_speed: pulseSpeed,
+      },
+    });
+    if (error) console.error("saveColors error:", error);
+    else showSaved("colors saved!");
+    setSavingColors(false);
+  };
+
+  const resetToGlassy = async () => {
+    setAccentColor("rgba(255, 255, 255, 0.05)");
+    setTextColor("#ffffff");
+    setBackgroundColor("#080808");
+    setIconColor("#ffffff");
+    setBgEffectColor("rgba(255, 255, 255, 0.08)");
+    setPrimaryColor("rgba(255, 255, 255, 0.1)");
+    setSecondaryColor("rgba(255, 255, 255, 0.15)");
+    setGlowMode("none");
+    setGlowColor("");
+    setGlowColor2("");
+    setGlowSpread(50);
+  setPulseOn(false);
+  setPulseColor("");
+  setPulseSpeed(50);
+    if (!user) return;
+    setSavingColors(true);
+    const { error } = await apiCall("update", {
+      data: {
+        accent_color: "rgba(255, 255, 255, 0.05)",
+        text_color: "#ffffff",
+        background_color: "#080808",
+        icon_color: "#ffffff",
+        bg_effect_color: "rgba(255, 255, 255, 0.08)",
+        primary_color: "rgba(255, 255, 255, 0.1)",
+        secondary_color: "rgba(255, 255, 255, 0.15)",
+        panel_glow_mode: "none",
+        panel_glow_color: "",
+        panel_glow_color_2: "",
+        panel_glow_spread: 50,
+  panel_pulse_enabled: false,
+  panel_pulse_color: "",
+  panel_pulse_speed: 50,
+      },
+    });
+    if (error) console.error("reset error:", error);
+    setSavingColors(false);
+  };
+
+  const uploadAsset = async (type: string, file: File) => {
+    if (!user) return;
+    const premium = myBadges.includes("premium");
+    const capMb = type === "click_sound" ? 5 : (type === "video_background" || type.startsWith("audio")) ? (premium ? 10 : 5) : 10;
+    if (file.size > capMb * 1024 * 1024) {
+      alert(type === "click_sound"
+        ? `Click sound too large (max ${capMb}MB). Please use a shorter clip and try again.`
+        : type === "video_background"
+          ? `Video too large (max ${capMb}MB). Please compress your video to reduce the file size and try again.`
+        : type.startsWith("audio")
+          ? `Audio too large (max ${capMb}MB). Please compress your music file to reduce the file size and try again.`
+          : `File too large (max ${capMb}MB). Please compress your file to reduce the file size and try again.`);
+      setSaving(null);
+      return;
+    }
+    setSaving(type);
+    const token = getSessionToken();
+    const contentBase64 = await FileToBase64(file).catch(() => null);
+    if (!contentBase64) { setSaving(null); return; }
+    const CHUNK = 2000000;
+    let hd: { url: string; error?: string } | null = null;
+    if (contentBase64.length > CHUNK) {
+      const uploadId = (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `u${Date.now()}-${Math.random().toString(36).slice(2)}`);
+      const total = Math.ceil(contentBase64.length / CHUNK);
+      let failed: string | null = null;
+      for (let i = 0; i < total; i++) {
+        const cr = await fetch(`/api/me?action=assetChunk`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sessionToken: token, uploadId, index: i, total, assetType: type, chunk: contentBase64.slice(i * CHUNK, (i + 1) * CHUNK) }),
+        });
+        const cd = await cr.json().catch(() => null);
+        if (!cr.ok || !cd || cd.error) { failed = cd?.error || "upload failed"; break; }
+      }
+      if (!failed) {
+        const hr = await fetch(`/api/me?action=assetUpload`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sessionToken: token, uploadId, filename: file.name, contentType: file.type || null, assetType: type }),
+        });
+        hd = await hr.json().catch(() => null);
+        if (!hr.ok || !hd || (hd as { error?: string }).error || !(hd as { url?: string }).url) failed = (hd as { error?: string } | null)?.error || "upload failed";
+        else hd = hd as { url: string };
+      }
+      if (failed) { setSaving(null); alert(failed); return; }
+    } else {
+      const hr = await fetch(`/api/me?action=assetUpload`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionToken: token, filename: file.name, contentBase64, contentType: file.type || null, assetType: type }),
+      });
+      hd = await hr.json().catch(() => null);
+      if (!hr.ok || !hd || (hd as { error?: string }).error || !(hd as { url?: string }).url) { setSaving(null); alert((hd as { error?: string } | null)?.error || "upload failed"); return; }
+    }
+    const busted = `${hd.url}?t=${Date.now()}`;
+    if (type === "click_sound") {
+      setClickSound(busted);
+      const { error: soundError } = await apiCall("update", { data: { click_sound: busted } });
+      if (soundError) console.error("click sound save error:", soundError);
+      else showSaved("custom click sound saved!");
+      setSaving(null);
+      return;
+    }
+    const { error: upsertError } = await apiCall("asset_upsert", { type, url: busted });
+    if (upsertError) console.error("upsert error:", upsertError);
+    if (type === "background") setBackground(busted);
+    if (type === "audio" || type === "audio_1") setAudio1(busted);
+    if (type === "audio_2") setAudio2(busted);
+    if (type === "profile_avatar") setProfileAvatar(busted);
+    if (type === "custom_cursor") setCustomCursor(busted);
+    if (type === "video_background") setVideoBg(busted);
+    if (type === "banner") setBanner(busted);
+    if (type === "custom_font") {
+      setCustomFontUrl(busted); setCustomFontName(file.name); setFont("Custom");
+      await apiCall("update", { data: { font: "Custom", custom_font_scope: fontScope } });
+      showSaved("custom font uploaded and equipped!");
+    }
+    setSaving(null);
+  };
+
+  const handleAsset = (name: string) => {
+    const ref = assetRef(name);
+    const file = ref.current?.files?.[0];
+    if (file) uploadAsset(assetType(name), file);
+  };
+
+  const assetType = (name: string) => {
+    if (name === "Background") return "background";
+    if (name === "Video Background") return "video_background";
+    if (name === "Audio") return "audio";
+    if (name === "Profile Avatar") return "profile_avatar";
+    if (name === "Banner") return "banner";
+    return "custom_cursor";
+  };
+
+  const assetRef = (name: string) => {
+    if (name === "Background") return bgRef;
+    if (name === "Video Background") return videoBgRef;
+    if (name === "Audio") return audio1Ref;
+    if (name === "Profile Avatar") return paRef;
+    if (name === "Banner") return bannerRef;
+    return cursorRef;
+  };
+
+  const assetState = (name: string) => {
+    if (name === "Background") return background;
+    if (name === "Video Background") return videoBg;
+    if (name === "Audio") return audio1;
+    if (name === "Profile Avatar") return profileAvatar;
+    if (name === "Banner") return banner;
+    return customCursor;
+  };
+
+  const removeAsset = async (name: string) => {
+    if (!user) return;
+    const type = assetType(name);
+    await apiCall("asset_delete", { type });
+    if (name === "Background") setBackground(null);
+    else if (name === "Video Background") setVideoBg(null);
+    else if (name === "Audio") setAudio1(null);
+    else if (name === "Profile Avatar") setProfileAvatar(null);
+    else if (name === "Banner") setBanner(null);
+    else setCustomCursor(null);
+    showSaved(`${name} removed`);
+  };
+
+  const isSaving = (name: string) => saving === assetType(name);
+
+  return (
+    <div className="flex flex-col lg:flex-row lg:gap-8 min-h-[calc(100vh-100px)]">
+      <div className="lg:w-1/2 flex-1">
+        <h1 className="text-lg font-semibold text-white/40 mb-8 lowercase">customize</h1>
+
+        <div className="relative rounded-2xl p-6 bg-gradient-to-r from-blue-500/40 via-blue-600/50 to-blue-500/40 border border-blue-500/60 backdrop-blur-xl overflow-hidden shine-effect mb-8">
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shine" />
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shine2" />
+          <div className="relative flex items-center gap-4">
+            <div>
+              <h3 className="text-lg font-bold text-white">Let's customize</h3>
+              <p className="text-sm text-blue-100 mt-1">Use the below features to customize your bio link</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="vfx-frame rounded-2xl mb-8 vfx-shake">
+          <div className="relative rounded-xl bg-black/90 backdrop-blur-xl px-6 py-5 overflow-hidden flex items-center gap-4">
+            <div className="vfx-beam" />
+            <div className="vfx-scan absolute inset-0 pointer-events-none" />
+            <svg className="shrink-0 relative vfx-flicker" xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+            <div className="relative vfx-flicker">
+              <h3 className="text-lg font-bold text-white">Heads up!</h3>
+              <p className="text-sm text-white/75 mt-1">saving can take a few seconds â€” wait a moment after clicking save before checking your page</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="glass-card rounded-2xl p-8 bg-blue-500/[0.04] border-blue-500/10 space-y-8">
+          <div>
+          <p className="text-sm font-semibold text-white/80 mb-4">Assets Uploader</p>
+          <div className="rounded-2xl bg-white/[0.02] border border-white/[0.06] p-5 space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <p className="text-sm text-white/70">Background</p>
+                <button onClick={() => setIsBgModalOpen(true)} className="relative w-full h-28 rounded-xl border border-white/[0.08] bg-white/[0.02] hover:border-blue-500/40 hover:bg-blue-600/5 transition-all flex flex-col items-center justify-center gap-2 text-white/45 hover:text-blue-300 overflow-hidden group cursor-pointer">
+                  {background || videoBg ? <img src={background || videoBg} className="absolute inset-0 h-full w-full object-cover opacity-20" /> : null}
+                  <span className="relative flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 group-hover:bg-blue-600/20 transition-colors"><Image size={18} className="text-white/70 group-hover:text-blue-300" /></span>
+                  <span className="relative text-xs">{background || videoBg ? "Click to change file" : "Click to upload a file"}</span>
+                </button>
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-sm text-white/70">Video Background</p>
+                <button onClick={() => assetRef("Video Background").current?.click()} disabled={isSaving("Video Background")} className="relative w-full h-28 rounded-xl border border-white/[0.08] bg-white/[0.02] hover:border-blue-500/40 hover:bg-blue-600/5 transition-all flex flex-col items-center justify-center gap-2 text-white/45 hover:text-blue-300 overflow-hidden group cursor-pointer disabled:opacity-50">
+                  {videoBg ? <img src={videoBg} className="absolute inset-0 h-full w-full object-cover opacity-25" /> : null}
+                  <span className="relative flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 group-hover:bg-blue-600/20 transition-colors"><Image size={18} className="text-white/70 group-hover:text-blue-300" /></span>
+                  <span className="relative text-xs">{isSaving("Video Background") ? "saving..." : videoBg ? "Click to change file" : "Click to upload a file"}</span>
+                </button>
+                <input ref={assetRef("Video Background")} type="file" accept="video/*" className="hidden" onChange={() => handleAsset("Video Background")} />
+                {videoBg && <button onClick={() => removeAsset("Video Background")} className="text-[11px] text-red-400/70 hover:text-red-300 transition-colors cursor-pointer self-start">remove</button>}
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-sm text-white/70">Audio</p>
+                <button onClick={() => setIsAudioModalOpen(true)} className="relative w-full h-28 rounded-xl border border-white/[0.08] bg-white/[0.02] hover:border-blue-500/40 hover:bg-blue-600/5 transition-all flex flex-col items-center justify-center gap-2 text-white/45 hover:text-blue-300 overflow-hidden group cursor-pointer">
+                  <span className="relative flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 group-hover:bg-blue-600/20 transition-colors"><Music size={18} className="text-white/70 group-hover:text-blue-300" /></span>
+                  <span className="relative text-xs">Click to open audio manager</span>
+                </button>
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-sm text-white/70">Profile Avatar</p>
+                <button onClick={() => paRef.current?.click()} disabled={isSaving("Profile Avatar")} className="relative w-full h-28 rounded-xl border border-white/[0.08] bg-white/[0.02] hover:border-blue-500/40 hover:bg-blue-600/5 transition-all flex flex-col items-center justify-center gap-2 text-white/45 hover:text-blue-300 overflow-hidden group cursor-pointer disabled:opacity-50">
+                  {assetState("Profile Avatar") ? <img src={assetState("Profile Avatar")!} className="absolute inset-0 h-full w-full object-cover opacity-25" /> : null}
+                  <span className="relative flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 group-hover:bg-blue-600/20 transition-colors"><Image size={18} className="text-white/70 group-hover:text-blue-300" /></span>
+                  <span className="relative text-xs">{isSaving("Profile Avatar") ? "saving..." : profileAvatar ? "Click to change file" : "Click to upload a file"}</span>
+                </button>
+                <input ref={paRef} type="file" accept="image/*" className="hidden" onChange={() => handleAsset("Profile Avatar")} />
+                {profileAvatar && <button onClick={() => removeAsset("Profile Avatar")} className="text-[11px] text-red-400/70 hover:text-red-300 transition-colors cursor-pointer self-start">remove</button>}
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-sm text-white/70">Banner</p>
+                <button onClick={() => bannerRef.current?.click()} disabled={isSaving("Banner")} className="relative w-full h-28 rounded-xl border border-white/[0.08] bg-white/[0.02] hover:border-blue-500/40 hover:bg-blue-600/5 transition-all flex flex-col items-center justify-center gap-2 text-white/45 hover:text-blue-300 overflow-hidden group cursor-pointer disabled:opacity-50">
+                  {assetState("Banner") ? <img src={assetState("Banner")!} className="absolute inset-0 h-full w-full object-cover opacity-25" /> : null}
+                  <span className="relative flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 group-hover:bg-blue-600/20 transition-colors"><Image size={18} className="text-white/70 group-hover:text-blue-300" /></span>
+                  <span className="relative text-xs">{isSaving("Banner") ? "saving..." : banner ? "Click to change file" : "Click to upload a file"}</span>
+                </button>
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] text-white/40">Banner enabled</span>
+                  <Toggle
+                    checked={bannerEnabled}
+                    onChange={async (v) => {
+                      if (!user) return;
+                      setBannerEnabled(v);
+                      await apiCall("update", { data: { banner_enabled: v } });
+                      showSaved(v ? "banner on" : "banner off");
+                    }}
+                  />
+                </div>
+                <input ref={bannerRef} type="file" accept="image/*" className="hidden" onChange={() => handleAsset("Banner")} />
+                {banner && <button onClick={() => removeAsset("Banner")} className="text-[11px] text-red-400/70 hover:text-red-300 transition-colors cursor-pointer self-start">remove</button>}
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-sm text-white/70">Custom Cursor</p>
+                <button onClick={() => cursorRef.current?.click()} disabled={isSaving("Custom Cursor")} className="relative w-full h-28 rounded-xl border border-white/[0.08] bg-white/[0.02] hover:border-blue-500/40 hover:bg-blue-600/5 transition-all flex flex-col items-center justify-center gap-2 text-white/45 hover:text-blue-300 overflow-hidden group cursor-pointer disabled:opacity-50">
+                  {assetState("Custom Cursor") ? <img src={assetState("Custom Cursor")!} className="absolute inset-0 h-full w-full object-cover opacity-25" /> : null}
+                  <span className="relative flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 group-hover:bg-blue-600/20 transition-colors"><Image size={18} className="text-white/70 group-hover:text-blue-300" /></span>
+                  <span className="relative text-xs">{isSaving("Custom Cursor") ? "saving..." : customCursor ? "Click to change file" : "Click to upload a file"}</span>
+                </button>
+                <input ref={cursorRef} type="file" accept="image/*" className="hidden" onChange={() => handleAsset("Custom Cursor")} />
+                {customCursor && <button onClick={() => removeAsset("Custom Cursor")} className="text-[11px] text-red-400/70 hover:text-red-300 transition-colors cursor-pointer self-start">remove</button>}
+              </div>
+            </div>
+          </div>
+          </div>
+
+          <div>
+          <p className="text-sm font-semibold text-white/80 mb-4">Display Name</p>
+          <input
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
+            placeholder={user?.username || "Your name"}
+            maxLength={40}
+            className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl px-4 py-3 text-sm text-white outline-none placeholder:text-white/10 focus:border-blue-500/30 transition-colors"
+          />
+          <div className="flex justify-between items-center mt-3">
+            <p className="text-xs text-white/20">shown as the name on your biolink â€” leave empty to use your username</p>
+            <button onClick={saveDisplayName} disabled={savingDisplayName} className="text-xs bg-blue-600 hover:bg-blue-500 disabled:opacity-40 px-3 py-1 rounded-lg text-white transition-colors">
+              {savingDisplayName ? "saving..." : "save"}
+            </button>
+          </div>
+          <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/[0.04]">
+            <div>
+              <p className="text-xs text-white/50 font-semibold uppercase tracking-wider">Show @username</p>
+              <p className="text-[10px] text-white/30">Hide the @user handle under your display name</p>
+            </div>
+            <Toggle
+              checked={showUsername}
+              onChange={async (v) => {
+                setShowUsername(v);
+                const { error } = await apiCall("update", { data: { show_username: v } });
+                if (error) console.error("saveShowUsername error:", error);
+                else showSaved(v ? "showing @username!" : "@username hidden!");
+              }}
+            />
+          </div>
+          <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/[0.04]">
+            <div className="pr-4">
+              <p className="text-xs text-white/50 font-semibold uppercase tracking-wider">Country</p>
+              <p className="text-[10px] text-white/30">Shows your country with a pin under your username</p>
+            </div>
+            <select
+              value={country}
+              onChange={async (e) => {
+                const Val = e.target.value;
+                setCountry(Val);
+                const { error } = await apiCall("update", { data: { country: Val } });
+                if (error) console.error("saveCountry error:", error);
+                else showSaved(Val ? `${Val} set!` : "country removed!");
+              }}
+              className="bg-[#0b0b10] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-white/80 outline-none focus:border-blue-500/40 max-w-[150px] cursor-pointer"
+            >
+              <option value="">none</option>
+              {Countries.map((C) => <option key={C} value={C}>{C}</option>)}
+            </select>
+          </div>
+          <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/[0.04]">
+            <div>
+              <p className="text-xs text-white/50 font-semibold uppercase tracking-wider">Show join date</p>
+              <p className="text-[10px] text-white/30">Hide the join date next to your profile views</p>
+            </div>
+            <Toggle
+              checked={showJoindate}
+              onChange={async (v) => {
+                setShowJoindate(v);
+                const { error } = await apiCall("update", { data: { show_joindate: v } });
+                if (error) console.error("saveShowJoindate error:", error);
+                else showSaved(v ? "showing join date!" : "join date hidden!");
+              }}
+            />
+          </div>
+          <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/[0.04]">
+            <div>
+              <p className="text-xs text-white/50 font-semibold uppercase tracking-wider">Show views</p>
+              <p className="text-[10px] text-white/30">Hide the views counter on your profile</p>
+            </div>
+            <Toggle
+              checked={showViews}
+              onChange={async (v) => {
+                setShowViews(v);
+                const { error } = await apiCall("update", { data: { show_views: v } });
+                if (error) console.error("saveShowViews error:", error);
+                else showSaved(v ? "showing views!" : "views hidden!");
+              }}
+            />
+          </div>
+          <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/[0.04]">
+            <div>
+              <p className="text-xs text-white/50 font-semibold uppercase tracking-wider">Show likes / dislikes</p>
+              <p className="text-[10px] text-white/30">Hide the like / dislike buttons on your profile</p>
+            </div>
+            <Toggle
+              checked={showVotes}
+              onChange={async (v) => {
+                setShowVotes(v);
+                const { error } = await apiCall("update", { data: { show_votes: v } });
+                if (error) console.error("saveShowVotes error:", error);
+                else showSaved(v ? "showing likes / dislikes!" : "likes / dislikes hidden!");
+              }}
+            />
+          </div>
+          </div>
+
+          <div>
+          <p className="text-sm font-semibold text-white/80 mb-4">Description</p>
+          <div className="flex flex-wrap gap-2 mb-3">
+            {["none", "typewriter"].map((e) => (
+              <button
+                key={e}
+                onClick={() => setDescEffect(e)}
+                className={`text-xs px-3 py-1.5 rounded-lg border transition-colors cursor-pointer ${
+                  descEffect === e
+                    ? "bg-blue-600/20 border-blue-500/40 text-blue-300"
+                    : "bg-white/[0.03] border-white/10 text-white/40 hover:text-white/60"
+                }`}
+              >
+                {e === "none" ? "None" : "Typewriter (loop)"}
+              </button>
+            ))}
+          </div>
+          {descEffect !== "typewriter" ? (
+            <textarea
+              value={desc}
+              onChange={(e) => setDesc(e.target.value)}
+              placeholder="Write something about yourself..."
+              rows={3}
+              className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl px-4 py-3 text-sm text-white outline-none placeholder:text-white/10 focus:border-blue-500/30 transition-colors resize-none"
+            />
+          ) : (
+            <div className="space-y-2 mb-3">
+              {descLines.map((line, idx) => (
+                <div key={idx} className="flex gap-2">
+                  <input
+                    value={line}
+                    onChange={(e) => {
+                      const next = [...descLines];
+                      next[idx] = e.target.value;
+                      setDescLines(next);
+                    }}
+                    placeholder={`Line ${idx + 1}`}
+                    className="flex-1 bg-white/[0.03] border border-white/[0.06] rounded-xl px-4 py-2 text-sm text-white outline-none placeholder:text-white/10 focus:border-blue-500/30 transition-colors"
+                  />
+                  <button
+                    onClick={() => setDescLines(descLines.filter((_, i) => i !== idx))}
+                    className="text-xs text-red-400 hover:text-red-300 px-2"
+                  >
+                    âœ•
+                  </button>
+                </div>
+              ))}
+              <button
+                onClick={() => setDescLines([...descLines, ""])}
+                className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+              >
+                + add line
+              </button>
+            </div>
+          )}
+          {descEffect === "typewriter" && descLines.length > 0 && (
+            <div className="mb-3 p-4 rounded-xl bg-black/40 border border-white/10 flex items-center justify-center min-h-[48px]">
+              <p className="text-sm text-white/80">
+                {descPreview || ""}<span className="animate-pulse">|</span>
+              </p>
+            </div>
+          )}
+          {descEffect === "typewriter" && (
+            <div className="flex items-center gap-3 mb-3">
+              <span className="text-xs text-white/60">Speed</span>
+              <input
+                type="range"
+                min="10"
+                max="200"
+                value={descSpeed}
+                onChange={(e) => setDescSpeed(Number(e.target.value))}
+                className="flex-1 h-1 accent-blue-500 cursor-pointer"
+              />
+              <span className="text-xs text-white/40 w-8 text-right">{descSpeed}ms</span>
+            </div>
+          )}
+          <div className="flex justify-between items-center mt-2">
+            <p className="text-xs text-white/20">displayed on your profile</p>
+            <button onClick={saveDesc} disabled={savingDesc} className="text-xs bg-blue-600 hover:bg-blue-500 disabled:opacity-40 px-3 py-1 rounded-lg text-white transition-colors">
+              {savingDesc ? "saving..." : "save"}
+            </button>
+          </div>
+        </div>
+
+        <div className="glass-card rounded-2xl p-6">
+          <h3 className="text-sm font-semibold text-white/80 mb-4">Audio</h3>
+          <p className="text-[11px] text-white/40 mb-3">Paste a YouTube or Spotify link to add a song to your biolink.</p>
+          <input
+            value={songLink}
+            onChange={(e) => { setSongLink(e.target.value); if (e.target.value.trim()) songTouched.current = true; setSongError(""); }}
+            placeholder="https://youtu.be/... or https://open.spotify.com/track/..."
+            className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white/80 outline-none focus:border-blue-500/40 transition-colors placeholder:text-white/20 mb-3"
+          />
+          {songError && <p className="text-[11px] text-red-400 mb-2">{songError}</p>}
+          {songPlatform && songId && (
+            <div className="mb-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+              <p className="text-[10px] text-white/40 uppercase tracking-wider mb-2">Preview</p>
+              {songPlatform === "spotify" ? (
+                <iframe
+                  src={`https://open.spotify.com/embed/track/${songId}`}
+                  className="w-full h-[80px] rounded-lg"
+                  allow="autoplay; encrypted-media"
+                />
+              ) : (
+                <iframe
+                  src={`https://www.youtube.com/embed/${songId}?controls=1`}
+                  className="w-full aspect-video rounded-lg"
+                  allow="autoplay; encrypted-media"
+                />
+              )}
+            </div>
+          )}
+          <div className="flex justify-end gap-2">
+            {songPlatform && songId && (
+              <button
+                onClick={async () => {
+                  if (!user) return;
+                  await apiCall("update", { data: { song_platform: null, song_id: null } });
+                  setSongLink("");
+                  setSongPlatform("");
+                  setSongId("");
+                  setSongError("");
+                  songTouched.current = false;
+                  showSaved("song removed");
+                }}
+                className="text-xs bg-white/5 hover:bg-red-500/20 border border-white/10 hover:border-red-500/40 text-white/60 hover:text-red-300 px-4 py-2 rounded-lg font-semibold transition-all cursor-pointer"
+              >
+                remove song
+              </button>
+            )}
+            <button
+              onClick={async () => {
+                if (!user) return;
+                if (!songPlatform || !songId) { setSongError("No song set"); return; }
+                await apiCall("update", { data: { song_platform: songPlatform, song_id: songId } });
+                showSaved("song saved!");
+              }}
+              className="text-xs bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-white font-semibold transition-all cursor-pointer"
+            >
+              save song
+            </button>
+          </div>
+        </div>
+
+        <div className="glass-card rounded-2xl p-6">
+          <div className="flex items-center justify-between mb-1">
+            <h3 className="text-sm font-semibold text-white/80">Click Sound</h3>
+            {clickSound && (
+              <button
+                onClick={async () => {
+                  setClickSound("");
+                  await apiCall("update", { data: { click_sound: "" } });
+                  showSaved("click sound off");
+                }}
+                className="text-[11px] text-white/30 hover:text-red-300 transition-colors cursor-pointer"
+              >
+                turn off
+              </button>
+            )}
+          </div>
+          <p className="text-[11px] text-white/40 mb-4">plays on every click a visitor makes on your page.</p>
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-4">
+            {CLICK_SOUNDS.map((S) => {
+              const on = clickSound === S.id;
+              return (
+                <button
+                  key={S.id}
+                  onClick={async () => {
+                    PlayClickSound(S.id);
+                    setClickSound(S.id);
+                    await apiCall("update", { data: { click_sound: S.id } });
+                    showSaved(`${S.label} selected`);
+                  }}
+                  className={`flex items-center justify-center gap-1.5 px-2 py-2.5 rounded-lg border text-[11px] capitalize transition-all cursor-pointer ${
+                    on ? "bg-blue-600/20 border-blue-500/40 text-blue-300" : "bg-white/[0.02] border-white/[0.06] text-white/40 hover:text-white/70 hover:border-white/15"
+                  }`}
+                >
+                  <Volume2 size={12} />
+                  {S.label}
+                </button>
+              );
+            })}
+          </div>
+          <div className="pt-3 border-t border-white/[0.04]">
+            <p className="text-[11px] text-white/40 mb-2">or upload your own (max 5MB)</p>
+            <div className="flex items-center gap-3 flex-wrap">
+              <input
+                ref={clickSoundRef}
+                type="file"
+                accept="audio/*"
+                className="hidden"
+                onChange={(e) => {
+                  const F = e.target.files?.[0];
+                  if (F) uploadAsset("click_sound", F);
+                  e.target.value = "";
+                }}
+              />
+              <button
+                onClick={() => clickSoundRef.current?.click()}
+                disabled={saving === "click_sound"}
+                className="text-xs bg-white/5 hover:bg-white/10 border border-white/10 px-3 py-1.5 rounded-lg text-white/60 hover:text-white transition-colors cursor-pointer disabled:opacity-40"
+              >
+                {saving === "click_sound" ? "uploading..." : "upload audio"}
+              </button>
+              {clickSound.startsWith("http") && (
+                <>
+                  <span className="text-[11px] text-white/30">custom sound active</span>
+                  <button onClick={() => PlayClickSound(clickSound)} className="text-[11px] text-blue-400 hover:text-blue-300 cursor-pointer">preview</button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <p className="text-sm font-semibold text-white/80 mb-4">Discord</p>
+          <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.02] border border-white/[0.06]">
+            <div className="flex items-center gap-3">
+              <svg className="w-5 h-5 text-[#5865F2]" viewBox="0 0 127.14 96.36" fill="currentColor">
+                <path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z"/>
+              </svg>
+              <span className="text-sm text-white/70">Discord</span>
+            </div>
+            {user?.provider === "discord" || !!user?.discord_id ? (
+              <span className="flex items-center gap-1.5 text-xs text-green-400">linked</span>
+            ) : (
+              <a href="/api/auth/discord" className="text-xs text-blue-400 hover:text-blue-300 transition-colors">link account</a>
+            )}
+          </div>
+          {(user?.provider === "discord" || !!user?.discord_id) && (
+            <button
+              onClick={async () => {
+                if (!user || !window.confirm("Unlink your Discord account? Your Discord status will stop showing on your page.")) return;
+                const { error } = await apiCall("discord_unlink", {});
+                if (error) { alert(error); return; }
+                setDiscordRpcEnabled(false);
+                if (onUpdateUser) onUpdateUser({ ...user, discord_id: null, discord_rpc_enabled: false });
+                showSaved("discord unlinked!");
+              }}
+              className="text-xs font-medium text-red-400/80 px-3 py-1.5 rounded-lg transition-all border border-red-500/20 hover:text-red-300 hover:bg-red-500/10 w-full mt-2 cursor-pointer"
+            >
+              unlink discord
+            </button>
+          )}
+        </div>
+
+        <div>
+          <p className="text-sm font-semibold text-white/80 mb-4">Discord RPC</p>
+          <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] space-y-3">
+            {linkedDiscordId ? (
+              <>
+                <label className="flex items-center gap-2 text-xs text-white/50 cursor-pointer">
+                  <Toggle checked={discordRpcEnabled} onChange={setDiscordRpcEnabled} />
+                  Show Discord presence on my biolink
+                </label>
+                <ol className="text-[11px] text-white/40 space-y-1 list-decimal list-inside">
+                  <li>Join our <a href="https://discord.gg/npN6H47KEn" target="_blank" rel="noreferrer" className="text-blue-400 hover:text-blue-300">Discord server</a> (the sire bot can only see members who are in the server).</li>
+                  <li>Run <span className="text-white/70 font-mono">/link</span> in the server to get the linked role.</li>
+                  <li>Turn on the toggle above and hit save. Your status, custom status and activity show on your page within ~15 seconds.</li>
+                </ol>
+                <div className="flex justify-end">
+                  <button
+                    onClick={async () => {
+                      if (!user) return;
+                      const { error } = await apiCall("update", { data: { discord_rpc_enabled: discordRpcEnabled } });
+                      if (error) console.error("saveDiscordRpc error:", error);
+                      else showSaved("discord rpc saved!");
+                    }}
+                    className="text-xs bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-white font-semibold transition-all cursor-pointer"
+                  >
+                    save discord rpc
+                  </button>
+                </div>
+              </>
+            ) : (
+              <p className="text-[11px] text-white/40">Link a Discord account to enable Discord RPC.</p>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div className="lg:w-[55%] flex-1 space-y-6">
+      <Preview user={user} desc={desc} descEffect={descEffect} descSpeed={descSpeed} descLines={descLines} background={background} audio={audio1 || audio2} profileAvatar={profileAvatar} customCursor={customCursor} displayEffect={displayEffect} sparkleIntensity={sparkleIntensity} font={font} customFontUrl={customFontUrl} customFontName={customFontName} fontScope={fontScope} videoBg={videoBg} videoAudio={videoAudio} bgEffect={bgEffect} avatarShape={avatarShape} avatarSize={avatarSize} avatarOffsetX={avatarOffsetX} avatarOffsetY={avatarOffsetY} onAvatarOffsetChange={(x, y) => { setAvatarOffsetX(Math.round(x)); setAvatarOffsetY(Math.round(y)); }} banner={banner} bannerEnabled={bannerEnabled} entryText={entryText} entryFont={entryFont} entryColor={entryColor} entryEffect={entryEffect} songPlatform={songPlatform} songId={songId} showUsername={showUsername} primaryColor={primaryColor} secondaryColor={secondaryColor} accentColor={accentColor} textColor={textColor} backgroundColor={backgroundColor} iconColor={iconColor} bgEffectColor={bgEffectColor} panelMouseFollow={panelMouseFollow} cursorEffect={cursorEffect} nameOffsetX={nameOffsetX} nameOffsetY={nameOffsetY} onNameOffsetChange={(x, y) => { setNameOffsetX(Math.round(x)); setNameOffsetY(Math.round(y)); }} badgeOffsetX={badgeOffsetX} badgeOffsetY={badgeOffsetY} onBadgeOffsetChange={(x, y) => { setBadgeOffsetX(Math.round(x)); setBadgeOffsetY(Math.round(y)); }} descOffsetX={descOffsetX} descOffsetY={descOffsetY} onDescOffsetChange={(x, y) => { setDescOffsetX(Math.round(x)); setDescOffsetY(Math.round(y)); }} songOffsetX={songOffsetX} songOffsetY={songOffsetY} onSongOffsetChange={(x, y) => { setSongOffsetX(Math.round(x)); setSongOffsetY(Math.round(y)); }} rpcOffsetX={rpcOffsetX} rpcOffsetY={rpcOffsetY} onRpcOffsetChange={(x, y) => { setRpcOffsetX(Math.round(x)); setRpcOffsetY(Math.round(y)); }} badges={myBadges} panelOpacity={panelOpacity} panelHidden={panelHidden} glowMode={glowMode} glowColor={glowColor} glowColor2={glowColor2} glowSpread={glowSpread} pulseEnabled={pulseOn} pulseColor={pulseColor} pulseSpeed={pulseSpeed} discordId={linkedDiscordId} discordRpcEnabled={discordRpcEnabled} />
+
+      <div className="glass-card rounded-2xl p-5 space-y-4">
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-white/50 font-semibold uppercase tracking-wider">Shape</span>
+          <div className="flex gap-2">
+            {["circle", "rounded"].map((s) => (
+              <button key={s} onClick={() => setAvatarShape(s)}
+                className={`text-xs px-3 py-1.5 rounded-lg border transition-colors cursor-pointer ${
+                  avatarShape === s
+                    ? "bg-blue-600/20 border-blue-500/40 text-blue-300"
+                    : "bg-white/[0.03] border-white/10 text-white/40 hover:text-white/60"
+                }`}
+              >
+                {s === "circle" ? "Circle" : "Rounded Box"}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-white/50 font-semibold uppercase tracking-wider">Size</span>
+          <div className="flex items-center gap-3">
+            <input type="range" min="48" max="200" value={avatarSize} onChange={(e) => setAvatarSize(Number(e.target.value))} className="w-24 h-1 accent-blue-500 cursor-pointer" />
+            <span className="text-xs text-white/40 w-10 text-right">{avatarSize}px</span>
+          </div>
+        </div>
+        <div className="pt-3 border-t border-white/[0.04]">
+          <h3 className="text-xs text-white/50 font-semibold uppercase tracking-wider mb-3">Position</h3>
+          <div className="grid gap-3">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-white/50 font-semibold uppercase tracking-wider">Avatar</span>
+              <span className="text-white/80 font-mono">{avatarOffsetX}px / {avatarOffsetY}px</span>
+            </div>
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-white/50 font-semibold uppercase tracking-wider">Description</span>
+              <span className="text-white/80 font-mono">{descOffsetX}px / {descOffsetY}px</span>
+            </div>
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-white/50 font-semibold uppercase tracking-wider">Song Player</span>
+              <span className="text-white/80 font-mono">{songOffsetX}px / {songOffsetY}px</span>
+            </div>
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-white/50 font-semibold uppercase tracking-wider">Discord RPC</span>
+              <span className="text-white/80 font-mono">{rpcOffsetX}px / {rpcOffsetY}px</span>
+            </div>
+          </div>
+          <p className="text-[10px] text-white/30 mt-3">Drag the avatar, description, song player, and discord rpc directly in the live preview to position them.</p>
+          <div className="flex justify-end gap-2 mt-3">
+            <button onClick={async () => {
+              if (!user) return;
+              setAvatarOffsetX(0);
+              setAvatarOffsetY(0);
+              setNameOffsetX(0);
+              setNameOffsetY(0);
+              setBadgeOffsetX(0);
+              setBadgeOffsetY(0);
+              setDescOffsetX(0);
+              setDescOffsetY(0);
+              setSongOffsetX(0);
+              setSongOffsetY(0);
+              setRpcOffsetX(0);
+              setRpcOffsetY(0);
+              const { error } = await apiCall("update", {
+                data: {
+                  avatar_shape: avatarShape,
+                  avatar_size: avatarSize,
+                  avatar_offset_x: 0,
+                  avatar_offset_y: 0,
+                  name_offset_x: 0,
+                  name_offset_y: 0,
+                  badge_offset_x: 0,
+                  badge_offset_y: 0,
+                  desc_offset_x: 0,
+                  desc_offset_y: 0,
+                  song_offset_x: 0,
+                  song_offset_y: 0,
+                  discord_rpc_offset_x: 0,
+                  discord_rpc_offset_y: 0,
+                },
+              });
+              if (!error) showSaved("positions reset");
+            }} className="text-xs bg-white/[0.05] hover:bg-white/[0.1] border border-white/[0.1] px-4 py-2 rounded-lg text-white/70 transition-colors cursor-pointer">
+              reset
+            </button>
+            <button onClick={async () => {
+              if (!user) return;
+              setSavingAvatar(true);
+              const { error } = await apiCall("update", {
+                data: {
+                  avatar_shape: avatarShape,
+                  avatar_size: avatarSize,
+                  avatar_offset_x: avatarOffsetX,
+                  avatar_offset_y: avatarOffsetY,
+                  name_offset_x: nameOffsetX,
+                  name_offset_y: nameOffsetY,
+                  badge_offset_x: badgeOffsetX,
+                  badge_offset_y: badgeOffsetY,
+                  desc_offset_x: descOffsetX,
+                  desc_offset_y: descOffsetY,
+                  song_offset_x: songOffsetX,
+                  song_offset_y: songOffsetY,
+                  discord_rpc_offset_x: rpcOffsetX,
+                  discord_rpc_offset_y: rpcOffsetY,
+                },
+              });
+              if (!error) showSaved("saved!");
+              setSavingAvatar(false);
+            }} disabled={savingAvatar} className="text-xs bg-blue-600 hover:bg-blue-500 disabled:opacity-40 px-4 py-2 rounded-lg text-white font-semibold transition-colors cursor-pointer">
+              {savingAvatar ? "saving..." : "save"}
+            </button>
+          </div>
+        </div>
+      </div>
+
+        <div className="glass-card rounded-2xl p-6">
+        <h3 className="text-sm font-semibold text-white/80 mb-4">Display Name Effects</h3>
+        <div className="flex flex-wrap gap-2 mb-4">
+          {[
+            { id: "none", label: "None" },
+            { id: "sparkle", label: "Sparkle" },
+            { id: "glow", label: "Glow" },
+            { id: "rainbow", label: "Rainbow" },
+            { id: "glitch", label: "Glitch", premium: true },
+            { id: "neon", label: "Neon", premium: true },
+            { id: "gradient-flow", label: "Gradient Flow", premium: true },
+            { id: "shine-sweep", label: "Shine Sweep", premium: true },
+          ].map((e) => {
+            const locked = !!e.premium && !myBadges.includes("premium");
+            return (
+              <button
+                key={e.id}
+                onClick={() => {
+                  if (locked) { showSaved("that's a premium effect", false); return; }
+                  setDisplayEffect(e.id);
+                }}
+                className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border transition-colors cursor-pointer ${
+                  displayEffect === e.id
+                    ? "bg-blue-600/20 border-blue-500/40 text-blue-300"
+                    : locked
+                      ? "bg-white/[0.03] border-white/10 text-white/25"
+                      : "bg-white/[0.03] border-white/10 text-white/40 hover:text-white/60"
+                }`}
+              >
+                {e.label}
+                {e.premium && <Crown size={10} className={locked ? "text-white/20" : "text-blue-300"} />}
+              </button>
+            );
+          })}
+        </div>
+        <div className="mb-4 p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] flex items-center justify-center min-h-[48px]">
+          <span className={`text-lg font-black tracking-tight ${displayEffect !== "sparkle" && displayEffect !== "none" ? `display-effect-${displayEffect}` : ""}`}>
+            {displayEffect === "sparkle" ? (
+              <SparkleText text={user?.display_name || user?.username || "preview"} count={sparkleIntensity} />
+            ) : (
+              user?.display_name || user?.username || "preview"
+            )}
+          </span>
+        </div>
+        {displayEffect === "sparkle" ? (
+          <div className="flex items-center gap-3 mb-4">
+            <span className="text-xs text-white/60 whitespace-nowrap">Intensity</span>
+            <input type="range" min="4" max="40" value={sparkleIntensity} onChange={(e) => setSparkleIntensity(Number(e.target.value))} className="flex-1 h-1 accent-blue-500 cursor-pointer" />
+            <span className="text-xs text-white/60 font-mono w-6 text-right">{sparkleIntensity}</span>
+          </div>
+        ) : null}
+        <div className="flex justify-end">
+          <button
+            onClick={async () => {
+              if (!user) return;
+              await apiCall("update", { data: { display_effect: displayEffect, sparkle_intensity: sparkleIntensity } });
+              showSaved("effect saved!");
+            }}
+            className="text-xs bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-white font-semibold transition-all cursor-pointer"
+          >
+            save effect
+          </button>
+        </div>
+      </div>
+
+      <div className="glass-card rounded-2xl p-6">
+        {customFontUrl ? (
+          <style>{CustomFontFace(customFontUrl, customFontName)}</style>
+        ) : null}
+        <h3 className="text-sm font-semibold text-white/80 mb-4">Font{font === CUSTOM_FONT_NAME ? <span className="ml-2 text-[10px] px-2 py-0.5 rounded-full bg-blue-600/20 border border-blue-500/40 text-blue-300 align-middle">custom equipped</span> : null}</h3>
+        <div className="flex flex-wrap gap-2 mb-4">
+          {FONTS.map((f) => (
+            <button
+              key={f.name}
+              onClick={() => setFont(f.name)}
+              className={`text-xs px-3 py-1.5 rounded-lg border transition-colors cursor-pointer ${
+                font === f.name
+                  ? "bg-blue-600/20 border-blue-500/40 text-blue-300"
+                  : "bg-white/[0.03] border-white/10 text-white/40 hover:text-white/60"
+              }`}
+              style={{ fontFamily: f.family }}
+            >
+              {f.name}
+            </button>
+          ))}
+          <button
+            onClick={() => setFont(CUSTOM_FONT_NAME)}
+            className={`text-xs px-3 py-1.5 rounded-lg border transition-colors cursor-pointer ${
+              font === CUSTOM_FONT_NAME
+                ? "bg-blue-600/20 border-blue-500/40 text-blue-300"
+                : "bg-white/[0.03] border-white/10 text-white/40 hover:text-white/60"
+            }`}
+            style={customFontUrl ? { fontFamily: CUSTOM_FONT_FAMILY } : undefined}
+            title={customFontUrl ? "custom font file stored" : "no font file uploaded yet"}
+          >
+            Custom{customFontUrl ? (font === CUSTOM_FONT_NAME ? " âœ“" : "") : "*"}
+          </button>
+        </div>
+        {font === CUSTOM_FONT_NAME || customFontUrl ? (
+          <div className="mb-4 p-4 rounded-xl bg-white/[0.02] border border-white/[0.06]">
+            <p className="text-[11px] text-white/40 mb-3">Upload your own font (.ttf, .otf, .woff, .woff2, max 10MB). It styles your biolink page only.</p>
+            <div className="flex items-center gap-3 mb-3">
+              <label className="inline-block text-xs bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 px-4 py-2 rounded-lg text-white/70 font-semibold transition-all cursor-pointer">
+                {customFontUrl ? "replace font file" : "upload font file"}
+                <input
+                  type="file"
+                  accept=".ttf,.otf,.woff,.woff2"
+                  className="hidden"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    e.target.value = "";
+                    if (file) await uploadAsset("custom_font", file);
+                  }}
+                />
+              </label>
+              {customFontUrl ? (
+                <button
+                  onClick={async () => {
+                    await apiCall("asset_delete", { type: "custom_font" });
+                    setCustomFontUrl("");
+                    setCustomFontName("");
+                    if (font === CUSTOM_FONT_NAME) setFont("Inter");
+                    showSaved("custom font removed");
+                  }}
+                  className="text-xs text-red-400 hover:text-red-300 transition-colors cursor-pointer"
+                >
+                  remove
+                </button>
+              ) : null}
+            </div>
+            {customFontUrl ? (
+              <div className="mb-3 p-3 rounded-xl bg-emerald-500/[0.06] border border-emerald-500/20">
+                <p className="text-[11px] text-white/60">Uploaded file:</p>
+                <p className="text-xs text-white font-semibold truncate" style={customFontUrl ? { fontFamily: CUSTOM_FONT_FAMILY } : undefined}>{customFontName || "custom font file"}</p>
+                <p className="text-[11px] mt-1">{font === CUSTOM_FONT_NAME ? <span className="text-emerald-400/90">currently using this font âœ“</span> : <span className="text-amber-400/90">stored but not equipped â€” click Custom above + save to use it</span>}</p>
+                <FontLoadStatus url={customFontUrl} />
+              </div>
+            ) : (
+              <p className="text-[11px] text-amber-400/80 mb-3">* upload a font file first, then save</p>
+            )}
+            <p className="text-[11px] text-white/40 mb-2">Apply custom font to:</p>
+            <div className="flex flex-wrap gap-2">
+              {[{ v: "all", label: "Entire profile" }, { v: "name", label: "Display name only" }].map((o) => (
+                <button
+                  key={o.v}
+                  onClick={() => setFontScope(o.v)}
+                  className={`text-xs px-3 py-1.5 rounded-lg border transition-colors cursor-pointer ${
+                    fontScope === o.v
+                      ? "bg-blue-600/20 border-blue-500/40 text-blue-300"
+                      : "bg-white/[0.03] border-white/10 text-white/40 hover:text-white/60"
+                  }`}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null}
+        <div className="mb-4 p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] flex items-center justify-center min-h-[48px]">
+          <span className="text-lg font-black tracking-tight" style={{ fontFamily: ResolveFontFamily(font, !!customFontUrl) }}>
+            {user?.display_name || user?.username || "preview"}
+          </span>
+        </div>
+        <div className="flex justify-end">
+          <button
+            onClick={async () => {
+              if (!user) return;
+              await apiCall("update", { data: { font, custom_font_scope: fontScope } });
+              showSaved("font saved!");
+            }}
+            className="text-xs bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-white font-semibold transition-all cursor-pointer"
+          >
+            save font
+          </button>
+        </div>
+      </div>
+
+      <div className="glass-card rounded-2xl p-6">
+        <h3 className="text-sm font-semibold text-white/80 mb-4">Entry Overlay</h3>
+        <p className="text-[11px] text-white/40 mb-3">Customize the "click anywhere to enter" overlay text.</p>
+        <input
+          value={entryText}
+          onChange={(e) => setEntryText(e.target.value)}
+          placeholder="click anywhere to enter"
+          className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white/80 outline-none focus:border-blue-500/40 transition-colors placeholder:text-white/20 mb-3"
+        />
+        <div className="flex flex-wrap gap-2 mb-3">
+          {FONTS.map((f) => (
+            <button
+              key={f.name}
+              onClick={() => setEntryFont(f.name)}
+              className={`text-xs px-3 py-1.5 rounded-lg border transition-colors cursor-pointer ${
+                entryFont === f.name
+                  ? "bg-blue-600/20 border-blue-500/40 text-blue-300"
+                  : "bg-white/[0.03] border-white/10 text-white/40 hover:text-white/60"
+              }`}
+              style={{ fontFamily: f.family }}
+            >
+              {f.name}
+            </button>
+          ))}
+          {customFontUrl ? (
+            <button
+              onClick={() => setEntryFont(CUSTOM_FONT_NAME)}
+              className={`text-xs px-3 py-1.5 rounded-lg border transition-colors cursor-pointer ${
+                entryFont === CUSTOM_FONT_NAME
+                  ? "bg-blue-600/20 border-blue-500/40 text-blue-300"
+                  : "bg-white/[0.03] border-white/10 text-white/40 hover:text-white/60"
+              }`}
+              style={{ fontFamily: CUSTOM_FONT_FAMILY }}
+            >
+              Custom
+            </button>
+          ) : null}
+        </div>
+        {!customFontUrl ? (
+          <p className="text-[11px] text-white/30 mb-3">upload a custom font above to unlock it here</p>
+        ) : null}
+        <div className="flex items-center gap-3 mb-3">
+          <span className="text-xs text-white/60">Color</span>
+          <input
+            type="color"
+            value={entryColor.startsWith("#") ? entryColor : "#ffffff"}
+            onChange={(e) => setEntryColor(e.target.value)}
+            className="h-7 w-10 rounded border border-white/10 bg-white/5 cursor-pointer"
+          />
+          <input
+            type="text"
+            value={entryColor}
+            onChange={(e) => setEntryColor(e.target.value)}
+            className="w-24 bg-white/[0.03] border border-white/[0.06] rounded px-1.5 py-1 text-white outline-none focus:border-blue-500/30 transition-colors font-mono text-[10px] text-center"
+          />
+        </div>
+        <div className="flex flex-wrap gap-2 mb-3">
+          {["none", "typewriter"].map((e) => (
+            <button
+              key={e}
+              onClick={() => setEntryEffect(e)}
+              className={`text-xs px-3 py-1.5 rounded-lg border transition-colors cursor-pointer ${
+                entryEffect === e
+                  ? "bg-blue-600/20 border-blue-500/40 text-blue-300"
+                  : "bg-white/[0.03] border-white/10 text-white/40 hover:text-white/60"
+              }`}
+            >
+              {e === "none" ? "None" : "Typewriter"}
+            </button>
+          ))}
+        </div>
+        <div className="mb-4 p-4 rounded-xl bg-black/40 border border-white/10 flex items-center justify-center min-h-[48px]">
+          <p className="text-lg lowercase" style={{ fontFamily: ResolveFontFamily(entryFont, !!customFontUrl), color: entryColor }}>
+            {entryPreview || ""}<span className="animate-pulse">|</span>
+          </p>
+        </div>
+        <div className="flex justify-end">
+          <button
+            onClick={async () => {
+              if (!user) return;
+              setSavingEntry(true);
+              await apiCall("update", {
+                data: {
+                  entry_text: entryText,
+                  entry_font: entryFont,
+                  entry_color: entryColor,
+                  entry_effect: entryEffect,
+                },
+              });
+              setSavingEntry(false);
+              showSaved("entry settings saved!");
+            }}
+            className="text-xs bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-white font-semibold transition-all cursor-pointer"
+          >
+            {savingEntry ? "saving..." : "save entry"}
+          </button>
+        </div>
+      </div>
+
+      <div className="glass-card rounded-2xl p-6">
+        <h3 className="text-sm font-semibold text-white/80 mb-4">Background Effects</h3>
+        <div className="flex flex-wrap gap-2 mb-4">
+          {[
+            { id: "none", label: "None" },
+            { id: "rain", label: "Rain" },
+            { id: "snow", label: "Snow" },
+            { id: "aurora", label: "Aurora" },
+            { id: "tv", label: "TV Static" },
+            { id: "fire", label: "Fire" },
+            { id: "stars", label: "Stars" },
+            { id: "fog", label: "Fog" },
+            { id: "waves", label: "Waves" },
+            { id: "particles", label: "Particles", premium: true },
+            { id: "galaxy", label: "Galaxy", premium: true },
+            { id: "matrix", label: "Matrix", premium: true },
+            { id: "spotlight", label: "Spotlight", premium: true },
+            { id: "bubbles", label: "Bubbles", premium: true },
+            { id: "hearts", label: "Hearts", premium: true },
+            { id: "leaves", label: "Leaves", premium: true },
+            { id: "lightning", label: "Lightning", premium: true },
+          ].map((e) => {
+            const locked = !!e.premium && !myBadges.includes("premium");
+            return (
+              <button
+                key={e.id}
+                onClick={() => {
+                  if (locked) { showSaved("that's a premium effect", false); return; }
+                  setBgEffect(e.id);
+                }}
+                className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border transition-colors cursor-pointer ${
+                  bgEffect === e.id
+                    ? "bg-blue-600/20 border-blue-500/40 text-blue-300"
+                    : locked
+                      ? "bg-white/[0.03] border-white/10 text-white/25"
+                      : "bg-white/[0.03] border-white/10 text-white/40 hover:text-white/60"
+                }`}
+              >
+                {e.label}
+                {e.premium && <Crown size={10} className={locked ? "text-white/20" : "text-blue-300"} />}
+              </button>
+            );
+          })}
+        </div>
+        <div className="mb-4 relative p-4 rounded-xl bg-black/40 border border-white/[0.06] flex items-center justify-center min-h-[120px] overflow-hidden">
+          {bgEffect === "rain" && <RainEffect />}
+          {bgEffect === "snow" && <SnowEffect />}
+          {bgEffect === "aurora" && <AuroraEffect />}
+          {bgEffect === "tv" && <TvStaticEffect />}
+          {bgEffect === "fire" && <FireEffect />}
+          {bgEffect === "stars" && <StarsEffect />}
+          {bgEffect === "fog" && <FogEffect />}
+          {bgEffect === "waves" && <WavesEffect />}
+          {bgEffect === "particles" && <ParticlesEffect />}
+          {bgEffect === "galaxy" && <GalaxyEffect />}
+          {bgEffect === "matrix" && <MatrixEffect />}
+          {bgEffect === "spotlight" && <SpotlightEffect />}
+          {bgEffect === "bubbles" && <BubblesEffect />}
+          {bgEffect === "hearts" && <HeartsEffect />}
+          {bgEffect === "leaves" && <LeavesEffect />}
+          {bgEffect === "lightning" && <LightningEffect />}
+          <span className="text-sm text-white/30 italic relative z-[2]">preview</span>
+        </div>
+        <div className="flex justify-end">
+          <button
+            onClick={async () => {
+              if (!user) return;
+              await apiCall("update", { data: { bg_effect: bgEffect } });
+              showSaved("effect saved!");
+            }}
+            className="text-xs bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-white font-semibold transition-all cursor-pointer"
+          >
+            save effect
+          </button>
+        </div>
+      </div>
+
+      <div className="glass-card rounded-2xl p-6">
+        <h3 className="text-sm font-semibold text-white/80 mb-4">Other Customization</h3>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm text-white/80">Monochrome Icons</p>
+            <p className="text-[11px] text-white/40">Show all company logos in monochrome on your biolink</p>
+          </div>
+          <button
+            onClick={async () => {
+              if (!user) return;
+              const next = !monochromeIcons;
+              setMonochromeIcons(next);
+              await apiCall("update", { data: { monochrome_icons: next } });
+              showSaved(next ? "monochrome on" : "monochrome off");
+            }}
+            className={`text-xs px-3 py-1.5 rounded-lg border transition-colors cursor-pointer ${
+              monochromeIcons
+                ? "bg-blue-600/20 border-blue-500/40 text-blue-300"
+                : "bg-white/[0.03] border-white/10 text-white/40"
+            }`}
+          >
+            {monochromeIcons ? "on" : "off"}
+          </button>
+        </div>
+        <div className="flex items-center justify-between mt-4">
+          <div>
+            <p className="text-sm text-white/80">Monochrome Badges</p>
+            <p className="text-[11px] text-white/40">Show badges in monochrome on your biolink</p>
+          </div>
+          <button
+            onClick={async () => {
+              if (!user) return;
+              const next = !monochromeBadges;
+              setMonochromeBadges(next);
+              await apiCall("update", { data: { monochrome_badges: next } });
+              showSaved(next ? "monochrome badges on" : "monochrome badges off");
+            }}
+            className={`text-xs px-3 py-1.5 rounded-lg border transition-colors cursor-pointer ${
+              monochromeBadges
+                ? "bg-blue-600/20 border-blue-500/40 text-blue-300"
+                : "bg-white/[0.03] border-white/10 text-white/40"
+            }`}
+          >
+            {monochromeBadges ? "on" : "off"}
+          </button>
+        </div>
+        <div className="flex items-center justify-between mt-4">
+          <div>
+            <p className="text-sm text-white/80">Panel Mouse Follow</p>
+            <p className="text-[11px] text-white/40">Glass panel tilts to follow your cursor</p>
+          </div>
+          <button
+            onClick={async () => {
+              if (!user) return;
+              const next = !panelMouseFollow;
+              setPanelMouseFollow(next);
+              await apiCall("update", { data: { panel_mouse_follow: next } });
+              showSaved(next ? "mouse follow on" : "mouse follow off");
+            }}
+            className={`text-xs px-3 py-1.5 rounded-lg border transition-colors cursor-pointer ${
+              panelMouseFollow
+                ? "bg-blue-600/20 border-blue-500/40 text-blue-300"
+                : "bg-white/[0.03] border-white/10 text-white/40"
+            }`}
+          >
+            {panelMouseFollow ? "on" : "off"}
+          </button>
+        </div>
+        <div className="flex items-center justify-between mt-4">
+          <div>
+            <p className="text-sm text-white/80">Cursor Effect</p>
+            <p className="text-[11px] text-white/40">Particles that follow your cursor (spark / star)</p>
+          </div>
+          <div className="flex gap-1">
+            {["none", "spark", "star"].map((e) => (
+              <button
+                key={e}
+                onClick={async () => {
+                  if (!user) return;
+                  setCursorEffect(e);
+                  await apiCall("update", { data: { cursor_effect: e } });
+                  showSaved(`cursor: ${e}`);
+                }}
+                className={`text-xs px-2.5 py-1.5 rounded-lg border transition-colors cursor-pointer ${
+                  cursorEffect === e
+                    ? "bg-blue-600/20 border-blue-500/40 text-blue-300"
+                    : "bg-white/[0.03] border-white/10 text-white/40"
+                }`}
+              >
+                {e === "none" ? "off" : e}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {savedMsg && (
+      <div className="fixed bottom-6 right-6 z-[100] bg-emerald-600/90 backdrop-blur-md text-white text-xs font-medium px-4 py-2.5 rounded-xl shadow-2xl border border-white/10 pointer-events-none animate-in fade-in slide-in-from-bottom-2" style={{ animation: "saved-toast 2s ease-in-out" }}>
+        {savedMsg}
+      </div>
+    )}
+
+    <AnimatePresence>
+      {isAudioModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            className="w-full max-w-sm rounded-2xl bg-[#09090b] border border-white/10 p-5 shadow-2xl space-y-4"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-white/50 lowercase tracking-wider">audio settings</span>
+              <button
+                onClick={() => setIsAudioModalOpen(false)}
+                className="text-white/30 hover:text-white transition-colors cursor-pointer text-xs"
+              >
+                close
+              </button>
+            </div>
+
+            <div className="space-y-2">
+              {/* Audio 1 */}
+              <div className="flex items-center justify-between p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                <div className="flex items-center gap-3 min-w-0 flex-1 mr-2">
+                  <div className="h-7 w-7 rounded-full bg-white/10 flex items-center justify-center shrink-0">
+                    <Music size={12} className="text-white ml-0.5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-medium text-white truncate">
+                      {audio1 ? (audio1.split('/').pop()?.split('?')[0] || "audio track 1") : "audio 1 (none)"}
+                    </p>
+                    <p className="text-[10px] text-white/40 font-mono">
+                      {audio1Duration || "0:00"}
+                    </p>
+                  </div>
+                </div>
+
+                <input ref={audio1Ref} type="file" accept="audio/*" className="hidden" onChange={() => {
+                  const file = audio1Ref.current?.files?.[0];
+                  if (file) uploadAsset("audio_1", file);
+                }} />
+                <div className="flex items-center gap-3">
+                <button
+                  onClick={() => audio1Ref.current?.click()}
+                  disabled={saving === "audio_1"}
+                  className="text-xs text-blue-400 hover:text-blue-300 disabled:opacity-40 transition-colors cursor-pointer shrink-0"
+                >
+                  {saving === "audio_1" ? "saving..." : audio1 ? "change" : "upload"}
+                </button>
+                {audio1 && (
+                  <button
+                    onClick={async () => {
+                      await apiCall("asset_delete", { type: "audio_1" });
+                      setAudio1(null);
+                      showSaved("audio 1 removed");
+                    }}
+                    className="text-xs text-red-400 hover:text-red-300 transition-colors cursor-pointer shrink-0"
+                  >
+                    remove
+                  </button>
+                )}
+                </div>
+              </div>
+
+              {/* Audio 2 */}
+              <div className="flex items-center justify-between p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                <div className="flex items-center gap-3 min-w-0 flex-1 mr-2">
+                  <div className="h-7 w-7 rounded-full bg-white/10 flex items-center justify-center shrink-0">
+                    <Music size={12} className="text-white ml-0.5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-medium text-white truncate">
+                      {audio2 ? (audio2.split('/').pop()?.split('?')[0] || "audio track 2") : "audio 2 (none)"}
+                    </p>
+                    <p className="text-[10px] text-white/40 font-mono">
+                      {audio2Duration || "0:00"}
+                    </p>
+                  </div>
+                </div>
+
+                <input ref={audio2Ref} type="file" accept="audio/*" className="hidden" onChange={() => {
+                  const file = audio2Ref.current?.files?.[0];
+                  if (file) uploadAsset("audio_2", file);
+                }} />
+                <div className="flex items-center gap-3">
+                <button
+                  onClick={() => audio2Ref.current?.click()}
+                  disabled={saving === "audio_2"}
+                  className="text-xs text-blue-400 hover:text-blue-300 disabled:opacity-40 transition-colors cursor-pointer shrink-0"
+                >
+                  {saving === "audio_2" ? "saving..." : audio2 ? "change" : "upload"}
+                </button>
+                {audio2 && (
+                  <button
+                    onClick={async () => {
+                      await apiCall("asset_delete", { type: "audio_2" });
+                      setAudio2(null);
+                      showSaved("audio 2 removed");
+                    }}
+                    className="text-xs text-red-400 hover:text-red-300 transition-colors cursor-pointer shrink-0"
+                  >
+                    remove
+                  </button>
+                )}
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3 pt-1">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-white/60">shuffle audio</span>
+                <button
+                  onClick={() => setShuffleAudio(!shuffleAudio)}
+                  className={`text-xs px-2.5 py-1 rounded-lg border transition-colors cursor-pointer ${
+                    shuffleAudio
+                      ? "bg-blue-600/20 border-blue-500/40 text-blue-300"
+                      : "bg-white/[0.03] border-white/10 text-white/40"
+                  }`}
+                >
+                  {shuffleAudio ? "on" : "off"}
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-white/60">volume</span>
+                <div className="flex items-center gap-2 w-32">
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={audioVolume}
+                    onChange={(e) => setAudioVolume(Number(e.target.value))}
+                    className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                  />
+                  <span className="text-[10px] text-white/40 font-mono w-6 text-right">{audioVolume}%</span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-white/60">autoplay</span>
+                <button
+                  onClick={() => setAudioAutoplay(!audioAutoplay)}
+                  className={`text-xs px-2.5 py-1 rounded-lg border transition-colors cursor-pointer ${
+                    audioAutoplay
+                      ? "bg-blue-600/20 border-blue-500/40 text-blue-300"
+                      : "bg-white/[0.03] border-white/10 text-white/40"
+                  }`}
+                >
+                  {audioAutoplay ? "on" : "off"}
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-white/60">loop</span>
+                <button
+                  onClick={() => setAudioLoop(!audioLoop)}
+                  className={`text-xs px-2.5 py-1 rounded-lg border transition-colors cursor-pointer ${
+                    audioLoop
+                      ? "bg-blue-600/20 border-blue-500/40 text-blue-300"
+                      : "bg-white/[0.03] border-white/10 text-white/40"
+                  }`}
+                >
+                  {audioLoop ? "on" : "off"}
+                </button>
+              </div>
+            </div>
+
+            <button
+              onClick={async () => {
+                if (!user) return;
+                await apiCall("update", {
+                  data: {
+                    audio_volume: audioVolume,
+                    audio_autoplay: audioAutoplay,
+                    audio_loop: audioLoop,
+                    audio_shuffle: shuffleAudio,
+                  },
+                });
+                showSaved("audio settings saved");
+                setIsAudioModalOpen(false);
+              }}
+              className="w-full text-xs bg-blue-600 hover:bg-blue-500 py-2 rounded-lg text-white font-semibold transition-all cursor-pointer"
+            >
+              save settings
+            </button>
+          </motion.div>
+        </div>
+      )}
+
+      {isBgModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            className="w-full max-w-sm rounded-2xl bg-[#09090b] border border-white/10 p-5 shadow-2xl space-y-4"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-white/50 lowercase tracking-wider">background</span>
+              <button onClick={() => setIsBgModalOpen(false)} className="text-white/30 hover:text-white/60 transition-colors cursor-pointer">
+                <X size={14} />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center justify-between p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                <span className="text-xs text-white/60">Image / GIF</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-[10px] text-white/20">max 10MB</span>
+                  <input ref={bgRef} type="file" accept="image/*" className="hidden" onChange={async () => {
+                    const file = bgRef.current?.files?.[0];
+                    if (!file) return;
+                    if (file.size > 10 * 1024 * 1024) { showSaved("file too large (max 10MB)", false); return; }
+                    await uploadAsset("background", file);
+                    setIsBgModalOpen(false);
+                  }} />
+                  <button onClick={() => bgRef.current?.click()} disabled={saving === "background"} className="text-xs text-blue-400 hover:text-blue-300 disabled:opacity-40 transition-colors cursor-pointer">
+                    {saving === "background" ? "uploading..." : background ? "change" : "upload"}
+                  </button>
+                </div>
+              </div>
+
+                <div className="flex items-center justify-between p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                <span className="text-xs text-white/60">Video</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-[10px] text-white/20">{myBadges.includes("premium") ? "max 10MB" : "max 5MB"}</span>
+                  <input ref={videoBgRef} type="file" accept="video/mp4,video/webm,video/ogg" className="hidden" onChange={async () => {
+                    const file = videoBgRef.current?.files?.[0];
+                    if (!file) return;
+                    const vcap = myBadges.includes("premium") ? 10 : 5;
+                    if (file.size > vcap * 1024 * 1024) { showSaved(`video too large (max ${vcap}MB) â€” compress your video and try again`, false); return; }
+                    await uploadAsset("video_background", file);
+                    setIsBgModalOpen(false);
+                  }} />
+                  <button onClick={() => videoBgRef.current?.click()} disabled={saving === "video_background"} className="text-xs text-blue-400 hover:text-blue-300 disabled:opacity-40 transition-colors cursor-pointer">
+                    {saving === "video_background" ? "uploading..." : videoBg ? "change" : "upload"}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {(background || videoBg) && (
+              <div className="pt-2 border-t border-white/[0.06] space-y-3">
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                  {videoBg ? (
+                    <video src={videoBg} className="h-12 w-20 rounded object-cover" muted />
+                  ) : background ? (
+                    <img src={background} className="h-12 w-20 rounded object-cover" />
+                  ) : null}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-white/80 truncate">{videoBg ? "video background" : "image background"}</p>
+                    <button
+                      onClick={async () => {
+                        const type = videoBg ? "video_background" : "background";
+                        await apiCall("asset_delete", { type });
+                        if (type === "video_background") setVideoBg(null);
+                        else setBackground(null);
+                        showSaved("background removed");
+                      }}
+                      className="text-[10px] text-red-400 hover:text-red-300 transition-colors mt-1 cursor-pointer"
+                    >
+                      remove
+                    </button>
+                  </div>
+                </div>
+
+                {videoBg && (
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                    <span className="text-xs text-white/60">Video Audio</span>
+                    <button
+                      onClick={async () => {
+                        const next = !videoAudio;
+                        setVideoAudio(next);
+                        if (user) await apiCall("update", { data: { video_audio: next } });
+                        showSaved("video audio " + (next ? "on" : "off"));
+                      }}
+                      className={`text-xs px-2.5 py-1 rounded-lg border transition-colors cursor-pointer ${
+                        videoAudio
+                          ? "bg-emerald-600/20 border-emerald-500/40 text-emerald-300"
+                          : "bg-white/[0.03] border-white/10 text-white/40"
+                      }`}
+                    >
+                      {videoAudio ? "on" : "off"}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </motion.div>
+        </div>
+      )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function FontLoadStatus({ url }: { url: string }) {
+  const [state, setState] = useState<"checking" | "loaded" | "failed">("checking");
+  useEffect(() => {
+    if (!url) return;
+    let alive = true;
+    setState("checking");
+    const run = async () => {
+      try {
+        if (typeof document !== "undefined" && (document as any).fonts?.load) {
+          await (document as any).fonts.load('16px SireCustomFont');
+          await (document as any).fonts.ready?.catch(() => {});
+        } else {
+          await fetch(ToSameOriginUrl(url), { method: "HEAD" }).catch(() => null);
+        }
+        if (!alive) return;
+        const ok = typeof document !== "undefined" && (document as any).fonts?.check
+          ? (document as any).fonts.check('16px SireCustomFont')
+          : true;
+        setState(ok ? "loaded" : "failed");
+      } catch {
+        if (alive) setState("failed");
+      }
+    };
+    run();
+    return () => { alive = false; };
+  }, [url]);
+  if (state === "loaded") return <p className="text-[11px] text-emerald-400/80 mt-1">font file loads âœ“</p>;
+  if (state === "failed") return <p className="text-[11px] text-red-400/90 mt-1">font file failed to load â€” try re-uploading the .ttf/.otf</p>;
+  return <p className="text-[11px] text-white/30 mt-1">checking font fileâ€¦</p>;
+}
+
+function Toggle({ checked, onChange, className = "" }: { checked: boolean; onChange: (v: boolean) => void; className?: string }) {  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      onClick={() => onChange(!checked)}
+      className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors duration-200 cursor-pointer ${checked ? "bg-blue-600" : "bg-white/15"} ${className}`}
+    >
+      <span
+        className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform duration-200 ${checked ? "translate-x-[20px]" : "translate-x-1"}`}
+      />
+    </button>
+  );
+}
+
+function Preview({ user, desc, background, audio, profileAvatar, customCursor, displayEffect, sparkleIntensity, font, customFontUrl, customFontName, fontScope, videoBg, videoAudio, bgEffect, descEffect, descSpeed, descLines, avatarShape, avatarSize, avatarOffsetX, avatarOffsetY, onAvatarOffsetChange, banner, bannerEnabled, entryText, entryFont, entryColor, entryEffect, songPlatform, songId, showUsername, primaryColor, secondaryColor, accentColor, textColor, backgroundColor, iconColor, bgEffectColor, panelMouseFollow, cursorEffect: cursorEffectType, nameOffsetX, nameOffsetY, onNameOffsetChange, badgeOffsetX, badgeOffsetY, onBadgeOffsetChange, descOffsetX, descOffsetY, onDescOffsetChange, songOffsetX, songOffsetY, onSongOffsetChange, rpcOffsetX, rpcOffsetY, onRpcOffsetChange, badges, panelOpacity, panelHidden, glowMode, glowColor, glowColor2, glowSpread, pulseEnabled, pulseColor, pulseSpeed, pulseType, discordId, discordRpcEnabled }: { 
+  user: User | null; 
+  desc?: string;
+  background: string | null; 
+  audio: string | null; 
+  profileAvatar: string | null; 
+  customCursor: string | null; 
+  displayEffect?: string;
+  sparkleIntensity?: number;
+  font?: string;
+  customFontUrl?: string | null;
+  customFontName?: string | null;
+  fontScope?: string;
+  videoBg?: string | null;
+  videoAudio?: boolean;
+  bgEffect?: string;
+  descEffect?: string;
+  descSpeed?: number;
+  descLines?: string[];
+  avatarShape?: string;
+  avatarSize?: number;
+  avatarOffsetX?: number;
+  avatarOffsetY?: number;
+  onAvatarOffsetChange?: (x: number, y: number) => void;
+  banner?: string | null;
+  bannerEnabled?: boolean;
+  entryText?: string;
+  entryFont?: string;
+  entryColor?: string;
+  entryEffect?: string;
+  songPlatform?: string;
+  songId?: string;
+  showUsername?: boolean;
+  primaryColor?: string;
+  secondaryColor?: string;
+  accentColor?: string;
+  textColor?: string;
+  backgroundColor?: string;
+  iconColor?: string;
+  bgEffectColor?: string;
+  panelMouseFollow?: boolean;
+  cursorEffect?: string;
+  nameOffsetX?: number;
+  nameOffsetY?: number;
+  onNameOffsetChange?: (x: number, y: number) => void;
+  badgeOffsetX?: number;
+  badgeOffsetY?: number;
+  onBadgeOffsetChange?: (x: number, y: number) => void;
+  descOffsetX?: number;
+  descOffsetY?: number;
+  onDescOffsetChange?: (x: number, y: number) => void;
+  songOffsetX?: number;
+  songOffsetY?: number;
+  onSongOffsetChange?: (x: number, y: number) => void;
+  rpcOffsetX?: number;
+  rpcOffsetY?: number;
+  onRpcOffsetChange?: (x: number, y: number) => void;
+  badges?: string[];
+  panelOpacity?: number;
+  panelHidden?: boolean;
+  glowMode?: string;
+  glowColor?: string;
+  glowColor2?: string;
+  glowSpread?: number;
+  pulseEnabled?: boolean;
+  pulseColor?: string;
+  pulseSpeed?: number;
+  pulseType?: string;
+  discordId?: string | null;
+  discordRpcEnabled?: boolean;
+}) {
+  const BADGE_FILES: Record<string, string> = {
+    verified: "verified.png",
+    premium: "premium.webp",
+    og: "og.gif",
+    booster: "booster.png",
+    staff: "halloween.gif",
+    bug: "bug.gif",
+    corrupt: "corrupt.gif",
+    owner: "owner.gif",
+    halloween: "halloween.gif",
+  };
+  const BADGE_LABELS: Record<string, string> = {
+    bug: "bug hunter",
+  };
+  const effectClass = displayEffect && displayEffect !== "none" ? `display-effect-${displayEffect}` : "";
+  const previewLines = descLines && descLines.length > 0 ? descLines : (desc ? [desc] : user?.description ? [user.description] : []);
+  const [descPreview, setDescPreview] = useState(previewLines[0] || "");
+  const [entered, setEntered] = useState(true);
+  const [entryDisplay, setEntryDisplay] = useState(entryText || "");
+  const cardRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const lines = previewLines;
+    if (descEffect !== "typewriter" || lines.length === 0) { setDescPreview(lines[0] || ""); return; }
+    let lineIdx = 0, charIdx = 0, dir = 1, pause = 0;
+    setDescPreview("");
+    const timer = setInterval(() => {
+      if (pause > 0) { pause--; return; }
+      charIdx += dir;
+      const line = lines[lineIdx] || "";
+      if (dir === 1) {
+        setDescPreview(line.slice(0, charIdx));
+        if (charIdx >= line.length) { pause = 4; dir = -1; }
+      } else {
+        setDescPreview(line.slice(0, charIdx));
+        if (charIdx <= 0) { pause = 2; lineIdx = (lineIdx + 1) % lines.length; dir = 1; }
+      }
+    }, descSpeed ?? 50);
+    return () => clearInterval(timer);
+  }, [descEffect, descSpeed, previewLines]);
+  useEffect(() => {
+    if (entryEffect !== "typewriter" || entered) { setEntryDisplay(entryText || ""); return; }
+    let i = 0;
+    const timer = setInterval(() => {
+      i++;
+      setEntryDisplay((entryText || "").slice(0, i));
+      if (i >= (entryText || "").length) clearInterval(timer);
+    }, 50);
+    return () => clearInterval(timer);
+  }, [entryText, entryEffect, entered]);
+  const avSize = avatarSize || 96;
+  const avOffX = avatarOffsetX || 0;
+  const avOffY = avatarOffsetY || 0;
+  const avSrc = profileAvatar || user?.avatar_url;
+  const avMX = useMotionValue(avOffX);
+  const avMY = useMotionValue(avOffY);
+  const nameMX = useMotionValue(nameOffsetX || 0);
+  const nameMY = useMotionValue(nameOffsetY || 0);
+  const badgeMX = useMotionValue(badgeOffsetX || 0);
+  const badgeMY = useMotionValue(badgeOffsetY || 0);
+  const descMX = useMotionValue(descOffsetX || 0);
+  const descMY = useMotionValue(descOffsetY || 0);
+  const songMX = useMotionValue(songOffsetX || 0);
+  const songMY = useMotionValue(songOffsetY || 0);
+  const rpcMX = useMotionValue(rpcOffsetX || 0);
+  const rpcMY = useMotionValue(rpcOffsetY || 0);
+  useEffect(() => { avMX.set(avOffX); avMY.set(avOffY); }, [avOffX, avOffY, avMX, avMY]);
+  useEffect(() => { nameMX.set(nameOffsetX || 0); nameMY.set(nameOffsetY || 0); }, [nameOffsetX, nameOffsetY, nameMX, nameMY]);
+  useEffect(() => { badgeMX.set(badgeOffsetX || 0); badgeMY.set(badgeOffsetY || 0); }, [badgeOffsetX, badgeOffsetY, badgeMX, badgeMY]);
+  useEffect(() => { descMX.set(descOffsetX || 0); descMY.set(descOffsetY || 0); }, [descOffsetX, descOffsetY, descMX, descMY]);
+  useEffect(() => { songMX.set(songOffsetX || 0); songMY.set(songOffsetY || 0); }, [songOffsetX, songOffsetY, songMX, songMY]);
+  useEffect(() => { rpcMX.set(rpcOffsetX || 0); rpcMY.set(rpcOffsetY || 0); }, [rpcOffsetX, rpcOffsetY, rpcMX, rpcMY]);
+  const avStart = useRef({ x: 0, y: 0 });
+  const nameStart = useRef({ x: 0, y: 0 });
+  const badgeStart = useRef({ x: 0, y: 0 });
+  const descStart = useRef({ x: 0, y: 0 });
+  const songStart = useRef({ x: 0, y: 0 });
+  const rpcStart = useRef({ x: 0, y: 0 });
+  return (
+      <div className="glass-card rounded-3xl p-3 backdrop-blur-2xl shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] flex flex-col max-h-[calc(100vh-140px)]">
+      {customFontUrl ? (
+        <style>{CustomFontFace(customFontUrl, customFontName)}</style>
+      ) : null}
+      <h3 className="text-sm font-semibold text-white/80 mb-4">Live Preview (depends on screen resolution)</h3>
+      <div className="glass-card rounded-3xl backdrop-blur-2xl shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] flex-1 flex flex-col min-h-0 relative" style={{ backgroundColor: backgroundColor || "#080808", cursor: customCursor ? `url("${ToSameOriginUrl(customCursor)}"), auto` : undefined }}>
+        {videoBg ? (
+          <video src={videoBg} autoPlay loop muted playsInline className="absolute inset-0 h-full w-full object-cover" />
+        ) : background ? (
+          <img src={background} className="absolute inset-0 h-full w-full object-cover" />
+        ) : (
+          <div className="absolute inset-0" style={{ background: `radial-gradient(ellipse at 50% 0%, ${bgEffectColor || "#ffffff"} 0%, transparent 70%)` }} />
+        )}
+        {bgEffect === "rain" && <RainEffect />}
+        {bgEffect === "snow" && <SnowEffect />}
+        {bgEffect === "aurora" && <AuroraEffect />}
+        {bgEffect === "tv" && <TvStaticEffect />}
+        {bgEffect === "fire" && <FireEffect />}
+        {bgEffect === "stars" && <StarsEffect />}
+        {bgEffect === "fog" && <FogEffect />}
+        {bgEffect === "waves" && <WavesEffect />}
+        {bgEffect === "particles" && <ParticlesEffect />}
+        {bgEffect === "galaxy" && <GalaxyEffect />}
+        {bgEffect === "matrix" && <MatrixEffect />}
+        {bgEffect === "spotlight" && <SpotlightEffect />}
+        {bgEffect === "bubbles" && <BubblesEffect />}
+        {bgEffect === "hearts" && <HeartsEffect />}
+        {bgEffect === "leaves" && <LeavesEffect />}
+        {bgEffect === "lightning" && <LightningEffect />}
+        {cursorEffectType && cursorEffectType !== "none" && <CursorEffect type={cursorEffectType} />}
+        <div className="absolute inset-0 bg-black/30" />
+
+        <AnimatePresence>
+          {!entered && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 z-10 flex items-center justify-center cursor-pointer bg-black"
+              onClick={() => setEntered(true)}
+            >
+              <motion.p
+                animate={{ opacity: [0.4, 1, 0.4] }}
+                transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+                className="text-lg lowercase" style={{ fontFamily: ResolveFontFamily(entryFont, !!customFontUrl), color: entryColor || "rgba(255,255,255,0.5)" }}
+              >
+                {entryDisplay}
+              </motion.p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+<motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={entered ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.5 }}
+          className="relative z-0 flex items-start justify-center flex-1 p-3"
+        >
+          <div className="text-center w-full max-w-4xl px-2 mx-auto my-auto">
+            <div
+              ref={cardRef}
+              onMouseMove={(e) => {
+                if (panelHidden || !panelMouseFollow || !cardRef.current) return;
+                cardRef.current.style.transition = "none";
+                const rect = cardRef.current.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                const cx = rect.width / 2;
+                const cy = rect.height / 2;
+                const moveX = ((x - cx) / cx) * 15;
+                const moveY = ((y - cy) / cy) * 15;
+                const rotateX = ((y - cy) / cy) * -10;
+                const rotateY = ((x - cx) / cx) * 10;
+                cardRef.current.style.transform = `translate(${moveX}px, ${moveY}px) perspective(800px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+              }}
+              onMouseLeave={() => {
+                if (cardRef.current) {
+                  cardRef.current.style.transition = "transform 0.5s ease-out";
+                  cardRef.current.style.transform = "";
+                }
+              }}
+              className={`relative ${panelHidden ? "" : "glass-card rounded-3xl p-8 backdrop-blur-2xl shadow-[0_8px_32px_0_rgba(0,0,0,0.37)]"}`} style={{
+                backgroundColor: (() => {
+                  const base = accentColor || "rgba(255, 255, 255, 0.05)";
+                  const opacity = panelHidden ? 0 : (panelOpacity ?? 100) / 100;
+                  if (base.startsWith("rgba")) {
+                    return base.replace(/[\d.]+\)$/, `${opacity})`);
+                  }
+                  if (base.startsWith("#")) {
+                    const r = parseInt(base.slice(1, 3), 16);
+                    const g = parseInt(base.slice(3, 5), 16);
+                    const b = parseInt(base.slice(5, 7), 16);
+                    return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+                  }
+                  return base;
+                })(),
+                borderColor: panelHidden ? "transparent" : (primaryColor || "rgba(255, 255, 255, 0.1)"),
+                borderWidth: "1px",
+                borderStyle: "solid",
+                willChange: "transform",
+                boxShadow: (() => {
+                  if (panelHidden || glowMode === "none" || !glowColor) return undefined;
+                  const Sp = glowSpread ?? 50;
+                  const B = 10 + Sp * 0.6;
+                  const T = Sp * 0.6;
+                  if (glowMode === "gradient" && glowColor2) {
+                    return `0 0 ${B}px ${T}px ${glowColor}, 0 0 ${B * 0.55}px ${T * 0.5}px ${glowColor2}, 0 0 ${B * 0.28}px ${T * 0.22}px ${glowColor2}`;
+                  }
+                  return `0 0 ${B}px ${T}px ${glowColor}`;
+                })(),
+              }}
+            >
+                {pulseEnabled && pulseColor && !panelHidden ? (
+                  <div className="pointer-events-none absolute inset-0 rounded-3xl">
+                    <PanelTracer Type={pulseType || null} Color={pulseColor} Speed={pulseSpeed ?? null} />
+                  </div>
+                ) : null}
+                {bannerEnabled && banner && (
+                  <div className="pointer-events-none absolute inset-x-0 top-0 z-[1] h-32 overflow-hidden rounded-t-3xl">
+                    <img
+                      src={banner}
+                      className="h-full w-full object-cover"
+                      style={{
+                        maskImage: "linear-gradient(to bottom, #000 0%, #000 42%, transparent 100%)",
+                        WebkitMaskImage: "linear-gradient(to bottom, #000 0%, #000 42%, transparent 100%)",
+                      }}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/45" />
+                  </div>
+                )}
+                <div className={bannerEnabled && banner ? "pt-24" : ""}>
+                <motion.div
+                  drag
+                  dragMomentum={false}
+                  dragElastic={0}
+                  onDragStart={() => { avStart.current = { x: avMX.get(), y: avMY.get() }; }}
+                  onDrag={(_, info) => onAvatarOffsetChange?.(Math.round(avStart.current.x + info.offset.x), Math.round(avStart.current.y + info.offset.y))}
+                  className={avatarShape === "rounded"
+                    ? "rounded-2xl mx-auto mb-4 overflow-hidden bg-white/[0.04] cursor-grab active:cursor-grabbing"
+                    : "rounded-full mx-auto mb-4 overflow-hidden bg-white/[0.04] cursor-grab active:cursor-grabbing"}
+                  style={{ width: avSize, height: avSize, x: avMX, y: avMY }}
+                >
+                  {avSrc ? (
+                    <img src={avSrc} alt="" className="w-full h-full object-cover pointer-events-none" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-white/[0.04]">
+                      <svg className="w-8 h-8 text-white/20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                    </div>
+                  )}
+                </motion.div>
+                <motion.div
+                  drag
+                  dragMomentum={false}
+                  dragElastic={0}
+                  onDragStart={() => { nameStart.current = { x: nameMX.get(), y: nameMY.get() }; }}
+                  onDrag={(_, info) => onNameOffsetChange?.(Math.round(nameStart.current.x + info.offset.x), Math.round(nameStart.current.y + info.offset.y))}
+                  style={{ x: nameMX, y: nameMY }}
+                >
+                  <h1
+                    className={`inline-block text-2xl font-black tracking-tight mb-1 ${displayEffect !== "sparkle" && displayEffect !== "none" ? `display-effect-${displayEffect}` : ""}`}
+                    style={{ color: textColor || "#ffffff", fontFamily: ResolveFontFamily(font, !!customFontUrl) }}
+                  >
+                    {displayEffect === "sparkle" ? (
+                      <SparkleText text={user?.display_name || user?.username || "Your Name"} count={sparkleIntensity ?? 14} />
+                    ) : (
+                      user?.display_name || user?.username || "Your Name"
+                    )}
+                  </h1>
+                  {showUsername !== false && (
+                    <p className="text-xs mb-3" style={{ color: textColor || "#ffffff", opacity: 0.4 }}>@{user?.username || "username"}</p>
+                  )}
+                </motion.div>
+                {(badges?.length || 0) > 0 && (
+                  <motion.div
+                    drag
+                    dragMomentum={false}
+                    dragElastic={0}
+                    onDragStart={() => { badgeStart.current = { x: badgeMX.get(), y: badgeMY.get() }; }}
+                    onDrag={(_, info) => onBadgeOffsetChange?.(Math.round(badgeStart.current.x + info.offset.x), Math.round(badgeStart.current.y + info.offset.y))}
+                    style={{ x: badgeMX, y: badgeMY }}
+                  >
+                    <div className="flex items-center justify-center mb-4">
+                    <LayoutGroup>
+                      <motion.div layout className="flex items-center justify-center gap-2 h-11 rounded-xl bg-white/[0.06] px-4" style={{ width: `${(badges?.length || 0) * 32 + 20}px` }}>
+                      {(badges || []).map((b) => {
+                        if (b === "verified") {
+                          return (
+                            <motion.span key={b} layout className={`flex h-7 w-7 items-center justify-center ${user?.badge_color ? "" : "text-white"}`}
+                              style={user?.badge_color ? { color: user.badge_color, filter: `drop-shadow(0 0 4px ${user.badge_color}) drop-shadow(0 0 9px ${user.badge_color})` } : undefined}
+                              whileHover={{ scale: 1.15 }} transition={{ type: "spring", stiffness: 300, damping: 15 }}>
+                              <VerifiedIcon className="h-7 w-7" />
+                            </motion.span>
+                          );
+                        }
+                        const src = BADGE_FILES[b] ? `/emojis/${BADGE_FILES[b]}` : null;
+                        if (!src) return null;
+                        return (
+                          user?.badge_color ? (
+                            <motion.div key={b} layout className="h-7 w-7" whileHover={{ scale: 1.15 }} transition={{ type: "spring", stiffness: 300, damping: 15 }}
+                              style={{ backgroundColor: user.badge_color,
+                                WebkitMaskImage: `url(${src})`, maskImage: `url(${src})`,
+                                WebkitMaskSize: "contain", maskSize: "contain",
+                                WebkitMaskRepeat: "no-repeat", maskRepeat: "no-repeat",
+                                WebkitMaskPosition: "center", maskPosition: "center",
+                                filter: `drop-shadow(0 0 4px ${user.badge_color}) drop-shadow(0 0 9px ${user.badge_color})` }} />
+                          ) : (
+                            <motion.img key={b} layout src={src} alt={b} className="h-7 w-7 object-contain" whileHover={{ scale: 1.15 }} transition={{ type: "spring", stiffness: 300, damping: 15 }} />
+                          )
+                        );
+                      })}
+                    </motion.div>
+                  </LayoutGroup>
+                  </div>
+                  </motion.div>
+                )}
+                {(previewLines[0]) && (
+                  <motion.div
+                    drag
+                    dragMomentum={false}
+                    dragElastic={0}
+                    onDragStart={() => { descStart.current = { x: descMX.get(), y: descMY.get() }; }}
+                    onDrag={(_, info) => onDescOffsetChange?.(Math.round(descStart.current.x + info.offset.x), Math.round(descStart.current.y + info.offset.y))}
+                    style={{ x: descMX, y: descMY }}
+                  >
+                  <p className="text-sm max-w-xs mx-auto mb-6" style={{ color: textColor || "#ffffff", display: descEffect === "typewriter" ? "grid" : undefined }}>
+                    {descEffect === "typewriter" && (
+                      <span className="invisible" style={{ gridArea: "1/1" }}>{previewLines.reduce((a, b) => a.length >= b.length ? a : b, "")}</span>
+                    )}
+                    <span style={descEffect === "typewriter" ? { gridArea: "1/1" } : undefined}>
+                      {descEffect === "typewriter" ? descPreview + (descPreview ? "|" : "") : previewLines[0]}
+                    </span>
+                  </p>
+                  </motion.div>
+                )}
+                {(discordRpcEnabled && discordId) || (songPlatform && songId) ? (
+                  <div className="flex items-center justify-center gap-3 mb-6 px-4">
+                    {discordRpcEnabled && discordId && (
+                      <motion.div
+                        drag
+                        dragMomentum={false}
+                        dragElastic={0}
+                        onDragStart={() => { rpcStart.current = { x: rpcMX.get(), y: rpcMY.get() }; }}
+                        onDrag={(_, info) => onRpcOffsetChange?.(Math.round(rpcStart.current.x + info.offset.x), Math.round(rpcStart.current.y + info.offset.y))}
+                        className="w-full max-w-xs [&_iframe]:pointer-events-none"
+                        style={{ x: rpcMX, y: rpcMY }}
+                      >
+                        <DiscordRPC discordId={discordId} />
+                      </motion.div>
+                    )}
+                    {songPlatform && songId && (
+                      <motion.div
+                        drag
+                        dragMomentum={false}
+                        dragElastic={0}
+                        onDragStart={() => { songStart.current = { x: songMX.get(), y: songMY.get() }; }}
+                        onDrag={(_, info) => onSongOffsetChange?.(Math.round(songStart.current.x + info.offset.x), Math.round(songStart.current.y + info.offset.y))}
+                        className="w-full max-w-md [&_iframe]:pointer-events-none"
+                        style={{ x: songMX, y: songMY }}
+                      >
+                        <SongPlayer platform={songPlatform as "youtube" | "spotify"} id={songId} fill />
+                      </motion.div>
+                    )}
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+    </div>
+  );
+}
+
+const HALLOWEEN_END = Date.parse("2026-11-02T00:00:00Z");
+
+const BADGE_LIST = [
+  { id: "verified", file: "verified.png" },
+  { id: "premium", file: "premium.webp" },
+  { id: "og", file: "og.gif" },
+  { id: "booster", file: "booster.png" },
+  { id: "staff", file: "halloween.gif" },
+  { id: "bug", file: "bug.gif", label: "bug hunter" },
+  { id: "corrupt", file: "corrupt.gif" },
+  { id: "owner", file: "owner.gif" },
+  { id: "halloween", file: "halloween.gif", label: "halloween" },
+];
+
+const BADGE_DESCS: Record<string, string> = {
+  og: "secured this badge in the early days of sire.lol",
+  premium: "exclusive badge for premium supporters",
+  verified: "officially verified account on sire.lol",
+  booster: "thank you for boosting the discord server",
+  staff: "member of the sire.lol staff team",
+  bug: "reported bugs that made sire.lol better",
+  corrupt: "corrupted... don't ask questions",
+  owner: "the owner of sire.lol",
+  halloween: "limited time badge — claimed during halloween",
+};
+
+function BadgeLabel(id: string) {
+  if (id === "og") return "OG";
+  if (id === "bug") return "bug hunter";
+  return id.charAt(0).toUpperCase() + id.slice(1);
+}
+
+function Pill({ onClick, kind, children }: { onClick?: () => void; kind: "action" | "off" | "muted"; children: any }) {
+  return (
+    <motion.button
+      onClick={onClick}
+      whileHover={onClick ? { scale: 1.05 } : {}}
+      whileTap={onClick ? { scale: 0.95 } : {}}
+      className={`shrink-0 rounded-full border px-4 py-1.5 text-xs font-semibold whitespace-nowrap ${onClick ? "cursor-pointer" : "cursor-default"} ${
+        kind === "action"
+          ? "border-blue-400/30 bg-blue-500/10 text-blue-300 hover:bg-blue-500/20"
+          : kind === "off"
+            ? "border-white/10 bg-white/[0.04] text-white/60 hover:bg-white/[0.08]"
+            : "border-red-400/15 bg-red-500/[0.07] text-red-300/50"
+      }`}
+    >
+      {children}
+    </motion.button>
+  );
+}
+
+function BadgeRow({ id, file, desc, action, claimFx }: { key?: any; id: string; file: string; desc: string; action: any; claimFx?: { badge: string; stamp: number } | null }) {
+  const Fx = claimFx && claimFx.badge === id;
+  return (
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ type: "spring", stiffness: 260, damping: 24 }}
+      className={`flex items-center gap-4 rounded-2xl border p-4 transition-all duration-700 ${Fx ? "border-emerald-400/40 bg-emerald-400/10 ring-1 ring-emerald-400/50 shadow-[0_0_26px_rgba(74,222,128,0.22)]" : "border-white/[0.06] bg-white/[0.02]"}`}
+    >
+      {id === "verified" ? (
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center text-white"><VerifiedIcon className="h-9 w-9" /></span>
+      ) : (
+        <img src={`/emojis/${file}`} alt={id} className="h-9 w-9 object-contain" />
+      )}
+      <div className="flex-1 min-w-0">
+        <p className="text-[15px] font-bold text-white leading-tight">{BadgeLabel(id)}</p>
+        <p className="text-xs text-white/40 mt-0.5 leading-relaxed">{desc}</p>
+      </div>
+      <div className="flex items-center gap-2">{action}</div>
+    </motion.div>
+  );
+}
+
+const NEON_BADGE_COLORS = ["#ffffff", "#ff2bd1", "#ff0055", "#ff3b3b", "#ff8a00", "#ffe600", "#a6ff00", "#00ff88", "#00ffe1", "#00b3ff", "#5b6bff", "#b14bff", "#ff5cc8"];
+
+function UserBadges({ user, onTab }: { user: User | null; onTab?: (t: TabId) => void }) {
+  const [badgeColor, setBadgeColor] = useState<string>(user?.badge_color || "");
+  const [hexDraft, setHexDraft] = useState<string>(user?.badge_color || "");
+  const [colorErr, setColorErr] = useState("");
+  const [myBadges, setMyBadges] = useState<string[]>([]);
+  const [prefs, setPrefs] = useState<Record<string, { hidden: boolean; byName: boolean }>>({});
+  const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
+  const [claimFx, setClaimFx] = useState<{ badge: string; stamp: number } | null>(null);
+
+  const load = () => {
+    if (!user) return;
+    return FetchProfile(user.username).then((J) => {
+      setMyBadges(Array.isArray(J?.badges) ? J.badges : []);
+      setPrefs(J?.badgePrefs && typeof J.badgePrefs === "object" ? J.badgePrefs : {});
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    load();
+  }, [user]);
+
+  const sync = async () => {
+    setSyncing(true);
+    await load();
+    setSyncing(false);
+  };
+
+  const toggleBadge = async (badge: string) => {
+    if (!user) return;
+    const has = myBadges.includes(badge);
+    let J: any;
+    if (has) {
+      J = await apiCall("badge_remove", { badge });
+      setMyBadges(myBadges.filter((b) => b !== badge));
+    } else {
+      J = await apiCall("badge_set", { badge });
+      setMyBadges([...myBadges, badge]);
+      if (J && !J.error) { setClaimFx({ badge, stamp: Date.now() }); setTimeout(() => setClaimFx(null), 1600); }
+    }
+    if (J?.error) {
+      alert(J.error);
+      await load();
+    }
+  };
+
+  const setPref = async (badge: string, patch: { hidden?: boolean; byName?: boolean }) => {
+    const cur = prefs[badge] || { hidden: false, byName: false };
+    const next = { ...cur, ...patch };
+    setPrefs({ ...prefs, [badge]: next });
+    await apiCall("badge_pref", { badge, hidden: next.hidden, byName: next.byName });
+  };
+
+  if (loading) return <div className="glass-card rounded-2xl p-6"><p className="text-sm text-white/40">loading...</p></div>;
+
+  const applyColor = async (Next: string) => {
+    const Prev = badgeColor;
+    setBadgeColor(Next);
+    setHexDraft(Next);
+    setColorErr("");
+    const J = await apiCall("update", { data: { badge_color: Next } });
+    if (J?.error) {
+      setBadgeColor(Prev);
+      setHexDraft(Prev);
+      setColorErr(String(J.error));
+    }
+  };
+
+  const rowAction = (b: string) => {
+    const has = myBadges.includes(b);
+    if (b === "halloween" && !has) {
+      if (Date.now() < HALLOWEEN_END) return <Pill kind="action" onClick={() => toggleBadge("halloween")}>claim</Pill>;
+      return <Pill kind="muted">not available</Pill>;
+    }
+    if (b === "og") {
+      if (has || (user.id && user.id <= 100)) return <Pill kind="action" onClick={() => toggleBadge("og")}>{has ? "unequip" : "claim"}</Pill>;
+      return <Pill kind="muted">first 100 only</Pill>;
+    }
+    if (b === "premium" && !has) {
+      return <Pill kind="action" onClick={() => onTab && onTab("premium")}>get premium</Pill>;
+    }
+    if (!has) {
+      return <Pill kind="muted">not available</Pill>;
+    }
+    const hidden = !!prefs[b]?.hidden;
+    const byName = !!prefs[b]?.byName;
+    return (<>
+      {b === "halloween" && (
+        <Pill kind="action" onClick={() => toggleBadge(b)}>unequip</Pill>
+      )}
+      {b === "verified" && (
+        <Pill kind="off" onClick={() => setPref(b, { byName: !byName })}>
+          {byName ? "name on" : "name off"}
+        </Pill>
+      )}
+      <Pill kind={hidden ? "action" : "off"} onClick={() => setPref(b, { hidden: !hidden })}>
+        {b === "verified" ? (hidden ? "row off" : "row on") : hidden ? "unhide" : "hide"}
+      </Pill>
+    </>);
+  };
+
+  return (
+    <div>
+      <div className="flex items-start justify-between gap-4 mb-2">
+        <h2 className="text-xl font-bold text-white">Available badges</h2>
+        <button
+          onClick={sync}
+          className="flex shrink-0 items-center gap-1.5 rounded-full border border-blue-400/30 bg-blue-500/10 px-4 py-1.5 text-xs font-semibold text-blue-300 transition-colors hover:bg-blue-500/20 cursor-pointer"
+        >
+          <RefreshCw size={13} className={syncing ? "animate-spin" : ""} />
+          Sync
+        </button>
+      </div>
+      <p className="text-sm text-white/40 mb-6">Every badge you can earn on sire.lol. Some sync automatically, others you can claim below.</p>
+
+      <div className="glass-card rounded-2xl p-5 mb-6">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-sm font-semibold text-white/90">force badge color</p>
+            <p className="text-[11px] text-white/40">neon only — recolors every badge you own on your biolink</p>
+          </div>
+          {badgeColor ? <Pill kind="action" onClick={() => applyColor("")}>reset</Pill> : <Pill kind="muted">off</Pill>}
+        </div>
+        {myBadges.length === 0 ? (
+          <p className="text-xs text-white/30 mt-4">you don't own any badges yet — claim one below first</p>
+        ) : (
+          <>
+            <div className="flex flex-wrap gap-2 mt-4">
+              {NEON_BADGE_COLORS.map((C) => (
+                <button
+                  key={C}
+                  onClick={() => applyColor(C)}
+                  title={C}
+                  className={`h-8 w-8 rounded-lg transition-transform hover:scale-110 cursor-pointer ${badgeColor.toLowerCase() === C ? "ring-2 ring-white ring-offset-2 ring-offset-[#0b0b0f]" : ""}`}
+                  style={{ backgroundColor: C, boxShadow: `0 0 12px ${C}` }}
+                />
+              ))}
+            </div>
+            <div className="flex items-center gap-2 mt-4">
+              <input
+                value={hexDraft}
+                onChange={(E) => setHexDraft(E.target.value)}
+                placeholder="#ff2bd1"
+                maxLength={7}
+                className="w-28 rounded-lg bg-white/5 border border-white/10 px-3 py-1.5 text-xs font-mono text-white/80 outline-none focus:border-white/25"
+              />
+              <Pill kind="action" onClick={() => applyColor(hexDraft.trim().toLowerCase())}>apply</Pill>
+              {badgeColor && <span className="text-[11px] text-white/40">active <span style={{ color: badgeColor }}>{badgeColor}</span></span>}
+            </div>
+            {colorErr && <p className="text-[11px] text-red-400 mt-2">{colorErr}</p>}
+          </>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {BADGE_LIST.map((meta) => (
+          <BadgeRow
+            key={meta.id}
+            id={meta.id}
+            file={meta.file}
+            desc={BADGE_DESCS[meta.id] || "exclusive sire.lol badge"}
+            action={rowAction(meta.id)}
+            claimFx={claimFx}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function AdminBadges() {
+  const [search, setSearch] = useState("");
+  const [targetUser, setTargetUser] = useState<{ id: number; username: string; alias: string | null; is_admin: number | null; suspended: number | null; suspended_reason: string | null; hidden: number | null } | null>(null);
+  const [userBadges, setUserBadges] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [msg, setMsg] = useState("");
+  const [deletingUser, setDeletingUser] = useState(false);
+
+  const searchUser = async () => {
+    if (!search.trim()) return;
+    setLoading(true);
+    setMsg("");
+    const token = getSessionToken();
+    const R = await fetch(`/api/admin-user?u=${encodeURIComponent(search.trim())}&sessionToken=${encodeURIComponent(token || "")}`);
+    const J = await R.json().catch(() => null);
+    if (J?.user) {
+      setTargetUser(J.user);
+      setUserBadges(Array.isArray(J.badges) ? J.badges : []);
+      setAlts([]);
+      setAltsIp(null);
+      setRenameInput("");
+      setSuspendReason("");
+    } else {
+      setTargetUser(null);
+      setUserBadges([]);
+      setMsg("user not found");
+    }
+    setLoading(false);
+  };
+
+  const toggleBadge = async (badge: string) => {
+    if (!targetUser) return;
+    const has = userBadges.includes(badge);
+    if (has) {
+      await apiCall("admin_badge_remove", { badge, targetUid: targetUser.id });
+      setUserBadges(userBadges.filter((b) => b !== badge));
+    } else {
+      await apiCall("admin_badge_set", { badge, targetUid: targetUser.id });
+      setUserBadges([...userBadges, badge]);
+    }
+  };
+
+  const toggleAdmin = async () => {
+    if (!targetUser) return;
+    const make = Number(targetUser.is_admin || 0) !== 1;
+    if (!confirm(`${make ? "Grant" : "Remove"} admin panel access ${make ? "to" : "from"} @${targetUser.username}?`)) return;
+    const r = await apiCall("admin_set_admin", { targetUid: targetUser.id, admin: make });
+    if (r.error) { alert(r.error || "Failed to update admin"); return; }
+    setTargetUser({ ...targetUser, is_admin: make ? 1 : 0 });
+  };
+
+  const toggleFlag = async (flag: "suspended" | "hidden") => {
+    if (!targetUser) return;
+    const make = Number(targetUser[flag] || 0) !== 1;
+    const verb = flag === "suspended" ? (make ? "Suspend" : "Unsuspend") : (make ? "Hide" : "Unhide");
+    const reason = flag === "suspended" && make ? suspendReason.trim().slice(0, 200) : "";
+    if (!confirm(`${verb} @${targetUser.username}?${reason ? ` Reason: ${reason}` : ""}${flag === "suspended" && make ? " They will be logged out and blocked from logging in." : ""}${flag === "hidden" && make ? " Their page and leaderboard entry go 404." : ""}`)) return;
+    const r = await apiCall(flag === "suspended" ? "admin_suspend" : "admin_hide", { targetUid: targetUser.id, value: make, ...(flag === "suspended" ? { reason } : {}) });
+    if (r.error) { alert(r.error || "Failed"); return; }
+    setTargetUser({ ...targetUser, [flag]: make ? 1 : 0, ...(flag === "suspended" ? { suspended_reason: make ? (r.reason ?? reason) : null } : {}) });
+    if (flag === "suspended" && make) setSuspendReason("");
+  };
+
+  const [suspendReason, setSuspendReason] = useState("");
+
+  const doReset = async (kind: "views" | "likes" | "dislikes") => {
+    if (!targetUser) return;
+    const reason = prompt(`Reason for resetting ALL ${kind} on @${targetUser.username}? This will be shown to them.`);
+    if (reason === null) return;
+    if (!reason.trim()) { alert("Add a reason â€” it will be shown to the user."); return; }
+    if (!confirm(`Reset ALL ${kind} on @${targetUser.username}? This wipes the counter to zero and cannot be undone.`)) return;
+    const r = await apiCall(kind === "views" ? "admin_reset_views" : kind === "likes" ? "admin_reset_likes" : "admin_reset_dislikes", { targetUid: targetUser.id, reason: reason.trim().slice(0, 200) });
+    if (r.error) { alert(r.error || "Failed"); return; }
+    alert(`${r.wiped ?? 0} ${kind} wiped.`);
+  };
+
+  const [renameInput, setRenameInput] = useState("");
+  const doRename = async () => {
+    if (!targetUser || !renameInput.trim()) return;
+    if (!confirm(`Rename @${targetUser.username} to @${renameInput.trim().toLowerCase()}? Their old URL stops working.`)) return;
+    const r = await apiCall("admin_rename", { targetUid: targetUser.id, username: renameInput.trim().toLowerCase() });
+    if (r.error) { alert(r.error || "Rename failed"); return; }
+    setTargetUser({ ...targetUser, username: r.username });
+    setRenameInput("");
+  };
+
+  const deleteTemplate = async () => {
+    if (!targetUser) return;
+    if (!confirm(`Remove @${targetUser.username}'s shared template from the gallery?`)) return;
+    const r = await apiCall("admin_template_delete", { targetUid: targetUser.id });
+    if (r.error) { alert(r.error || "Failed"); return; }
+    alert("Template removed from gallery.");
+  };
+
+  const [alts, setAlts] = useState<{ id: number; username: string; alias: string | null; email: string | null; created_at: string }[]>([]);
+  const [altsIp, setAltsIp] = useState<string | null>(null);
+  const loadAlts = async () => {
+    if (!targetUser) return;
+    const r = await apiCall("admin_alts", { targetUid: targetUser.id });
+    if (r.error) { alert(r.error || "Failed"); return; }
+    setAltsIp(r.ip || null);
+    setAlts(Array.isArray(r.alts) ? r.alts : []);
+  };
+
+  const handleDeleteUser = async () => {
+    if (!targetUser) return;
+    if (!confirm(`Are you sure you want to permanently delete @${targetUser.username} (uid #${targetUser.id})? This cannot be undone.`)) return;
+    setDeletingUser(true);
+    try {
+      const r = await apiCall("admin_delete_user", { targetUid: targetUser.id });
+      if (r.error) { alert(r.error || "Failed to delete user"); setDeletingUser(false); return; }
+      alert(`User @${targetUser.username} deleted permanently.`);
+      setTargetUser(null);
+      setUserBadges([]);
+      setSearch("");
+    } catch { alert("Something went wrong"); }
+    setDeletingUser(false);
+  };
+
+  return (
+    <div>
+      <h1 className="text-lg font-semibold text-white/40 mb-8 lowercase">admin â€” badge management</h1>
+
+      <div className="glass-card rounded-2xl p-6 space-y-6">
+        <div className="flex items-center gap-3">
+          <input
+            type="text"
+            placeholder="search username..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && searchUser()}
+            className="flex-1 bg-white/[0.03] border border-white/[0.06] rounded-xl px-4 py-2.5 text-sm text-white outline-none placeholder:text-white/10 focus:border-blue-500/30 transition-colors"
+          />
+          <button onClick={searchUser} disabled={loading} className="shimmer rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-40">
+            {loading ? "..." : "search"}
+          </button>
+        </div>
+
+        {msg && <p className="text-sm text-red-400/80">{msg}</p>}
+
+        {targetUser && (
+          <>
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/[0.06]">
+              <div className="h-8 w-8 rounded-full bg-blue-600/20 flex items-center justify-center text-sm font-bold text-blue-300">
+                {(targetUser.alias || targetUser.username)[0].toUpperCase()}
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-white">{targetUser.alias || targetUser.username}</p>
+                <p className="text-xs text-white/40">@{targetUser.username} â€” uid #{targetUser.id}{Number(targetUser.is_admin || 0) === 1 && <span className="ml-2 text-[10px] font-bold uppercase tracking-widest text-amber-300/80">admin</span>}</p>
+              </div>
+              {targetUser.id !== 1 && (
+                <button
+                  onClick={toggleAdmin}
+                  className={`ml-auto px-4 py-1.5 rounded-lg text-[10px] font-bold tracking-widest uppercase border transition-colors cursor-pointer ${
+                    Number(targetUser.is_admin || 0) === 1
+                      ? "bg-red-500/10 text-red-300/80 border-red-500/30 hover:bg-red-500/20"
+                      : "bg-amber-500/10 text-amber-300/80 border-amber-500/30 hover:bg-amber-500/20"
+                  }`}
+                >
+                  {Number(targetUser.is_admin || 0) === 1 ? "remove admin" : "make admin"}
+                </button>
+              )}
+            </div>
+
+            <p className="text-sm font-semibold text-white/80">Available badges</p>            <div className="grid grid-cols-2 gap-2">
+              {BADGE_LIST.map((b) => {
+                const active = userBadges.includes(b.id);
+                return (
+                  <button
+                    key={b.id}
+                    onClick={() => toggleBadge(b.id)}
+                    className={`flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer ${
+                      active ? "bg-blue-600/20 border-blue-500/40" : "bg-white/[0.02] border-white/[0.06] hover:border-white/20"
+                    }`}
+                  >
+                    <div className="h-7 w-7 rounded-full bg-white/10 flex items-center justify-center overflow-hidden">
+                      <img src={`/emojis/${b.file}`} alt={b.id} className="h-4 w-4 object-contain" />
+                    </div>
+                    <span className={`text-sm font-medium ${active ? "text-blue-300" : "text-white/60"}`}>{b.label || b.id}</span>
+                    <span className={`ml-auto text-xs ${active ? "text-blue-400" : "text-white/20"}`}>{active ? "active" : "off"}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <p className="text-sm font-semibold text-white/80 pt-2">Moderation</p>
+            {targetUser.id !== 1 && Number(targetUser.suspended || 0) !== 1 && (
+              <input
+                type="text"
+                placeholder="suspension reason (shown to the user)..."
+                value={suspendReason}
+                onChange={(e) => setSuspendReason(e.target.value)}
+                className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl px-4 py-2.5 text-sm text-white outline-none placeholder:text-white/10 focus:border-red-500/30 transition-colors"
+              />
+            )}
+            {Number(targetUser.suspended || 0) === 1 && targetUser.suspended_reason && (
+              <p className="text-xs text-red-300/70 px-1">suspended for: {targetUser.suspended_reason}</p>
+            )}
+            <div className="grid grid-cols-2 gap-2">
+              {targetUser.id !== 1 && (
+                <>
+                  <button
+                    onClick={() => toggleFlag("suspended")}
+                    className={`p-3 rounded-xl border text-sm font-medium text-left transition-all cursor-pointer ${
+                      Number(targetUser.suspended || 0) === 1
+                        ? "bg-red-600/20 border-red-500/40 text-red-300"
+                        : "bg-white/[0.02] border-white/[0.06] text-white/60 hover:border-white/20"
+                    }`}
+                  >
+                    {Number(targetUser.suspended || 0) === 1 ? "suspended â€” click to unsuspend" : "suspend account"}
+                  </button>
+                  <button
+                    onClick={() => toggleFlag("hidden")}
+                    className={`p-3 rounded-xl border text-sm font-medium text-left transition-all cursor-pointer ${
+                      Number(targetUser.hidden || 0) === 1
+                        ? "bg-amber-600/20 border-amber-500/40 text-amber-300"
+                        : "bg-white/[0.02] border-white/[0.06] text-white/60 hover:border-white/20"
+                    }`}
+                  >
+                    {Number(targetUser.hidden || 0) === 1 ? "hidden â€” click to unhide" : "hide page + leaderboard"}
+                  </button>
+                </>
+              )}
+              <button
+                onClick={deleteTemplate}
+                className="p-3 rounded-xl border text-sm font-medium text-left transition-all cursor-pointer bg-white/[0.02] border-white/[0.06] text-white/60 hover:border-white/20"
+              >
+                remove shared template
+              </button>
+              <button
+                onClick={loadAlts}
+                className="p-3 rounded-xl border text-sm font-medium text-left transition-all cursor-pointer bg-white/[0.02] border-white/[0.06] text-white/60 hover:border-white/20"
+              >
+                find alt accounts
+              </button>
+              {targetUser.id !== 1 && (
+                <>
+                  <button
+                    onClick={() => doReset("views")}
+                    className="p-3 rounded-xl border text-sm font-medium text-left transition-all cursor-pointer bg-white/[0.02] border-white/[0.06] text-white/60 hover:border-white/20"
+                  >
+                    reset all views
+                  </button>
+                  <button
+                    onClick={() => doReset("likes")}
+                    className="p-3 rounded-xl border text-sm font-medium text-left transition-all cursor-pointer bg-white/[0.02] border-white/[0.06] text-white/60 hover:border-white/20"
+                  >
+                    reset all likes
+                  </button>
+                  <button
+                    onClick={() => doReset("dislikes")}
+                    className="p-3 rounded-xl border text-sm font-medium text-left transition-all cursor-pointer bg-white/[0.02] border-white/[0.06] text-white/60 hover:border-white/20"
+                  >
+                    reset all dislikes
+                  </button>
+                </>
+              )}
+            </div>
+            {altsIp !== null && (
+              <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.06]">
+                <p className="text-xs text-white/40 mb-2">signup ip: <span className="text-white/70 font-mono">{altsIp || "unknown"}</span></p>
+                {alts.length === 0 ? (
+                  <p className="text-xs text-white/30">no other accounts on this ip</p>
+                ) : (
+                  alts.map((a) => (
+                    <p key={a.id} className="text-xs text-white/60 py-0.5">@{a.username} â€” uid #{a.id} <span className="text-white/25">{a.created_at?.slice(0, 10)}</span></p>
+                  ))
+                )}
+              </div>
+            )}
+            {targetUser.id !== 1 && (
+              <div className="flex items-center gap-3">
+                <input
+                  type="text"
+                  placeholder="force new username..."
+                  value={renameInput}
+                  onChange={(e) => setRenameInput(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && doRename()}
+                  className="flex-1 bg-white/[0.03] border border-white/[0.06] rounded-xl px-4 py-2.5 text-sm text-white outline-none placeholder:text-white/10 focus:border-blue-500/30 transition-colors"
+                />
+                <button onClick={doRename} className="rounded-xl bg-white/[0.04] border border-white/[0.08] px-5 py-2.5 text-sm font-semibold text-white/70 hover:text-white transition-colors">
+                  rename
+                </button>
+              </div>
+            )}
+            <div className="pt-4 border-t border-white/[0.06]">
+              <button
+                onClick={handleDeleteUser}
+                disabled={deletingUser}
+                className="text-sm text-red-400/60 hover:text-red-400 transition-colors disabled:opacity-40"
+              >
+                {deletingUser ? "deleting..." : "delete this user"}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function AdminBanUser() {
+  const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [deletingUser, setDeletingUser] = useState(false);
+  const [msg, setMsg] = useState("");
+  const [targetUser, setTargetUser] = useState<{ id: number; username: string; alias: string | null } | null>(null);
+
+  const searchUser = async () => {
+    if (!search.trim()) { setMsg("enter a username"); return; }
+    setLoading(true);
+    setMsg("");
+    try {
+      const token = getSessionToken();
+      const R = await fetch(`/api/admin-user?u=${encodeURIComponent(search.trim().toLowerCase())}&sessionToken=${encodeURIComponent(token || "")}`);
+      const J = await R.json().catch(() => null);
+      if (J?.user) {
+        setTargetUser({ id: J.user.id, username: J.user.username, alias: J.user.alias });
+      } else {
+        setMsg("user not found");
+        setTargetUser(null);
+      }
+    } catch {
+      setMsg("user not found");
+      setTargetUser(null);
+    }
+    setLoading(false);
+  };
+
+  const handleBanUser = async () => {
+    if (!targetUser) return;
+    if (!confirm(`PERMANENTLY ban @${targetUser.username} (uid #${targetUser.id})? All data will be deleted.`)) return;
+    setDeletingUser(true);
+    try {
+      const res = await apiCall("admin_delete_user", { targetUid: targetUser.id });
+      if (!res.ok) throw new Error(res.error || "Failed");
+      setMsg("user banned");
+      setTargetUser(null);
+      setSearch("");
+    } catch (e) {
+      setMsg("ban failed: " + (e as Error).message);
+    }
+    setDeletingUser(false);
+  };
+
+  return (
+    <div>
+      <h1 className="text-lg font-semibold text-white/40 mb-8 lowercase">admin â€” ban user</h1>
+      <div className="glass-card rounded-2xl p-6 space-y-6 max-w-md">
+        <div className="flex items-center gap-3">
+          <input
+            type="text"
+            placeholder="username to ban..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && searchUser()}
+            className="flex-1 bg-white/[0.03] border border-white/[0.06] rounded-xl px-4 py-2.5 text-sm text-white outline-none placeholder:text-white/10 focus:border-blue-500/30 transition-colors"
+          />
+          <button onClick={searchUser} disabled={loading} className="shimmer rounded-xl bg-red-600 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-40">
+            {loading ? "..." : "search"}
+          </button>
+        </div>
+
+        {msg && <p className="text-sm text-red-400/80">{msg}</p>}
+
+        {targetUser && (
+          <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="h-10 w-10 rounded-full bg-red-600/20 flex items-center justify-center text-lg font-bold text-red-300">
+                {(targetUser.alias || targetUser.username)[0].toUpperCase()}
+              </div>
+              <div>
+                <p className="text-base font-semibold text-white">{targetUser.alias || targetUser.username}</p>
+                <p className="text-xs text-white/40">@{targetUser.username} â€” uid #{targetUser.id}</p>
+              </div>
+            </div>
+            <p className="text-sm text-white/60 mb-4">
+              This will permanently delete the user and ALL associated data:
+            </p>
+            <ul className="text-xs text-white/40 space-y-1 mb-4">
+              <li>â€¢ Profile (alias, bio, avatar, banner, settings)</li>
+              <li>â€¢ All links</li>
+              <li>â€¢ All badges</li>
+              <li>â€¢ Page views & analytics</li>
+              <li>â€¢ Saved templates</li>
+              <li>â€¢ Song settings</li>
+              <li>â€¢ Username becomes available</li>
+            </ul>
+            <button
+              onClick={handleBanUser}
+              disabled={deletingUser}
+              className="w-full text-sm bg-red-600 hover:bg-red-700 disabled:opacity-40 py-2.5 rounded-lg text-white font-semibold transition-colors cursor-pointer"
+            >
+              {deletingUser ? "banning..." : "ban this user permanently"}
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function AdminStats() {
+  const [stats, setStats] = useState<{ users: number; views: number; views7d: number; files: number; bytes: number; signups30d: { day: string; count: number }[] } | null>(null);
+  useEffect(() => {
+    apiCall("admin_stats", {}).then((r) => { if (!r.error) setStats(r); }).catch(() => {});
+  }, []);
+  const fmtBytes = (b: number) => b > 1048576 ? `${(b / 1048576).toFixed(2)} MB` : `${(b / 1024).toFixed(1)} KB`;
+  const maxDay = Math.max(1, ...(stats?.signups30d || []).map((s) => s.count));
+  return (
+    <div className="mb-10">
+      <h1 className="text-lg font-semibold text-white/40 mb-8 lowercase">admin â€” site stats</h1>
+      <div className="glass-card rounded-2xl p-6 space-y-6">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+          {[
+            { label: "users", value: String(stats?.users ?? "â€¦") },
+            { label: "total views", value: String(stats?.views ?? "â€¦") },
+            { label: "views 7d", value: String(stats?.views7d ?? "â€¦") },
+            { label: "files", value: String(stats?.files ?? "â€¦") },
+            { label: "storage", value: stats ? fmtBytes(stats.bytes) : "â€¦" },
+          ].map((s) => (
+            <div key={s.label} className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] text-center">
+              <p className="text-xl font-black text-white">{s.value}</p>
+              <p className="text-[10px] uppercase tracking-widest text-white/30 mt-1">{s.label}</p>
+            </div>
+          ))}
+        </div>
+        <div>
+          <p className="text-xs uppercase tracking-widest text-white/30 mb-3">signups last 30 days</p>
+          <div className="flex items-end gap-1 h-20">
+            {(stats?.signups30d || []).map((s) => (
+              <div key={s.day} title={`${s.day}: ${s.count}`} className="flex-1 rounded-sm bg-blue-500/50 min-h-[3px]" style={{ height: `${Math.max(4, (s.count / maxDay) * 100)}%` }} />
+            ))}
+            {(stats?.signups30d || []).length === 0 && <p className="text-xs text-white/20">no signups in the last 30 days</p>}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AdminStorage() {
+  const [rows, setRows] = useState<{ user_id: number; username: string | null; files: number; bytes: number }[]>([]);
+  const [openUid, setOpenUid] = useState<number | null>(null);
+  const [files, setFiles] = useState<{ id: string; kind: string; filename: string; content_type: string; size: number; bytes: number; created_at: string }[]>([]);
+  const fmtBytes = (b: number) => b > 1048576 ? `${(b / 1048576).toFixed(2)} MB` : `${(b / 1024).toFixed(1)} KB`;
+  const load = () => {
+    apiCall("admin_storage", {}).then((r) => { if (!r.error) setRows(r.rows || []); }).catch(() => {});
+  };
+  useEffect(load, []);
+  const openFiles = async (uid: number) => {
+    if (openUid === uid) { setOpenUid(null); return; }
+    const r = await apiCall("admin_storage_files", { targetUid: uid });
+    if (r.error) { alert(r.error || "Failed"); return; }
+    setFiles(r.files || []);
+    setOpenUid(uid);
+  };
+  const delFile = async (fileId: string, name: string) => {
+    if (!confirm(`Delete file "${name}"? The user loses it permanently.`)) return;
+    const r = await apiCall("admin_storage_file_delete", { fileId });
+    if (r.error) { alert(r.error || "Failed"); return; }
+    setFiles(files.filter((f) => f.id !== fileId));
+    load();
+  };
+  const wipe = async (uid: number, name: string | null) => {
+    if (!confirm(`Delete ALL hosted files of @${name || uid}? Their profile images/backgrounds are kept, everything in media + file host is wiped.`)) return;
+    const r = await apiCall("admin_storage_wipe", { targetUid: uid });
+    if (r.error) { alert(r.error || "Failed"); return; }
+    alert(`Wiped ${r.deleted} files.`);
+    setOpenUid(null);
+    load();
+  };
+  return (
+    <div className="mb-10">
+      <h1 className="text-lg font-semibold text-white/40 mb-8 lowercase">admin â€” storage</h1>
+      <div className="glass-card rounded-2xl p-6 space-y-3">
+        {rows.length === 0 && <p className="text-xs text-white/20">no stored files</p>}
+        {rows.map((r) => (
+          <div key={r.user_id} className="rounded-xl bg-white/[0.02] border border-white/[0.06] overflow-hidden">
+            <div className="flex items-center gap-3 p-3">
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-white truncate">@{r.username || "?"} <span className="text-white/30 font-normal">â€” uid #{r.user_id}</span></p>
+                <p className="text-xs text-white/40">{r.files} files Â· {fmtBytes(Number(r.bytes))}</p>
+              </div>
+              <button onClick={() => openFiles(r.user_id)} className="px-4 py-1.5 rounded-lg text-[10px] font-bold tracking-widest uppercase bg-white/[0.04] text-white/50 border border-white/[0.08] hover:text-white transition-colors cursor-pointer">
+                {openUid === r.user_id ? "close" : "files"}
+              </button>
+              <button onClick={() => wipe(r.user_id, r.username)} className="px-4 py-1.5 rounded-lg text-[10px] font-bold tracking-widest uppercase bg-red-500/10 text-red-300/80 border border-red-500/30 hover:bg-red-500/20 transition-colors cursor-pointer">
+                wipe
+              </button>
+            </div>
+            {openUid === r.user_id && (
+              <div className="border-t border-white/[0.06] px-3 py-2 space-y-1">
+                {files.map((f) => (
+                  <div key={f.id} className="flex items-center gap-2 py-1">
+                    <p className="text-xs text-white/60 truncate flex-1 font-mono">{f.filename} <span className="text-white/25">({f.kind} Â· {fmtBytes(Number(f.bytes))})</span></p>
+                    <button onClick={() => delFile(f.id, f.filename)} className="text-[11px] text-red-400/60 hover:text-red-400 transition-colors cursor-pointer">delete</button>
+                  </div>
+                ))}
+                {files.length === 0 && <p className="text-xs text-white/20 py-1">no files</p>}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function AdminLog() {
+  const [log, setLog] = useState<{ id: number; admin_id: number; admin_name: string | null; action: string; target_uid: number | null; target_name: string | null; detail: string | null; created_at: string }[]>([]);
+  useEffect(() => {
+    apiCall("admin_log_list", {}).then((r) => { if (!r.error) setLog(r.log || []); }).catch(() => {});
+  }, []);
+  return (
+    <div className="mb-10">
+      <h1 className="text-lg font-semibold text-white/40 mb-8 lowercase">admin â€” action log</h1>
+      <div className="glass-card rounded-2xl p-6 space-y-1 max-h-96 overflow-y-auto">
+        {log.length === 0 && <p className="text-xs text-white/20">no admin actions yet</p>}
+        {log.map((e) => (
+          <p key={e.id} className="text-xs text-white/50 py-1 border-b border-white/[0.03]">
+            <span className="text-white/80 font-semibold">@{e.admin_name || `#${e.admin_id}`}</span>
+            <span className="mx-1.5 px-1.5 py-0.5 rounded bg-white/[0.05] font-mono text-white/70">{e.action}</span>
+            {e.target_uid !== null && <span>@{e.target_name || `#${e.target_uid}`}</span>}
+            {e.detail && <span className="text-white/30"> â€” {e.detail}</span>}
+            <span className="text-white/20 ml-2">{e.created_at?.replace("T", " ").slice(0, 19)}</span>
+          </p>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function Links({ user }: { user: User | null }) {
+  const [links, setLinks] = useState<Record<string, string>>({});
+  const [modal, setModal] = useState<string | null>(null);
+  const [urlInput, setUrlInput] = useState("");
+  const [customLabel, setCustomLabel] = useState("");
+  const [customUrl, setCustomUrl] = useState("");
+
+  useEffect(() => {
+    if (!user) return;
+    FetchProfile(user.username).then((J) => {
+      if (!J?.links) return;
+      setLinks(J.links);
+    }).catch(() => {});
+  }, [user]);
+
+  const saveLink = async (platform: string, url: string) => {
+    if (!user) return;
+    const trimmed = url.trim();
+    if (!trimmed) return;
+    const full = trimmed.startsWith("http") ? trimmed : `https://${trimmed}`;
+    await apiCall("link_upsert", { platform, url: full });
+    setLinks((prev) => ({ ...prev, [platform]: full }));
+    setModal(null);
+    setUrlInput("");
+  };
+
+  const removeLink = async (platform: string) => {
+    if (!user) return;
+    await apiCall("link_delete", { platform });
+    setLinks((prev) => { const n = { ...prev }; delete n[platform]; return n; });
+  };
+
+  const openModal = (platform: string) => {
+    setUrlInput(links[platform] || "");
+    setModal(platform);
+  };
+
+  const customLinks = Object.keys(links).filter((k) => !PLATFORMS.some((p) => p.id === k));
+
+  const addCustomLink = async () => {
+    const label = customLabel.trim();
+    if (!label || !customUrl.trim()) return;
+    await saveLink(label, customUrl);
+    setCustomLabel("");
+    setCustomUrl("");
+  };
+
+  return (
+    <div>
+      <h1 className="text-lg font-semibold text-white/40 mb-2 lowercase">Link your social media platforms</h1>
+      <p className="text-sm text-white/20 mb-8">Pick your favorite social medias to add them to your profile</p>
+      <div className="glass-card rounded-2xl p-6">
+        <div className="flex flex-wrap justify-center gap-x-0.5 gap-y-3">
+          {PLATFORMS.map((p) => {
+            const connected = !!links[p.id];
+            return (
+              <button
+                key={p.id}
+                onClick={() => connected ? removeLink(p.id) : openModal(p.id)}
+                className="relative flex flex-col items-center gap-2 p-2 rounded-xl hover:bg-white/[0.02] transition-all group cursor-pointer"
+              >
+                <div className="h-11 w-11 rounded-xl bg-white/[0.06] flex items-center justify-center transition-all group-hover:bg-white/[0.1] group-hover:scale-105">
+                  <img src={p.logoUrl} alt={p.name} className="h-6 w-6" />
+                </div>
+                <span className="text-[10px] text-white/40 font-medium">{p.name}</span>
+                {connected && (
+                  <div className="absolute top-1 right-1 h-2 w-2 rounded-full bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.6)]" />
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="mt-6 border-t border-white/[0.06] pt-6">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-sm font-semibold text-white/80">Custom links</p>
+            <span className="text-xs text-white/20">appears with a link icon on your profile</span>
+          </div>
+          <div className="flex gap-2 mb-4">
+            <input
+              value={customLabel}
+              onChange={(e) => setCustomLabel(e.target.value)}
+              placeholder="Label (e.g. My Shop)"
+              maxLength={40}
+              className="w-1/3 bg-white/[0.03] border border-white/[0.06] rounded-lg px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/10 focus:border-blue-500/30 transition-colors"
+            />
+            <input
+              value={customUrl}
+              onChange={(e) => setCustomUrl(e.target.value)}
+              placeholder="https://..."
+              className="flex-1 bg-white/[0.03] border border-white/[0.06] rounded-lg px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/10 focus:border-blue-500/30 transition-colors"
+            />
+            <button
+              onClick={addCustomLink}
+              disabled={!customLabel.trim() || !customUrl.trim()}
+              className="text-sm bg-blue-600 hover:bg-blue-500 disabled:opacity-30 disabled:cursor-not-allowed px-4 rounded-lg text-white font-semibold transition-all"
+            >
+              add
+            </button>
+          </div>
+          {customLinks.length > 0 ? (
+            <div className="space-y-2">
+              {customLinks.map((label) => (
+                <div key={label} className="flex items-center gap-3 rounded-xl bg-white/[0.03] border border-white/[0.06] px-4 py-2.5">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/10 text-white shrink-0">
+                    <LucideLink size={14} />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm text-white/80 truncate">{label}</p>
+                    <p className="text-xs text-white/30 truncate">{links[label]}</p>
+                  </div>
+                  <button
+                    onClick={() => { setCustomLabel(label); setCustomUrl(links[label]); }}
+                    className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                  >
+                    edit
+                  </button>
+                  <button onClick={() => removeLink(label)} className="text-white/30 hover:text-red-400 transition-colors">
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-white/20">No custom links yet â€” add your own site, shop, or anything else.</p>
+          )}
+        </div>
+      </div>
+
+      <AnimatePresence>
+        {modal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+            onClick={() => { setModal(null); setUrlInput(""); }}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ type: "spring", duration: 0.3 }}
+              onClick={(e) => e.stopPropagation()}
+              className="glass-card rounded-2xl p-6 w-full max-w-sm relative"
+            >
+              <button
+                onClick={() => { setModal(null); setUrlInput(""); }}
+                className="absolute top-4 right-4 text-white/20 hover:text-white/60 transition-colors"
+              >
+                <X size={18} />
+              </button>
+
+              {(() => {
+                const p = PLATFORMS.find((x) => x.id === modal);
+                if (!p) return null;
+                return (
+                  <>
+                    <div className="flex items-center gap-3 mb-6">
+                      <img src={p.logoUrl} alt={p.name} className="h-7 w-7" />
+                      <p className="text-lg font-semibold text-white">{p.name}</p>
+                    </div>
+                    <input
+                      type="url"
+                      placeholder="Enter your link"
+                      value={urlInput}
+                      onChange={(e) => setUrlInput(e.target.value)}
+                      autoFocus
+                      className="w-full bg-white/[0.03] border border-white/[0.06] rounded-lg px-4 py-2.5 text-sm text-white outline-none placeholder:text-white/10 focus:border-blue-500/30 transition-colors mb-4"
+                    />
+                    <button
+                      onClick={() => saveLink(modal, urlInput)}
+                      disabled={!urlInput.trim()}
+                      className="w-full text-sm bg-blue-600 hover:bg-blue-500 disabled:opacity-30 disabled:cursor-not-allowed py-2.5 rounded-lg text-white font-semibold transition-all"
+                    >
+                      add
+                    </button>
+                  </>
+                );
+              })()}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+type Template = {
+  user_id: number;
+  username: string;
+  alias: string | null;
+  avatar_url: string;
+  description: string | null;
+  accent_color: string | null;
+  text_color: string | null;
+  background_color: string | null;
+  icon_color: string | null;
+  bg_effect_color: string | null;
+  primary_color: string | null;
+  secondary_color: string | null;
+  display_effect: string | null;
+  sparkle_intensity?: number | null;
+  font: string | null;
+  bg_effect: string | null;
+  entry_text: string | null;
+  entry_font: string | null;
+  entry_color: string | null;
+  entry_effect: string | null;
+  monochrome_icons: boolean;
+  monochrome_badges: boolean;
+  show_username: boolean;
+  panel_mouse_follow: boolean;
+  audio_volume: number;
+  audio_autoplay: boolean;
+  audio_loop: boolean;
+  audio_shuffle: boolean;
+  cursor_effect: string;
+  avatar_shape: string | null;
+  avatar_size: number | null;
+  avatar_offset_x: number | null;
+  avatar_offset_y: number | null;
+  name_offset_x: number | null;
+  name_offset_y: number | null;
+  badge_offset_x: number | null;
+  badge_offset_y: number | null;
+  tags?: string[];
+};
+
+function Templates({ user, onTab, onUpdateUser }: { user: User | null; onTab: (tab: TabId) => void; onUpdateUser?: (u: User) => void }) {
+  const [enabled, setEnabled] = useState(false);
+  const [templates, setTemplates] = useState<(Template & { views?: number })[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<Record<number, { installs: number; stars: number; recent_installs: number }>>({});
+  const [favorites, setFavorites] = useState<Set<number>>(new Set());
+  const [tab, setTab] = useState<"community" | "favorites" | "mine">("community");
+  const [search, setSearch] = useState("");
+  const [tagFilter, setTagFilter] = useState<string | null>(null);
+  const [tags, setTags] = useState<string[]>([]);
+  const [confirming, setConfirming] = useState(false);
+  const [tagInput, setTagInput] = useState("");
+  const [shareError, setShareError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    setLoading(true);
+    const token = getSessionToken();
+    fetch(`/api/templates?sessionToken=${encodeURIComponent(token || "")}`).then(async (R) => {
+      const J = await R.json().catch(() => null);
+      if (J?.mine) {
+        setEnabled(true);
+        const MineTags = Array.isArray(J.mine.tags) ? J.mine.tags : [];
+        if (MineTags.length) setTags(MineTags);
+      } else {
+        setEnabled(false);
+      }
+      if (Array.isArray(J?.templates)) setTemplates(J.templates);
+      if (J?.stats) {
+        const map: Record<number, { installs: number; stars: number; recent_installs: number }> = {};
+        for (const [K, V] of Object.entries(J.stats)) {
+          const S = V as { installs: number; stars: number; recent_installs: number };
+          map[Number(K)] = { installs: S.installs, stars: S.stars, recent_installs: S.recent_installs };
+        }
+        setStats(map);
+      }
+      setLoading(false);
+    }).catch(() => setLoading(false));
+    apiCall("template_favorites", {}).then((d) => setFavorites(new Set(d.favorites || [])));
+  }, [user]);
+
+  const addTag = () => {
+    const t = tagInput.trim().toLowerCase().replace(/\s+/g, "-").slice(0, 20);
+    if (t && !tags.includes(t) && tags.length < 10) setTags((prev) => [...prev, t]);
+    setTagInput("");
+  };
+
+  const toggleTemplate = () => {
+    if (!user) return;
+    if (enabled) {
+      setConfirming(false);
+      apiCall("template_toggle", { on: false });
+      setEnabled(false);
+      setTemplates((prev) => prev.filter((t) => t.user_id !== user.id));
+    } else {
+      setConfirming(true);
+    }
+  };
+
+  const confirmShare = async () => {
+    if (!user) return;
+    setShareError(null);
+    const saved = [...tags];
+    setEnabled(true);
+    setConfirming(false);
+    setTags(saved);
+    const mine: Template & { views?: number } = {
+      user_id: user.id,
+      username: user.username,
+      alias: user.alias,
+      avatar_url: user.avatar_url,
+      description: user.description,
+      accent_color: user.accent_color,
+      text_color: user.text_color,
+      background_color: user.background_color,
+      icon_color: user.icon_color,
+      bg_effect_color: user.bg_effect_color,
+      primary_color: user.primary_color,
+      secondary_color: user.secondary_color,
+      display_effect: user.display_effect,
+      font: user.font,
+      bg_effect: user.bg_effect,
+      entry_text: user.entry_text,
+      entry_font: user.entry_font,
+      entry_color: user.entry_color,
+      entry_effect: user.entry_effect,
+      monochrome_icons: user.monochrome_icons,
+      monochrome_badges: user.monochrome_badges,
+      show_username: user.show_username,
+      panel_mouse_follow: user.panel_mouse_follow,
+      audio_volume: user.audio_volume,
+      audio_autoplay: user.audio_autoplay,
+      audio_loop: user.audio_loop,
+      audio_shuffle: user.audio_shuffle,
+      cursor_effect: user.cursor_effect,
+      avatar_shape: user.avatar_shape,
+      avatar_size: user.avatar_size,
+      avatar_offset_x: user.avatar_offset_x,
+      avatar_offset_y: user.avatar_offset_y,
+      name_offset_x: user.name_offset_x,
+      name_offset_y: user.name_offset_y,
+      badge_offset_x: user.badge_offset_x,
+      badge_offset_y: user.badge_offset_y,
+      tags: saved,
+    };
+    setTemplates((prev) => [mine, ...prev.filter((t) => t.user_id !== user.id)]);
+    const res = await apiCall("template_toggle", { on: true, tags });
+    if (res.error) {
+      setShareError(res.error);
+      setEnabled(false);
+      setTemplates((prev) => prev.filter((t) => t.user_id !== user.id));
+      return;
+    }
+    if (Array.isArray(res.tags)) {
+      setTags(res.tags);
+      setTemplates((prev) => prev.map((t) => (t.user_id === user.id ? { ...t, tags: res.tags } : t)));
+    }
+  };
+
+  const saveTags = async () => {
+    if (!user || !enabled) return;
+    const saved = [...tags];
+    setTemplates((prev) => prev.map((t) => (t.user_id === user.id ? { ...t, tags: saved } : t)));
+    const res = await apiCall("template_toggle", { on: true, tags });
+    if (res.error) { setShareError(res.error); return; }
+    if (Array.isArray(res.tags)) {
+      setTags(res.tags);
+      setTemplates((prev) => prev.map((t) => (t.user_id === user.id ? { ...t, tags: res.tags } : t)));
+    }
+  };
+
+  const installTemplate = (t: Template) => {
+    if (!user) return;
+    const prev = { ...user };
+    const data: Record<string, unknown> = {};
+    const Fields = ["description", "accent_color", "text_color", "background_color", "icon_color", "bg_effect_color", "primary_color", "secondary_color", "display_effect", "font", "bg_effect", "entry_text", "entry_font", "entry_color", "entry_effect", "monochrome_icons", "monochrome_badges", "show_username", "panel_mouse_follow", "audio_volume", "audio_autoplay", "audio_loop", "audio_shuffle", "cursor_effect", "avatar_shape", "avatar_size", "avatar_offset_x", "avatar_offset_y", "name_offset_x", "name_offset_y", "badge_offset_x", "badge_offset_y"];
+    for (const K of Fields) {
+      const V = (t as unknown as Record<string, unknown>)[K];
+      if (V !== undefined && V !== null) data[K] = V;
+    }
+    setInstallError(null);
+    onUpdateUser?.({ ...user, ...(data as Partial<User>) });
+    onTab("customize");
+    setStats((prevStats) => ({
+      ...prevStats,
+      [t.user_id]: {
+        installs: (prevStats[t.user_id]?.installs || 0) + 1,
+        stars: prevStats[t.user_id]?.stars || 0,
+        recent_installs: (prevStats[t.user_id]?.recent_installs || 0) + 1,
+      },
+    }));
+    apiCall("update", { data }).then((res) => {
+      if (res.error) { onUpdateUser?.(prev); window.alert(res.error); return; }
+      apiCall("template_install", { targetUserId: t.user_id });
+      fetchMe().then((d) => { if (d?.user) onUpdateUser?.(d.user); });
+    });
+  };
+
+  const refreshStats = () => {
+    const token = getSessionToken();
+    fetch(`/api/templates?sessionToken=${encodeURIComponent(token || "")}&_=${Date.now()}`).then(async (R) => {
+      const J = await R.json().catch(() => null);
+      if (J?.stats) {
+        const map: Record<number, { installs: number; stars: number; recent_installs: number }> = {};
+        for (const [K, V] of Object.entries(J.stats)) {
+          const S = V as { installs: number; stars: number; recent_installs: number };
+          map[Number(K)] = { installs: S.installs, stars: S.stars, recent_installs: S.recent_installs };
+        }
+        setStats(map);
+      }
+    }).catch(() => {});
+  };
+
+  const toggleFavorite = (t: Template) => {
+    if (!user || t.user_id === user.id) return;
+    const faved = favorites.has(t.user_id);
+    const bump = faved ? -1 : 1;
+    setFavorites((prevFav) => { const s = new Set(prevFav); if (faved) s.delete(t.user_id); else s.add(t.user_id); return s; });
+    setStats((prevStats) => ({ ...prevStats, [t.user_id]: { ...(prevStats[t.user_id] || { installs: 0, stars: 0, recent_installs: 0 }), stars: Math.max(0, (prevStats[t.user_id]?.stars || 0) + bump) } }));
+    apiCall(faved ? "template_unfavorite" : "template_favorite", { targetUserId: t.user_id }).then((res) => {
+      if (res.error) {
+        setFavorites((prevFav) => { const s = new Set(prevFav); if (faved) s.add(t.user_id); else s.delete(t.user_id); return s; });
+        setStats((prevStats) => ({ ...prevStats, [t.user_id]: { ...(prevStats[t.user_id] || { installs: 0, stars: 0, recent_installs: 0 }), stars: Math.max(0, (prevStats[t.user_id]?.stars || 0) - bump) } }));
+        return;
+      }
+      refreshStats();
+    });
+  };
+
+  const allTags = Array.from(new Set(templates.flatMap((t) => t.tags || []))).sort();
+  const filtered = templates
+    .filter((t) => {
+      if (tab === "favorites" && !favorites.has(t.user_id)) return false;
+      if (tab === "mine" && t.user_id !== user?.id) return false;
+      if (tagFilter && !(t.tags || []).includes(tagFilter)) return false;
+      if (search) {
+        const q = search.toLowerCase();
+        if (!(t.alias || t.username).toLowerCase().includes(q)) return false;
+      }
+      return true;
+    })
+    .sort((a, b) => (stats[b.user_id]?.installs || 0) - (stats[a.user_id]?.installs || 0));
+
+  return (
+    <div>
+      <h1 className="text-lg font-semibold text-white/40 mb-8 lowercase">templates</h1>
+
+      <div className="relative rounded-2xl p-6 overflow-hidden mb-8 border border-blue-300/20 bg-gradient-to-br from-white via-blue-200 to-blue-500 shadow-[0_4px_24px_rgba(37,99,235,0.15)]">
+        <div className="absolute -top-20 -right-20 w-52 h-52 rounded-full bg-blue-400/20 blur-3xl" />
+        <div className="absolute -bottom-16 -left-16 w-40 h-40 rounded-full bg-white/30 blur-3xl" />
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none" />
+        <div className="relative flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-bold tracking-tight text-slate-900">
+              Share Your Template
+            </h2>
+            <p className="text-[13px] text-slate-600/80 mt-1.5 font-medium">
+              {confirming
+                ? "pick some tags so people can find your template."
+                : "Do you want your biolink template to be available online?"}
+            </p>
+          </div>
+          <button
+            onClick={toggleTemplate}
+            className={`relative h-7 w-12 rounded-full transition-colors shrink-0 ${
+              enabled || confirming ? "bg-blue-600" : "bg-white/30"
+            }`}
+          >
+            <div className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow-md transition-transform ${
+              enabled || confirming ? "translate-x-5.5" : "translate-x-0.5"
+            }`} />
+          </button>
+        </div>
+
+        {(confirming || enabled) && (
+          <div className="relative mt-6 border-t border-slate-900/10 pt-5">
+            <p className="text-xs font-bold text-slate-700 mb-3">
+              {confirming ? "add tags (optional, up to 10)" : "your template tags"}
+            </p>
+            {shareError && (
+              <p className="text-xs font-bold text-red-600 mb-3">couldn't share: {shareError}</p>
+            )}
+            <div className="flex flex-wrap gap-1.5 mb-3">
+              {tags.length === 0 && (
+                <span className="text-xs text-slate-500/70 italic">no tags yet</span>
+              )}
+              {tags.map((tag) => (
+                <span key={tag} className="inline-flex items-center gap-1 text-xs font-semibold bg-slate-900/10 text-slate-800 rounded-lg px-2.5 py-1">
+                  #{tag}
+                  <button onClick={() => setTags((prev) => prev.filter((t) => t !== tag))} className="hover:text-red-500 transition-colors cursor-pointer">
+                    <X size={11} />
+                  </button>
+                </span>
+              ))}
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <input
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addTag(); } }}
+                placeholder="add a tag..."
+                className="flex-1 min-w-[140px] bg-white/70 border border-slate-900/10 rounded-lg px-3 py-2 text-xs text-slate-800 outline-none placeholder:text-slate-400 focus:border-blue-500/50 transition-colors"
+              />
+              <button onClick={addTag} className="text-xs font-bold bg-slate-900/10 text-slate-800 px-3 py-2 rounded-lg hover:bg-slate-900/20 transition-colors cursor-pointer">
+                add
+              </button>
+              {confirming && (
+                <>
+                  <button
+                    onClick={() => setConfirming(false)}
+                    className="text-xs font-bold text-slate-500 px-3 py-2 rounded-lg hover:bg-slate-900/10 transition-colors cursor-pointer"
+                  >
+                    cancel
+                  </button>
+                  <button
+                    onClick={confirmShare}
+                    className="shimmer text-xs font-bold bg-blue-600 text-white px-4 py-2 rounded-lg hover:scale-105 active:scale-95 transition-transform cursor-pointer shadow-[0_0_20px_rgba(37,99,235,0.4)]"
+                  >
+                    share template
+                  </button>
+                </>
+              )}
+              {enabled && !confirming && (
+                <button onClick={saveTags} className="text-xs font-bold bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-500 transition-colors cursor-pointer">
+                  save tags
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="flex gap-2 mb-4">
+        {(["community", "favorites", "mine"] as const).map((t) => (
+          <button
+            key={t}
+            onClick={() => setTab(t)}
+            className={`text-xs px-4 py-2 rounded-xl border font-bold transition-all cursor-pointer ${
+              tab === t
+                ? "bg-blue-600/20 border-blue-500/40 text-blue-300"
+                : "bg-white/[0.03] border-white/10 text-white/40 hover:text-white/60"
+            }`}
+          >
+            {t === "community" ? "community templates" : t === "favorites" ? `favorite templates${favorites.size ? ` (${favorites.size})` : ""}` : "my template"}
+          </button>
+        ))}
+      </div>
+
+      <div className="relative mb-4">
+        <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/25 pointer-events-none" />
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="search by display name..."
+          className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl pl-10 pr-4 py-2.5 text-sm text-white outline-none placeholder:text-white/15 focus:border-blue-500/30 transition-colors"
+        />
+      </div>
+
+      {allTags.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mb-6">
+          <button
+            onClick={() => setTagFilter(null)}
+            className={`text-[11px] font-bold px-3 py-1 rounded-full border transition-all cursor-pointer ${
+              tagFilter === null
+                ? "bg-blue-600/20 border-blue-500/40 text-blue-300"
+                : "bg-white/[0.03] border-white/10 text-white/40 hover:text-white/60"
+            }`}
+          >
+            all
+          </button>
+          {allTags.map((tag) => (
+            <button
+              key={tag}
+              onClick={() => setTagFilter(tagFilter === tag ? null : tag)}
+              className={`text-[11px] font-bold px-3 py-1 rounded-full border transition-all cursor-pointer ${
+                tagFilter === tag
+                  ? "bg-blue-600/20 border-blue-500/40 text-blue-300"
+                  : "bg-white/[0.03] border-white/10 text-white/40 hover:text-white/60"
+              }`}
+            >
+              #{tag}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {loading ? (
+        <div className="glass-card rounded-2xl p-12 flex items-center justify-center">
+          <p className="text-sm text-white/20 italic">loading templates...</p>
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="glass-card rounded-2xl p-12 flex items-center justify-center">
+          <p className="text-sm text-white/10 italic">
+            {tab === "mine" ? "you haven't shared a template yet" : tab === "favorites" ? "no favorite templates yet" : "no community templates yet"}
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {filtered.map((t) => {
+            const s = stats[t.user_id] || { installs: 0, stars: 0, recent_installs: 0 };
+            const isMine = t.user_id === user?.id;
+            const isFav = favorites.has(t.user_id);
+            const trending = !isMine && s.recent_installs >= 3;
+            return (
+              <div key={t.user_id} className={`glass-card rounded-2xl border overflow-hidden relative ${isMine ? "border-blue-500/30" : "border-white/10"}`}>
+                <div className="relative overflow-hidden border-b border-white/10" style={{ height: 160 }}>
+                  <iframe
+                    src={`/${t.username}?entry=skip`}
+                    className="w-full h-full border-0"
+                    title={`${t.username}'s biolink`}
+                    loading="lazy"
+                    sandbox="allow-scripts allow-same-origin"
+                  />
+                  <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-black/50 to-transparent" />
+                  {isMine && (
+                    <span className="absolute top-2 left-2 z-[1] text-[9px] font-semibold uppercase tracking-wider text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-md backdrop-blur-sm">
+                      your template
+                    </span>
+                  )}
+                  <button
+                    onClick={() => toggleFavorite(t)}
+                    disabled={isMine}
+                    className={`absolute top-2 right-2 z-[1] h-8 w-8 rounded-full backdrop-blur-sm flex items-center justify-center transition-colors cursor-pointer ${
+                      isMine ? "bg-black/20 opacity-40 cursor-not-allowed" : "bg-black/40 hover:bg-black/60"
+                    }`}
+                    title={isMine ? "your own template" : isFav ? "unfavorite" : "favorite"}
+                  >
+                    <Star size={15} className={isFav ? "text-yellow-400" : "text-white/70"} fill={isFav ? "currentColor" : "none"} />
+                  </button>
+                </div>
+
+                <div className="p-4">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="h-9 w-9 rounded-full bg-white/10 overflow-hidden shrink-0 border border-white/[0.06]">
+                      {t.avatar_url ? (
+                        <img src={t.avatar_url} alt="" className="h-full w-full object-cover" />
+                      ) : (
+                        <div className="h-full w-full flex items-center justify-center text-white/30 text-xs font-bold">
+                          {(t.alias || t.username)[0].toUpperCase()}
+                        </div>
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-white truncate">{t.alias || t.username}</p>
+                      <p className="text-[10px] text-white/40">@{t.username}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between text-[11px] font-bold">
+                    <span className="flex items-center gap-1 text-white/50 tabular-nums">
+                      <Clock size={12} /> {s.installs.toLocaleString()} user{s.installs === 1 ? "" : "s"}
+                    </span>
+                    <span className="flex items-center gap-2.5">
+                      {trending && (
+                        <span className="flex items-center gap-1 text-emerald-400">
+                          <TrendingUp size={12} /> trending
+                        </span>
+                      )}
+                      <span className="flex items-center gap-1 text-white/50 tabular-nums">
+                        <Star size={12} className="text-yellow-400" fill="currentColor" /> {s.stars.toLocaleString()}
+                      </span>
+                    </span>
+                  </div>
+
+                  {t.tags && t.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-3">
+                      {t.tags.map((tag) => (
+                        <span key={tag} className="text-[10px] font-semibold text-blue-300/80 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded-full">
+                          #{tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="flex gap-2 mt-4">
+                    <button
+                      onClick={() => window.open(`/${t.username}`, "_blank")}
+                      className="flex-1 text-xs bg-white/10 hover:bg-white/20 border border-white/20 py-2 rounded-lg text-white font-medium transition-all cursor-pointer"
+                    >
+                      preview
+                    </button>
+                    <button
+                      onClick={() => installTemplate(t)}
+                      disabled={isMine}
+                      className={`flex-1 text-xs py-2 rounded-lg text-white font-medium transition-all cursor-pointer ${
+                        isMine
+                          ? "bg-white/5 text-white/20 cursor-not-allowed"
+                          : "bg-blue-600 hover:bg-blue-500"
+                      }`}
+                    >
+                      {isMine ? "installed" : "install template"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ProfileLayouts({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (u: User) => void }) {
+  const [Saving, SetSaving] = useState<string | null>(null);
+  const [JustSaved, SetJustSaved] = useState<string | null>(null);
+  const [Hovered, SetHovered] = useState<string | null>(null);
+  const Active = user?.profile_layout || "classic";
+
+  const LAYOUTS = [
+    { id: "classic", label: "classic", desc: "centered avatar with name, badges and bio stacked underneath", tag: "default" },
+    { id: "left", label: "left aligned", desc: "identity and bio hug the left edge of the panel", tag: "clean" },
+    { id: "split", label: "split", desc: "avatar on the left, name, username and badges beside it", tag: "wide" },
+    { id: "compact", label: "compact", desc: "small inline avatar beside your identity, tighter spacing", tag: "minimal" },
+    { id: "badges", label: "badges first", desc: "badge row above the avatar, name and bio below", tag: "flex" },
+  ];
+
+  const Pick = async (Id: string) => {
+    if (!user) return;
+    SetSaving(Id);
+    const { error } = await apiCall("update", { data: { profile_layout: Id } });
+    SetSaving(null);
+    if (error) { alert(error); return; }
+    onUpdateUser?.({ ...user, profile_layout: Id });
+    SetJustSaved(Id);
+    setTimeout(() => SetJustSaved(null), 1800);
+  };
+
+  const Shown = Hovered || Active;
+  const Name = user?.display_name || user?.username || "your name";
+  const Handle = user?.username || "username";
+  const Avatar = user?.avatar_url;
+  const Bio = user?.description || "your bio goes here";
+  const Tc = user?.text_color || "#ffffff";
+  const Bc = user?.badge_color || "#3b82f6";
+
+  const AvatarEl = ({ size = 40 }: { size?: number }) => (
+    <div
+      className="rounded-full overflow-hidden border border-white/20 shrink-0 bg-white/10 flex items-center justify-center"
+      style={{ width: size, height: size }}
+    >
+      {Avatar ? (
+        <img src={Avatar} alt="" className="w-full h-full object-cover" />
+      ) : (
+        <span className="text-white/40 text-xs font-bold">{(Name || "?").charAt(0).toUpperCase()}</span>
+      )}
+    </div>
+  );
+
+  const BadgeDots = ({ size = "h-2.5 w-2.5" }: { size?: string }) => (
+    <div className="flex gap-1">
+      <span className={`${size} rounded bg-white/40`} />
+      <span className={`${size} rounded`} style={{ backgroundColor: Bc }} />
+      <span className={`${size} rounded bg-white/20`} />
+    </div>
+  );
+
+  const Bar = ({ w = "w-20", h = "h-1.5", c = "bg-white/30" }: { w?: string; h?: string; c?: string }) => (
+    <span className={`${h} ${w} ${c} rounded`} />
+  );
+
+  const LivePreview = ({ layout }: { layout: string }) => {
+    if (layout === "split") {
+      return (
+        <div className="flex items-start gap-5 w-full max-w-md">
+          <AvatarEl size={80} />
+          <div className="flex flex-col items-start gap-2 min-w-0 flex-1">
+            <span className="text-2xl font-black truncate" style={{ color: Tc }}>{Name}</span>
+            <span className="text-sm opacity-40" style={{ color: Tc }}>@{Handle}</span>
+            <BadgeDots size="h-3.5 w-3.5" />
+            <span className="text-sm opacity-50 mt-1 line-clamp-2" style={{ color: Tc }}>{Bio}</span>
+          </div>
+        </div>
+      );
+    }
+    if (layout === "compact") {
+      return (
+        <div className="flex items-start gap-4 w-full max-w-md">
+          <AvatarEl size={56} />
+          <div className="flex flex-col items-start gap-1 min-w-0 flex-1">
+            <span className="text-xl font-black truncate" style={{ color: Tc }}>{Name}</span>
+            <span className="text-sm opacity-40" style={{ color: Tc }}>@{Handle}</span>
+            <BadgeDots size="h-3 w-3" />
+            <span className="text-sm opacity-50 mt-1 line-clamp-2" style={{ color: Tc }}>{Bio}</span>
+          </div>
+        </div>
+      );
+    }
+    if (layout === "badges") {
+      return (
+        <div className="flex flex-col items-center gap-3 w-full max-w-md">
+          <BadgeDots size="h-4 w-4" />
+          <AvatarEl size={72} />
+          <span className="text-2xl font-black" style={{ color: Tc }}>{Name}</span>
+          <span className="text-sm opacity-40" style={{ color: Tc }}>@{Handle}</span>
+          <span className="text-sm opacity-50 line-clamp-2 text-center" style={{ color: Tc }}>{Bio}</span>
+        </div>
+      );
+    }
+    return (
+      <div className={`flex flex-col gap-3 w-full max-w-md ${layout === "left" ? "items-start" : "items-center"}`}>
+        <AvatarEl size={76} />
+        <span className="text-2xl font-black" style={{ color: Tc }}>{Name}</span>
+        <span className="text-sm opacity-40" style={{ color: Tc }}>@{Handle}</span>
+        <BadgeDots size="h-3.5 w-3.5" />
+        <span className="text-sm opacity-50 line-clamp-2 text-center" style={{ color: Tc }}>{Bio}</span>
+      </div>
+    );
+  };
+
+  const ThumbPreview = ({ id }: { id: string }) => {
+    if (id === "split") {
+      return (
+        <div className="flex items-center gap-2">
+          <span className="h-8 w-8 shrink-0 rounded-full bg-blue-500/40 border border-white/20" />
+          <div className="flex flex-col items-start gap-1">
+            <Bar w="w-14" h="h-1.5" c="bg-white/40" />
+            <Bar w="w-9" />
+            <div className="flex gap-0.5">
+              <span className="h-1.5 w-1.5 rounded bg-white/30" />
+              <span className="h-1.5 w-1.5 rounded bg-blue-400/40" />
+            </div>
+          </div>
+        </div>
+      );
+    }
+    if (id === "compact") {
+      return (
+        <div className="flex items-center gap-2">
+          <span className="h-6 w-6 shrink-0 rounded-full bg-blue-500/40 border border-white/20" />
+          <div className="flex flex-col items-start gap-0.5 flex-1">
+            <Bar w="w-12" h="h-1.5" c="bg-white/40" />
+            <Bar w="w-8" />
+          </div>
+          <div className="flex gap-0.5">
+            <span className="h-1.5 w-1.5 rounded bg-white/30" />
+            <span className="h-1.5 w-1.5 rounded bg-blue-400/40" />
+          </div>
+        </div>
+      );
+    }
+    if (id === "badges") {
+      return (
+        <div className="flex flex-col items-center gap-1.5">
+          <div className="flex gap-1">
+            <span className="h-2 w-2 rounded bg-white/40" />
+            <span className="h-2 w-2 rounded bg-blue-400/40" />
+            <span className="h-2 w-2 rounded bg-white/20" />
+          </div>
+          <span className="h-7 w-7 rounded-full bg-blue-500/40 border border-white/20" />
+          <Bar w="w-14" h="h-1.5" c="bg-white/40" />
+          <Bar w="w-10" />
+        </div>
+      );
+    }
+    return (
+      <div className={`flex flex-col gap-1.5 ${id === "left" ? "items-start" : "items-center"}`}>
+        <span className="h-8 w-8 rounded-full bg-blue-500/40 border border-white/20" />
+        <Bar w="w-14" h="h-1.5" c="bg-white/40" />
+        <Bar w="w-10" />
+        <div className="flex gap-0.5">
+          <span className="h-1.5 w-1.5 rounded bg-white/30" />
+          <span className="h-1.5 w-1.5 rounded bg-blue-400/40" />
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div>
+      <div className="flex items-end justify-between mb-6">
+        <div>
+          <h1 className="text-lg font-semibold text-white/80 lowercase">profile layouts</h1>
+          <p className="text-[11px] text-white/35 mt-1">pick a layout · hover to preview · saves instantly</p>
+        </div>
+        {JustSaved && (
+          <motion.p
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="text-[11px] text-emerald-400/80"
+          >
+            layout saved — refresh your page to see it.
+          </motion.p>
+        )}
+      </div>
+
+      <motion.div
+        layout
+        className="glass-card rounded-2xl p-6 mb-6 border border-white/[0.08] relative overflow-hidden"
+      >
+        <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse at 50% 0%, rgba(59,130,246,0.12) 0%, transparent 70%)" }} />
+        <div className="relative flex items-center justify-between mb-4">
+          <span className="text-[10px] uppercase tracking-wider text-white/40 font-semibold">live preview · {Shown}</span>
+          <span className="text-[10px] text-white/25">{Active === Shown ? "selected" : "previewing"}</span>
+        </div>
+        <motion.div
+          key={Shown}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.22 }}
+          className="rounded-xl bg-black/40 border border-white/[0.06] p-8 min-h-[460px] flex items-center justify-center"
+        >
+          <LivePreview layout={Shown} />
+        </motion.div>
+      </motion.div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+        {LAYOUTS.map((L) => {
+          const isActive = Active === L.id;
+          const isSaving = Saving === L.id;
+          return (
+            <motion.button
+              key={L.id}
+              onClick={() => Pick(L.id)}
+              onMouseEnter={() => SetHovered(L.id)}
+              onMouseLeave={() => SetHovered(null)}
+              disabled={isSaving}
+              whileHover={{ y: -4, scale: 1.01 }}
+              whileTap={{ scale: 0.98 }}
+              transition={{ type: "spring", stiffness: 300, damping: 20 }}
+              className={`glass-card rounded-2xl p-4 text-left cursor-pointer relative overflow-hidden ${
+                isActive
+                  ? "border-blue-500/60 bg-blue-500/[0.08] shadow-[0_0_24px_-6px_rgba(59,130,246,0.5)]"
+                  : "border-white/[0.08] hover:border-white/20"
+              } ${isSaving ? "opacity-60" : ""}`}
+            >
+              {isActive && (
+                <motion.div
+                  layoutId="layout-active-glow"
+                  className="absolute inset-0 pointer-events-none"
+                  style={{ background: "radial-gradient(ellipse at 50% 0%, rgba(59,130,246,0.18) 0%, transparent 70%)" }}
+                />
+              )}
+              <div className="relative mb-4 h-28 rounded-xl bg-black/30 border border-white/[0.05] flex items-center justify-center overflow-hidden">
+                <ThumbPreview id={L.id} />
+              </div>
+              <div className="relative flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-semibold text-white/85 capitalize">{L.label}</p>
+                  <span className="text-[9px] uppercase tracking-wider text-white/25 border border-white/10 rounded px-1.5 py-0.5">{L.tag}</span>
+                </div>
+                {isActive ? (
+                  <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 400, damping: 15 }}>
+                    <Check size={15} className="text-blue-400" />
+                  </motion.span>
+                ) : isSaving ? (
+                  <span className="text-[10px] text-white/40">saving...</span>
+                ) : null}
+              </div>
+              <p className="relative mt-1 text-[11px] text-white/30 leading-relaxed">{L.desc}</p>
+            </motion.button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function PanelDesign({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (u: User) => void }) {
+  const [accentColor, setAccentColor] = useState(user?.accent_color || "rgba(255, 255, 255, 0.05)");
+  const [textColor, setTextColor] = useState(user?.text_color || "#ffffff");
+  const [backgroundColor, setBackgroundColor] = useState(user?.background_color || "#080808");
+  const [iconColor, setIconColor] = useState(user?.icon_color || "#ffffff");
+  const [bgEffectColor, setBgEffectColor] = useState(user?.bg_effect_color || "rgba(255, 255, 255, 0.08)");
+  const [primaryColor, setPrimaryColor] = useState(user?.primary_color || "rgba(255, 255, 255, 0.1)");
+  const [secondaryColor, setSecondaryColor] = useState(user?.secondary_color || "rgba(255, 255, 255, 0.15)");
+  const [glowMode, setGlowMode] = useState(user?.panel_glow_mode || "none");
+  const [glowColor, setGlowColor] = useState(user?.panel_glow_color || "");
+  const [glowColor2, setGlowColor2] = useState(user?.panel_glow_color_2 || "");
+  const [glowSpread, setGlowSpread] = useState(user?.panel_glow_spread ?? 50);
+  const [pulseOn, setPulseOn] = useState(!!user?.panel_pulse_enabled);
+  const [pulseColor, setPulseColor] = useState(user?.panel_pulse_color || "#3b82f6");
+  const [pulseSpeed, setPulseSpeed] = useState(user?.panel_pulse_speed ?? 50);
+  const [pulseType, setPulseType] = useState<string>(user?.panel_pulse_type || "pulse");
+  const [panelOpacity, setPanelOpacity] = useState(user?.panel_opacity ?? 100);
+  const [panelHidden, setPanelHidden] = useState(!!user?.panel_hidden);
+  const [savingColors, setSavingColors] = useState(false);
+  const [savingPanel, setSavingPanel] = useState(false);
+  const [Bg, setBg] = useState<string | null>(null);
+  const [VideoBg, setVideoBg] = useState<string | null>(null);
+  const [Avatar, setAvatar] = useState<string | null>(null);
+  const [Cursor, setCursor] = useState<string | null>(null);
+  const [AudioAsset, setAudioAsset] = useState<string | null>(null);
+  const [Banner, setBanner] = useState<string | null>(null);
+  const [Toast, setToast] = useState<string | null>(null);
+  useEffect(() => {
+    if (!Toast) return;
+    const T = window.setTimeout(() => setToast(null), 2500);
+    return () => window.clearTimeout(T);
+  }, [Toast]);
+  useEffect(() => {
+    if (!user?.username) return;
+    (async () => {
+      try {
+        const R = await fetch(`/api/profile?username=${encodeURIComponent(user.username)}`, { cache: "no-store" });
+        const J = await R.json();
+        for (const a of J?.assets || []) {
+          if (a.type === "background") setBg(a.url);
+          if (a.type === "video_background") setVideoBg(a.url);
+          if (a.type === "profile_avatar") setAvatar(a.url);
+          if (a.type === "custom_cursor") setCursor(a.url);
+          if (a.type === "audio" || a.type === "audio_1") setAudioAsset(a.url);
+          if (a.type === "banner") setBanner(a.url);
+        }
+      } catch {}
+    })();
+  }, [user?.username]);
+  useEffect(() => {
+    if (!user) return;
+    setAccentColor(user.accent_color || "rgba(255, 255, 255, 0.05)");
+    setTextColor(user.text_color || "#ffffff");
+    setBackgroundColor(user.background_color || "#080808");
+    setIconColor(user.icon_color || "#ffffff");
+    setBgEffectColor(user.bg_effect_color || "rgba(255, 255, 255, 0.08)");
+    setPrimaryColor(user.primary_color || "rgba(255, 255, 255, 0.1)");
+    setSecondaryColor(user.secondary_color || "rgba(255, 255, 255, 0.15)");
+    setGlowMode(user.panel_glow_mode || "none");
+    setGlowColor(user.panel_glow_color || "");
+    setGlowColor2(user.panel_glow_color_2 || "");
+    setGlowSpread(user.panel_glow_spread ?? 50);
+    setPulseOn(!!user.panel_pulse_enabled);
+    setPulseColor(user.panel_pulse_color || "#3b82f6");
+    setPulseSpeed(user.panel_pulse_speed ?? 50);
+    setPulseType(user.panel_pulse_type || "pulse");
+    setPanelOpacity(user.panel_opacity ?? 100);
+    setPanelHidden(!!user.panel_hidden);
+  }, [user]);
+  const SaveColors = async () => {
+    if (!user) return;
+    setSavingColors(true);
+    const Data = {
+      accent_color: accentColor,
+      text_color: textColor,
+      background_color: backgroundColor,
+      icon_color: iconColor,
+      bg_effect_color: bgEffectColor,
+      primary_color: primaryColor,
+      secondary_color: secondaryColor,
+      panel_glow_mode: glowMode,
+      panel_glow_color: glowColor,
+      panel_glow_color_2: glowColor2,
+      panel_glow_spread: glowSpread,
+      panel_pulse_enabled: pulseOn,
+      panel_pulse_color: pulseColor,
+      panel_pulse_speed: pulseSpeed,
+  panel_pulse_type: pulseType,
+    };
+    const { error } = await apiCall("update", { data: Data });
+    if (error) alert(error);
+    else {
+      if (onUpdateUser) onUpdateUser({ ...user, ...Data } as User);
+      setToast("colors saved!");
+    }
+    setSavingColors(false);
+  };
+  const ResetToGlassy = async () => {
+    setAccentColor("rgba(255, 255, 255, 0.05)");
+    setTextColor("#ffffff");
+    setBackgroundColor("#080808");
+    setIconColor("#ffffff");
+    setBgEffectColor("rgba(255, 255, 255, 0.08)");
+    setPrimaryColor("rgba(255, 255, 255, 0.1)");
+    setSecondaryColor("rgba(255, 255, 255, 0.15)");
+    setGlowMode("none");
+    setGlowColor("");
+    setGlowColor2("");
+    setGlowSpread(50);
+    setPulseOn(false);
+    setPulseColor("");
+    setPulseSpeed(50);
+    setPulseType("pulse");
+    if (!user) return;
+    setSavingColors(true);
+    const Data = {
+      accent_color: "rgba(255, 255, 255, 0.05)",
+      text_color: "#ffffff",
+      background_color: "#080808",
+      icon_color: "#ffffff",
+      bg_effect_color: "rgba(255, 255, 255, 0.08)",
+      primary_color: "rgba(255, 255, 255, 0.1)",
+      secondary_color: "rgba(255, 255, 255, 0.15)",
+      panel_glow_mode: "none",
+      panel_glow_color: "",
+      panel_glow_color_2: "",
+      panel_glow_spread: 50,
+      panel_pulse_enabled: false,
+      panel_pulse_color: "",
+      panel_pulse_speed: 50,
+      panel_pulse_type: "pulse",
+    };
+    const { error } = await apiCall("update", { data: Data });
+    if (!error && onUpdateUser) onUpdateUser({ ...user, ...Data } as User);
+    setSavingColors(false);
+  };
+  const SavePanel = async () => {
+    if (!user) return;
+    setSavingPanel(true);
+    const { error } = await apiCall("update", { data: { panel_opacity: panelOpacity, panel_hidden: panelHidden } });
+    if (!error) setToast("panel saved!");
+    setSavingPanel(false);
+  };
+  return (
+    <div className="flex flex-col lg:flex-row lg:gap-8 min-h-[calc(100vh-100px)]">
+      <div className="lg:w-[45%] flex-1">
+        <h1 className="text-lg font-semibold text-white/40 mb-8 lowercase">panel design</h1>
+        <div>
+          <h3 className="text-sm font-semibold text-white/80 mb-4">Panel Opacity</h3>
+          <div className="glass-card rounded-2xl p-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-white/50 font-semibold uppercase tracking-wider">Panel Opacity</span>
+              <div className="flex items-center gap-3">
+                <input type="range" min="0" max="100" value={panelOpacity} onChange={(e) => setPanelOpacity(Number(e.target.value))} className="w-24 h-1 accent-blue-500 cursor-pointer" />
+                <span className="text-xs text-white/40 w-10 text-right">{panelOpacity}%</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 pt-2 border-t border-white/[0.04]">
+              <p className="text-[10px] text-white/30">0% = fully transparent, 100% = opaque</p>
+              <label className="flex items-center gap-2 text-xs text-white/50 cursor-pointer">
+                <Toggle checked={panelHidden} onChange={setPanelHidden} />
+                Hide panel completely
+              </label>
+            </div>
+            <div className="flex justify-end">
+              <button onClick={SavePanel} disabled={savingPanel} className="text-xs bg-blue-600 hover:bg-blue-500 disabled:opacity-40 px-4 py-2 rounded-lg text-white font-semibold transition-colors cursor-pointer">
+                {savingPanel ? "saving..." : "save panel"}
+              </button>
+            </div>
+          </div>
+        </div>
+        <div className="mt-8">
+          <h3 className="text-sm font-semibold text-white/80 mb-4">Color Customization</h3>
+          <div className="rounded-2xl bg-white/[0.02] border border-white/[0.06] overflow-hidden divide-y divide-white/[0.04]">
+            {[
+              { label: "accent color", value: accentColor, onChange: setAccentColor },
+              { label: "text color", value: textColor, onChange: setTextColor },
+              { label: "background color", value: backgroundColor, onChange: setBackgroundColor },
+              { label: "icon color", value: iconColor, onChange: setIconColor },
+              { label: "bg effect color", value: bgEffectColor, onChange: setBgEffectColor },
+              { label: "primary color", value: primaryColor, onChange: setPrimaryColor },
+              { label: "secondary color", value: secondaryColor, onChange: setSecondaryColor },
+            ].map((c) => (
+              <div key={c.label} className="flex items-center gap-3 p-3.5">
+                <span className="w-28 shrink-0 text-xs text-white/55 font-medium">{c.label}</span>
+                <input
+                  type="color"
+                  value={c.value.startsWith("#") ? c.value : "#ffffff"}
+                  onChange={(e) => c.onChange(e.target.value)}
+                  className="h-8 w-10 shrink-0 rounded-lg border border-white/[0.1] bg-white/[0.03] cursor-pointer p-0 overflow-hidden"
+                />
+                <input
+                  type="text"
+                  value={c.value}
+                  onChange={(e) => c.onChange(e.target.value)}
+                  className="flex-1 min-w-0 bg-white/[0.03] border border-white/[0.06] rounded-lg px-2.5 py-1.5 text-white/80 outline-none focus:border-blue-500/40 transition-colors font-mono text-xs"
+                />
+              </div>
+            ))}
+          </div>
+          <div className="mt-6 rounded-2xl bg-white/[0.02] border border-white/[0.06] p-4 space-y-4">
+            <div>
+              <p className="text-sm font-semibold text-white/80">panel glow</p>
+              <p className="text-[10.5px] text-white/30 mt-0.5">glowing edge around your glass panel.</p>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {["none", "solid", "gradient"].map((M) => (
+                <button key={M} onClick={() => setGlowMode(M)} className={`py-2 rounded-xl text-xs font-medium border transition-all cursor-pointer ${glowMode === M ? "bg-blue-600/20 border-blue-500/40 text-blue-300" : "bg-white/[0.03] border-white/[0.06] text-white/45 hover:text-white/70 hover:bg-white/[0.06]"}`}>
+                  {M}
+                </button>
+              ))}
+            </div>
+            {glowMode !== "none" && (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {glowMode === "solid" && (
+                    <div className="flex items-center gap-3">
+                      <span className="w-20 shrink-0 text-xs text-white/55">color</span>
+                      <input type="color" value={glowColor.startsWith("#") ? glowColor : "#3b82f6"} onChange={(e) => setGlowColor(e.target.value)} className="h-8 w-10 shrink-0 rounded-lg border border-white/[0.1] bg-white/[0.03] cursor-pointer p-0 overflow-hidden" />
+                      <input type="text" value={glowColor} onChange={(e) => setGlowColor(e.target.value)} placeholder="#3b82f6" className="flex-1 min-w-0 bg-white/[0.03] border border-white/[0.06] rounded-lg px-2.5 py-1.5 text-white/80 outline-none focus:border-blue-500/40 transition-colors font-mono text-xs" />
+                    </div>
+                  )}
+                  {glowMode === "gradient" && (
+                    <>
+                      <div className="flex items-center gap-3">
+                        <span className="w-20 shrink-0 text-xs text-white/55">color 1</span>
+                        <input type="color" value={glowColor.startsWith("#") ? glowColor : "#3b82f6"} onChange={(e) => setGlowColor(e.target.value)} className="h-8 w-10 shrink-0 rounded-lg border border-white/[0.1] bg-white/[0.03] cursor-pointer p-0 overflow-hidden" />
+                        <input type="text" value={glowColor} onChange={(e) => setGlowColor(e.target.value)} placeholder="#3b82f6" className="flex-1 min-w-0 bg-white/[0.03] border border-white/[0.06] rounded-lg px-2.5 py-1.5 text-white/80 outline-none focus:border-blue-500/40 transition-colors font-mono text-xs" />
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="w-20 shrink-0 text-xs text-white/55">color 2</span>
+                        <input type="color" value={glowColor2.startsWith("#") ? glowColor2 : "#a855f7"} onChange={(e) => setGlowColor2(e.target.value)} className="h-8 w-10 shrink-0 rounded-lg border border-white/[0.1] bg-white/[0.03] cursor-pointer p-0 overflow-hidden" />
+                        <input type="text" value={glowColor2} onChange={(e) => setGlowColor2(e.target.value)} placeholder="#a855f7" className="flex-1 min-w-0 bg-white/[0.03] border border-white/[0.06] rounded-lg px-2.5 py-1.5 text-white/80 outline-none focus:border-blue-500/40 transition-colors font-mono text-xs" />
+                      </div>
+                    </>
+                  )}
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-white/55">glow spread</span>
+                  <div className="flex items-center gap-2">
+                    <input type="range" min={0} max={100} value={glowSpread} onChange={(e) => setGlowSpread(Number(e.target.value))} className="w-28 h-1 accent-blue-500 cursor-pointer" />
+                    <span className="text-[10px] font-mono text-white/40 w-8 text-right">{glowSpread}%</span>
+                  </div>
+                </div>
+                <p className="text-[10.5px] text-white/30">spread controls how far the glow bleeds out. hit save colors to apply.</p>
+              </>
+            )}
+            <div className="pt-4 border-t border-white/[0.06] space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-semibold text-white/80">edge pulse</p>
+                  <p className="text-[10.5px] text-white/30">pick an effect and it travels around the panel edge.</p>
+                </div>
+                <Toggle checked={pulseOn} onChange={(V) => setPulseOn(V)} />
+              </div>
+              {pulseOn && (
+                <>
+                  <div className="grid grid-cols-4 sm:grid-cols-8 gap-1.5">
+                    {["pulse", "lightning", "flowers", "snow", "fire", "stars", "hearts", "halloween"].map((E) => (
+                      <button key={E} onClick={() => setPulseType(E)} className={`py-1.5 rounded-lg text-[10px] font-medium border transition-all cursor-pointer ${pulseType === E ? "bg-blue-600/20 border-blue-500/40 text-blue-300" : "bg-white/[0.03] border-white/[0.06] text-white/45 hover:text-white/70 hover:bg-white/[0.06]"}`}>
+                        {E}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="w-20 shrink-0 text-xs text-white/55">color</span>
+                    <input type="color" value={pulseColor.startsWith("#") ? pulseColor : "#3b82f6"} onChange={(e) => setPulseColor(e.target.value)} className="h-8 w-10 shrink-0 rounded-lg border border-white/[0.1] bg-white/[0.03] cursor-pointer p-0 overflow-hidden" />
+                    <input type="text" value={pulseColor} onChange={(e) => setPulseColor(e.target.value)} placeholder="#3b82f6" className="flex-1 min-w-0 bg-white/[0.03] border border-white/[0.06] rounded-lg px-2.5 py-1.5 text-white/80 outline-none focus:border-blue-500/40 transition-colors font-mono text-xs" />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-white/55">pulse speed</span>
+                    <div className="flex items-center gap-2">
+                      <input type="range" min={0} max={100} value={pulseSpeed} onChange={(e) => setPulseSpeed(Number(e.target.value))} className="w-28 h-1 accent-blue-500 cursor-pointer" />
+                      <span className="text-[10px] font-mono text-white/40 w-8 text-right">{pulseSpeed}%</span>
+                    </div>
+                  </div>
+                  <p className="text-[10.5px] text-white/30">higher speed = faster laps around the panel. hit save colors to apply.</p>
+                </>
+              )}
+            </div>
+          </div>
+          <div className="mt-4 flex justify-end gap-3">
+            <button onClick={ResetToGlassy} disabled={savingColors} className="text-xs bg-white/[0.05] hover:bg-white/[0.1] border border-white/[0.1] disabled:opacity-40 px-4 py-2 rounded-lg text-white transition-colors cursor-pointer">
+              reset to glassy
+            </button>
+            <button onClick={SaveColors} disabled={savingColors} className="text-xs bg-blue-600 hover:bg-blue-500 disabled:opacity-40 px-4 py-2 rounded-lg text-white transition-colors cursor-pointer">
+              {savingColors ? "saving..." : "save colors"}
+            </button>
+          </div>
+        </div>
+      </div>
+      <div className="lg:w-[55%] flex-1 space-y-6">
+        <Preview user={user} desc={user?.description || ""} descEffect={(user as any)?.desc_effect || "none"} descSpeed={user?.desc_effect_speed ?? 50} descLines={user?.desc_lines?.length ? user.desc_lines : (user?.description ? [user.description] : [])} background={Bg} audio={AudioAsset} profileAvatar={Avatar} customCursor={Cursor} displayEffect={user?.display_effect ?? "none"} sparkleIntensity={user?.sparkle_intensity ?? 14} font={user?.font ?? "Inter"} customFontUrl={(user as any)?.custom_font_url ?? null} customFontName={(user as any)?.custom_font_name ?? null} fontScope={(user as any)?.custom_font_scope ?? "all"} videoBg={VideoBg} videoAudio={null} bgEffect={(user as any)?.bg_effect ?? "none"} avatarShape={(user as any)?.avatar_shape ?? "circle"} avatarSize={(user as any)?.avatar_size ?? 48} avatarOffsetX={(user as any)?.avatar_offset_x ?? 0} avatarOffsetY={(user as any)?.avatar_offset_y ?? 0} onAvatarOffsetChange={() => {}} banner={Banner} bannerEnabled={user?.banner_enabled ?? true} entryText={user?.entry_text || "click anywhere to enter"} entryFont={user?.entry_font || "Inter"} entryColor={user?.entry_color || "rgba(255,255,255,0.5)"} entryEffect={user?.entry_effect || "none"} songPlatform={(user as any)?.song_platform ?? ""} songId={(user as any)?.song_id ?? ""} showUsername={user?.show_username !== false} primaryColor={primaryColor} secondaryColor={secondaryColor} accentColor={accentColor} textColor={textColor} backgroundColor={backgroundColor} iconColor={iconColor} bgEffectColor={bgEffectColor} panelMouseFollow={!!user?.panel_mouse_follow} cursorEffect={user?.cursor_effect || "none"} nameOffsetX={(user as any)?.name_offset_x ?? 0} nameOffsetY={(user as any)?.name_offset_y ?? 0} onNameOffsetChange={() => {}} badgeOffsetX={(user as any)?.badge_offset_x ?? 0} badgeOffsetY={(user as any)?.badge_offset_y ?? 0} onBadgeOffsetChange={() => {}} descOffsetX={(user as any)?.desc_offset_x ?? 0} descOffsetY={(user as any)?.desc_offset_y ?? 0} onDescOffsetChange={() => {}} songOffsetX={(user as any)?.song_offset_x ?? 0} songOffsetY={(user as any)?.song_offset_y ?? 0} onSongOffsetChange={() => {}} rpcOffsetX={(user as any)?.rpc_offset_x ?? 0} rpcOffsetY={(user as any)?.rpc_offset_y ?? 0} onRpcOffsetChange={() => {}} badges={[]} panelOpacity={panelOpacity} panelHidden={panelHidden} glowMode={glowMode} glowColor={glowColor} glowColor2={glowColor2} glowSpread={glowSpread} pulseEnabled={pulseOn} pulseColor={pulseColor} pulseSpeed={pulseSpeed} pulseType={pulseType} discordId={null} discordRpcEnabled={false} />
+      </div>
+    {Toast ? (
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[300] bg-black/85 border border-white/10 text-white/90 text-xs px-4 py-2 rounded-lg shadow-lg">{Toast}</div>
+    ) : null}
+    </div>
+  );
+}
+
+function Visibility({ user }: { user: User | null }) {
+  const [seoTitle, setSeoTitle] = useState(user?.seo_title || "");
+  const [seoDescription, setSeoDescription] = useState(user?.seo_description || "");
+  const [seoImage, setSeoImage] = useState(user?.seo_image || "");
+  const [seoFavicon, setSeoFavicon] = useState(user?.seo_favicon || "");
+  const [embedBtns, setEmbedBtns] = useState<{ label: string; url: string }[]>(() => {
+    let raw: unknown = user?.embed_buttons;
+    if (typeof raw === "string") {
+      try { raw = JSON.parse(raw); } catch { raw = []; }
+    }
+    const arr = Array.isArray(raw) ? raw : [];
+    return [0, 1, 2, 3].map((i) => ({
+      label: String(arr[i]?.label || ""),
+      url: String(arr[i]?.url || ""),
+    }));
+  });
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  const save = async () => {
+    if (!user) return;
+    setSaving(true);
+    const { error } = await apiCall("update", {
+      data: {
+        seo_title: seoTitle || null,
+        seo_description: seoDescription || null,
+        seo_image: seoImage || null,
+        seo_favicon: seoFavicon || null,
+        embed_buttons: embedBtns.filter((b) => b.label.trim() || b.url.trim()),
+      },
+    });
+    if (error) console.error("seo save error:", error);
+    setSaving(false);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
+
+  return (
+    <div>
+      <h1 className="text-lg font-semibold text-white/40 mb-8 lowercase">visibility</h1>
+
+      <div className="glass-card rounded-2xl p-8 bg-blue-500/[0.04] border-blue-500/10 space-y-6">
+        <div>
+          <p className="text-sm font-semibold text-white/80 mb-1">SEO Title</p>
+          <p className="text-[11px] text-white/30 mb-3">Shown as the blue clickable link title when your profile is shared on Discord, Twitter, etc.</p>
+          <input
+            value={seoTitle}
+            onChange={(e) => setSeoTitle(e.target.value)}
+            placeholder={user?.display_name || user?.username || "Your profile"}
+            className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl px-4 py-3 text-sm text-white outline-none placeholder:text-white/10 focus:border-blue-500/30 transition-colors"
+          />
+        </div>
+
+        <div>
+          <p className="text-sm font-semibold text-white/80 mb-1">SEO Description</p>
+          <p className="text-[11px] text-white/30 mb-3">The description text shown below the title in link embeds.</p>
+          <textarea
+            value={seoDescription}
+            onChange={(e) => setSeoDescription(e.target.value)}
+            placeholder={user?.description || "Write something about yourself..."}
+            rows={3}
+            className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl px-4 py-3 text-sm text-white outline-none placeholder:text-white/10 focus:border-blue-500/30 transition-colors resize-none"
+          />
+        </div>
+
+        <div>
+          <p className="text-sm font-semibold text-white/80 mb-1">SEO Image URL</p>
+          <p className="text-[11px] text-white/30 mb-3">The large image shown below the link embed. Paste any image URL.</p>
+          <input
+            value={seoImage}
+            onChange={(e) => setSeoImage(e.target.value)}
+            placeholder="https://example.com/image.png"
+            className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl px-4 py-3 text-sm text-white outline-none placeholder:text-white/10 focus:border-blue-500/30 transition-colors"
+          />
+          {seoImage && (
+            <div className="mt-3 rounded-xl overflow-hidden border border-white/[0.06]">
+              <img src={seoImage} alt="" className="w-full max-h-48 object-cover" onError={(e) => (e.currentTarget.style.display = "none")} />
+            </div>
+          )}
+        </div>
+
+        <div>
+          <p className="text-sm font-semibold text-white/80 mb-1">Tab Icon (Favicon)</p>
+          <p className="text-[11px] text-white/30 mb-3">The icon shown in the browser tab for your biolink page.</p>
+          <input
+            value={seoFavicon}
+            onChange={(e) => setSeoFavicon(e.target.value)}
+            placeholder="https://example.com/favicon.png"
+            className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl px-4 py-3 text-sm text-white outline-none placeholder:text-white/10 focus:border-blue-500/30 transition-colors"
+          />
+          {seoFavicon && (
+            <div className="mt-3 flex items-center gap-3 rounded-xl bg-white/[0.02] border border-white/[0.06] px-4 py-3">
+              <img src={seoFavicon} alt="" className="h-8 w-8 rounded object-cover" onError={(e) => (e.currentTarget.style.display = "none")} />
+              <span className="text-xs text-white/40">preview</span>
+            </div>
+          )}
+        </div>
+
+        <div>
+          <p className="text-sm font-semibold text-white/80 mb-1">Discord buttons</p>
+          <p className="text-[11px] text-white/30 mb-3">Up to 4 link buttons shown under your Discord embed. Empty rows are skipped.</p>
+          <div className="space-y-2">
+            {embedBtns.map((b, i) => (
+              <div key={i} className="flex gap-2">
+                <input
+                  value={b.label}
+                  onChange={(e) => setEmbedBtns(embedBtns.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))}
+                  placeholder={`Button ${i + 1} name`}
+                  maxLength={80}
+                  className="w-1/3 bg-white/[0.03] border border-white/[0.06] rounded-xl px-4 py-2.5 text-sm text-white outline-none placeholder:text-white/10 focus:border-blue-500/30 transition-colors"
+                />
+                <input
+                  value={b.url}
+                  onChange={(e) => setEmbedBtns(embedBtns.map((x, j) => (j === i ? { ...x, url: e.target.value } : x)))}
+                  placeholder="https://..."
+                  className="flex-1 bg-white/[0.03] border border-white/[0.06] rounded-xl px-4 py-2.5 text-sm text-white outline-none placeholder:text-white/10 focus:border-blue-500/30 transition-colors"
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <p className="text-sm font-semibold text-white/80 mb-1">Discord preview</p>
+          <p className="text-[11px] text-white/30 mb-3">Live preview of how your link looks when pasted in Discord.</p>
+          <div className="rounded-lg overflow-hidden" style={{ backgroundColor: "#2b2d31" }}>
+            <div className="flex" style={{ borderLeft: `3px solid #3b82f6` }}>
+              <div className="flex-1 min-w-0 px-4 py-3">
+                <div className="flex items-start gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13px] font-semibold text-white leading-snug">
+                      {seoTitle || user?.display_name || user?.username || "Your profile"}
+                    </p>
+                    <p className="text-[13px] mt-1 leading-snug" style={{ color: "#b5bac1" }}>
+                      {seoDescription || user?.description || "your bio shows here"}
+                    </p>
+                  </div>
+                  <img src="/api/embed?mode=thumb" alt="" className="h-16 w-16 rounded-lg shrink-0 object-cover" />
+                </div>
+                <div className="mt-3 rounded-lg overflow-hidden">
+                  <img
+                    src={seoImage || (user?.username ? `/api/og?username=${encodeURIComponent(user.username)}` : "")}
+                    alt=""
+                    className="w-full max-h-56 object-cover"
+                    onError={(e) => (e.currentTarget.style.display = "none")}
+                  />
+                </div>
+                {embedBtns.some((x) => x.label.trim() || x.url.trim()) && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {embedBtns.filter((x) => x.label.trim() || x.url.trim()).map((x, j) => (
+                      <span
+                        key={j}
+                        className="inline-flex items-center gap-1.5 rounded px-3 py-1.5 text-[13px] font-medium text-white"
+                        style={{ backgroundColor: "#4e5058" }}
+                      >
+                        {x.label.trim() || (() => { try { return new URL(x.url).hostname.replace(/^www\./, ""); } catch { return "open"; } })()}
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M7 17L17 7" /><path d="M8 7h9v9" /></svg>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex justify-end pt-2">
+          <button
+            onClick={save}
+            disabled={saving}
+            className="text-xs bg-blue-600 hover:bg-blue-500 disabled:opacity-40 px-4 py-2 rounded-lg text-white font-semibold transition-all cursor-pointer"
+          >
+            {saving ? "saving..." : saved ? "saved!" : "save"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Placeholder({ title }: { title: string }) {
+  return (
+    <div>
+      <h1 className="text-lg font-semibold text-white/40 mb-8 lowercase">{title}</h1>
+      <div className="glass-card rounded-2xl p-12 flex items-center justify-center">
+        <p className="text-sm text-white/10 italic">nothing here yet</p>
+      </div>
+    </div>
+  );
+}
+
+type HostedFile = {
+  id: string;
+  kind: "media" | "file";
+  filename: string;
+  content_type: string;
+  size: number;
+  views: number;
+  created_at: string;
+  url: string;
+};
+
+function Premium({ user }: { user: User | null }) {
+  const [premium, setPremium] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    FetchProfile(user.username).then((J) => {
+      setPremium(Array.isArray(J?.badges) && J.badges.includes("premium"));
+      setLoaded(true);
+    }).catch(() => setLoaded(true));
+  }, [user]);
+
+  return (
+    <div className="relative">
+      <div className="absolute inset-0 pointer-events-none -z-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_0%,rgba(37,99,235,0.12),transparent_70%)]" />
+      <div className="relative z-10">
+        <div className="flex items-center gap-3 mb-8">
+          <h1 className="text-lg font-semibold text-gradient-blue lowercase">premium</h1>
+          <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-blue-300 bg-blue-600/15 border border-blue-500/30 rounded-full px-2.5 py-1 shadow-[0_0_15px_rgba(37,99,235,0.25)]">
+            <Crown size={10} /> premium
+          </span>
+        </div>
+
+        <div className="relative shine-effect rounded-2xl p-10 border border-blue-500/30 bg-gradient-to-br from-blue-600/15 via-blue-500/5 to-white/5 flex flex-col items-center justify-center gap-3 text-center glow-blue">
+          <div className="absolute inset-0 rounded-2xl bg-[radial-gradient(ellipse_60%_40%_at_50%_0%,rgba(255,255,255,0.1),transparent_70%)] pointer-events-none" />
+          {loaded && premium ? (
+            <>
+              <img src="/emojis/premium.webp" alt="premium" className="relative h-14 w-14 object-contain drop-shadow-[0_0_15px_rgba(37,99,235,0.5)]" />
+              <p className="relative text-gradient-blue font-bold text-lg">you have premium</p>
+              <p className="relative text-sm text-white/50">thanks for supporting sire.lol.</p>
+            </>
+          ) : (
+            <>
+              <div className="relative h-14 w-14 rounded-2xl bg-blue-600/20 border border-blue-400/40 flex items-center justify-center shadow-[0_0_25px_rgba(37,99,235,0.4)]">
+                <Crown size={22} className="text-blue-300" />
+              </div>
+              <p className="relative text-gradient-blue font-bold text-lg">you're on the free plan</p>
+              <p className="relative text-sm text-white/50 max-w-sm">premium unlocks 4 widget pages, exclusive effects, the premium badge, and more.</p>
+            </>
+          )}
+        </div>
+
+        <div className="mt-8">
+          <p className="text-sm font-semibold text-white/80 mb-4">included features</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="group relative rounded-2xl overflow-hidden border border-blue-500/20 bg-white/[0.03] p-4 transition-all hover:border-blue-400/50 hover:shadow-[0_0_30px_rgba(37,99,235,0.25)]">
+              <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-blue-400/60 to-transparent" />
+              <div className="flex items-center gap-2">
+                <Image size={15} className="text-blue-300" />
+                <span className="text-sm font-semibold text-white/80">media host</span>
+                {loaded && (
+                  <span className={`ml-auto text-[10px] font-bold uppercase tracking-widest rounded-full px-2 py-0.5 ${
+                    premium
+                      ? "text-green-300 bg-green-600/15 border border-green-500/30"
+                      : "text-blue-300 bg-blue-600/15 border border-blue-500/30"
+                  }`}>
+                    {premium ? "unlocked" : "premium"}
+                  </span>
+                )}
+              </div>
+              <p className="text-[11px] text-white/40 mt-1">upload images, videos and audio up to 10mb, get a sire.lol link for each one.</p>
+            </div>
+            <div className="group relative rounded-2xl overflow-hidden border border-blue-500/20 bg-white/[0.03] p-4 transition-all hover:border-blue-400/50 hover:shadow-[0_0_30px_rgba(37,99,235,0.25)]">
+              <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-blue-400/60 to-transparent" />
+              <div className="flex items-center gap-2">
+                <HardDrive size={15} className="text-blue-300" />
+                <span className="text-sm font-semibold text-white/80">file host</span>
+                {loaded && (
+                  <span className={`ml-auto text-[10px] font-bold uppercase tracking-widest rounded-full px-2 py-0.5 ${
+                    premium
+                      ? "text-green-300 bg-green-600/15 border border-green-500/30"
+                      : "text-blue-300 bg-blue-600/15 border border-blue-500/30"
+                  }`}>
+                    {premium ? "unlocked" : "premium"}
+                  </span>
+                )}
+              </div>
+              <p className="text-[11px] text-white/40 mt-1">share any file up to 10mb from sire.lol/f links.</p>
+            </div>
+            <div className="group relative rounded-2xl overflow-hidden border border-blue-500/20 bg-white/[0.03] p-4 transition-all hover:border-blue-400/50 hover:shadow-[0_0_30px_rgba(37,99,235,0.25)]">
+              <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-blue-400/60 to-transparent" />
+              <div className="flex items-center gap-2">
+                <Award size={15} className="text-blue-300" />
+                <span className="text-sm font-semibold text-white/80">profile badge</span>
+                {loaded && (
+                  <span className={`ml-auto text-[10px] font-bold uppercase tracking-widest rounded-full px-2 py-0.5 ${
+                    premium
+                      ? "text-green-300 bg-green-600/15 border border-green-500/30"
+                      : "text-blue-300 bg-blue-600/15 border border-blue-500/30"
+                  }`}>
+                    {premium ? "unlocked" : "premium"}
+                  </span>
+                )}
+              </div>
+              <p className="text-[11px] text-white/40 mt-1">show the exclusive premium badge on your biolink.</p>
+            </div>
+            <div className="group relative rounded-2xl overflow-hidden border border-blue-500/20 bg-white/[0.03] p-4 transition-all hover:border-blue-400/50 hover:shadow-[0_0_30px_rgba(37,99,235,0.25)]">
+              <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-blue-400/60 to-transparent" />
+              <div className="flex items-center gap-2">
+                <Layers size={15} className="text-blue-300" />
+                <span className="text-sm font-semibold text-white/80">background effects</span>
+                {loaded && (
+                  <span className={`ml-auto text-[10px] font-bold uppercase tracking-widest rounded-full px-2 py-0.5 ${
+                    premium
+                      ? "text-green-300 bg-green-600/15 border border-green-500/30"
+                      : "text-blue-300 bg-blue-600/15 border border-blue-500/30"
+                  }`}>
+                    {premium ? "unlocked" : "premium"}
+                  </span>
+                )}
+              </div>
+              <p className="text-[11px] text-white/40 mt-1">premium bg effects: particles, galaxy, matrix, spotlight.</p>
+            </div>
+            <div className="group relative rounded-2xl overflow-hidden border border-blue-500/20 bg-white/[0.03] p-4 transition-all hover:border-blue-400/50 hover:shadow-[0_0_30px_rgba(37,99,235,0.25)]">
+              <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-blue-400/60 to-transparent" />
+              <div className="flex items-center gap-2">
+                <Type size={15} className="text-blue-300" />
+                <span className="text-sm font-semibold text-white/80">profile effects</span>
+                {loaded && (
+                  <span className={`ml-auto text-[10px] font-bold uppercase tracking-widest rounded-full px-2 py-0.5 ${
+                    premium
+                      ? "text-green-300 bg-green-600/15 border border-green-500/30"
+                      : "text-blue-300 bg-blue-600/15 border border-blue-500/30"
+                  }`}>
+                    {premium ? "unlocked" : "premium"}
+                  </span>
+                )}
+              </div>
+              <p className="text-[11px] text-white/40 mt-1">premium name effects: glitch, neon, gradient flow, shine sweep.</p>
+            </div>
+            <div className="relative rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+              <div className="flex items-center gap-2">
+                <Crown size={15} className="text-white/30" />
+                <span className="text-sm font-semibold text-white/40">more coming soon</span>
+              </div>
+              <p className="text-[11px] text-white/20 mt-1">new premium perks are on the way.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function HostManager({
+  user,
+  kind,
+  title,
+  accept,
+  hint,
+  emptyText,
+  lockedDesc,
+}: {
+  user: User | null;
+  kind: "media" | "file";
+  title: string;
+  accept: string;
+  hint: string;
+  emptyText: string;
+  lockedDesc: string;
+}) {
+  const [loaded, setLoaded] = useState(false);
+  const [premium, setPremium] = useState(false);
+  const [premiumChecked, setPremiumChecked] = useState(false);
+  const [items, setItems] = useState<HostedFile[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState("");
+  const [copied, setCopied] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    loadItems().finally(() => setLoaded(true));
+    FetchProfile(user.username).then((J) => {
+      setPremium(Array.isArray(J?.badges) && J.badges.includes("premium"));
+      setPremiumChecked(true);
+    }).catch(() => setPremiumChecked(true));
+  }, [user]);
+
+  const loadItems = async () => {
+    const token = getSessionToken();
+    if (!token) return;
+    try {
+      const r = await fetch(`/api/me?action=hostList&sessionToken=${encodeURIComponent(token)}`);
+      if (!r.ok) { setError("Couldn't load your files (server returned " + r.status + ")."); return; }
+      const d = await r.json();
+      if (d.items) setItems(d.items);
+    } catch {
+      setError("Couldn't load your files. Try again later.");
+    }
+  };
+
+  useEffect(() => {
+    loadItems();
+  }, [user]);
+
+  const upload = async (file: File) => {
+    setError("");
+    if (file.size > 10 * 1024 * 1024) { setError("File too large (max 10MB). Please compress your file to reduce the file size and try again."); return; }
+    setUploading(true);
+    try {
+      await uploadFile(file, kind);
+      await loadItems();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Upload failed. Try again.");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const remove = async (id: string) => {
+    const token = getSessionToken();
+    await fetch(`/api/me?action=hostDelete&id=${encodeURIComponent(id)}&sessionToken=${encodeURIComponent(token)}`, { method: "DELETE" });
+    setItems(items.filter((i) => i.id !== id));
+  };
+
+  const copy = async (url: string) => {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(url);
+      setTimeout(() => setCopied(""), 1500);
+    } catch {}
+  };
+
+  const formatSize = (bytes: number) => {
+    if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)}mb`;
+    if (bytes >= 1024) return `${Math.round(bytes / 1024)}kb`;
+    return `${bytes}b`;
+  };
+
+  if (premiumChecked && !premium) {
+    return (
+      <div className="relative">
+        <div className="absolute inset-0 pointer-events-none -z-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_0%,rgba(37,99,235,0.12),transparent_70%)]" />
+        <div className="relative z-10 flex flex-col items-center justify-center text-center py-20 gap-4">
+          <div className="h-14 w-14 rounded-2xl bg-blue-600/20 border border-blue-400/40 flex items-center justify-center shadow-[0_0_25px_rgba(37,99,235,0.4)]">
+            <Crown size={24} className="text-blue-300" />
+          </div>
+          <h1 className="text-lg font-semibold text-gradient-blue lowercase">{title} is premium</h1>
+          <p className="text-sm text-white/50 max-w-sm">{lockedDesc}</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative">
+      <div className="absolute inset-0 pointer-events-none -z-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_0%,rgba(37,99,235,0.12),transparent_70%)]" />
+      <div className="relative z-10">
+        <div className="flex items-center gap-3 mb-8">
+          <h1 className="text-lg font-semibold text-gradient-blue lowercase">{title}</h1>
+        </div>
+
+        <div
+          className="relative shine-effect rounded-2xl p-10 border border-blue-500/30 bg-gradient-to-br from-blue-600/15 via-blue-500/5 to-white/5 flex flex-col items-center justify-center gap-3 text-center cursor-pointer transition-all hover:border-blue-400/60 hover:shadow-[0_0_45px_rgba(37,99,235,0.35)] glow-blue"
+          onClick={() => inputRef.current?.click()}
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={(e) => {
+            e.preventDefault();
+            const file = e.dataTransfer.files?.[0];
+            if (file) upload(file);
+          }}
+        >
+          <div className="absolute inset-0 rounded-2xl bg-[radial-gradient(ellipse_60%_40%_at_50%_0%,rgba(255,255,255,0.12),transparent_70%)] pointer-events-none" />
+          <div className="relative h-12 w-12 rounded-xl bg-blue-600/20 border border-blue-400/40 flex items-center justify-center shadow-[0_0_20px_rgba(37,99,235,0.4)]">
+            {uploading ? (
+              <span className="h-5 w-5 border-2 border-blue-300 border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <Upload size={20} className="text-blue-300" />
+            )}
+          </div>
+          <p className="relative text-sm text-white/80">
+            {uploading
+              ? "uploading..."
+              : kind === "media"
+                ? "drop an image or video here, or click to browse"
+                : "drop a file here, or click to browse"}
+          </p>
+          <p className="relative text-[11px] text-blue-200/50">{hint}</p>
+          {error && <p className="relative text-xs text-red-400">{error}</p>}
+          <input
+            ref={inputRef}
+            type="file"
+            accept={accept}
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) upload(file);
+              e.target.value = "";
+            }}
+          />
+        </div>
+
+        <div className="mt-8">
+          <p className="text-sm font-semibold text-white/80 mb-4">your files ({items.length})</p>
+          {items.length === 0 ? (
+            <div className="glass-card rounded-2xl p-8 flex items-center justify-center border-blue-500/10">
+              <p className="text-sm text-white/15 italic">{emptyText}</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {items.map((item) => (
+                <div key={item.id} className="group relative rounded-2xl overflow-hidden border border-blue-500/20 bg-white/[0.03] transition-all hover:border-blue-400/50 hover:shadow-[0_0_30px_rgba(37,99,235,0.25)]">
+                  <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-blue-400/60 to-transparent" />
+                  <div className="h-32 bg-[radial-gradient(circle_at_50%_30%,rgba(37,99,235,0.15),transparent_70%)] bg-black/40 flex items-center justify-center overflow-hidden">
+                    {kind === "media" ? (
+                      item.content_type.startsWith("video/") ? (
+                        <video src={item.url} controls className="max-h-full max-w-full object-contain" />
+                      ) : (
+                        <img src={item.url} alt={item.filename} className="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-300" loading="lazy" />
+                      )
+                    ) : (
+                      <div className="flex flex-col items-center gap-2 text-center px-4">
+                        <HardDrive size={26} className="text-blue-300" />
+                        <span className="text-[10px] uppercase tracking-wider text-white/30 break-all line-clamp-2">{item.content_type}</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-3">
+                    <p className="text-xs text-white/70 truncate">{item.filename}</p>
+                    <p className="text-[10px] text-white/30 mt-1">
+                      {formatSize(item.size)} Â· {item.views} view{item.views === 1 ? "" : "s"} Â· {new Date(item.created_at).toLocaleDateString()}
+                    </p>
+                    <div className="flex items-center gap-2 mt-3">
+                      <button
+                        onClick={() => copy(item.url)}
+                        className="flex-1 text-[11px] bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-sky-400 transition-all rounded-lg py-1.5 text-white font-semibold flex items-center justify-center gap-1.5 cursor-pointer shadow-[0_0_15px_rgba(37,99,235,0.3)]"
+                      >
+                        {copied === item.url ? <Check size={12} /> : <Copy size={12} />}
+                        {copied === item.url ? "copied!" : "copy link"}
+                      </button>
+                      <button
+                        onClick={() => remove(item.id)}
+                        className="text-[11px] bg-white/[0.04] hover:bg-red-500/10 hover:text-red-400 transition-colors rounded-lg px-3 py-1.5 text-white/50 flex items-center justify-center gap-1.5 cursor-pointer"
+                      >
+                        <Trash2 size={12} />
+                        delete
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MediaHost({ user }: { user: User | null }) {
+  return (
+    <HostManager
+      user={user}
+      kind="media"
+      title="media host"
+      accept="image/png,image/jpeg,image/gif,image/webp,image/avif,image/bmp,video/mp4,video/webm,video/quicktime,video/x-matroska,audio/mpeg,audio/wav,audio/ogg,audio/mp4,audio/flac"
+      hint="png, jpg, gif, webp, avif, bmp, mp4, webm, mov, mkv, mp3, wav, ogg, m4a, flac â€” max 10mb"
+      emptyText="no media hosted yet"
+      lockedDesc="media host lets you upload images and videos and get a sire.lol link for each one. only premium users can use it."
+    />
+  );
+}
+
+function FileHost({ user }: { user: User | null }) {
+  return (
+    <HostManager
+      user={user}
+      kind="file"
+      title="file host"
+      accept="*/*"
+      hint="any type of file â€” max 10mb"
+      emptyText="no files hosted yet"
+      lockedDesc="file host lets you upload any file up to 30mb and share it with a sire.lol link. only premium users can use it."
+    />
+  );
+}
+
+function Widgets({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (u: User) => void }) {
+  const [premium, setPremium] = useState(false);
+  const [widgets, setWidgets] = useState<WidgetsConfig>(emptyWidgets);
+  const [pinHint, setPinHint] = useState("");  const [tagInput, setTagInput] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [locating, setLocating] = useState(false);
+  const [savedMsg, setSavedMsg] = useState("");
+  const hydrated = useRef(false);
+
+  useEffect(() => {
+    if (!user) return;
+    FetchProfile(user.username).then((J) => {
+      setPremium(Array.isArray(J?.badges) && J.badges.includes("premium"));
+    }).catch(() => {});
+  }, [user]);
+
+  useEffect(() => {
+    if (!user || hydrated.current) return;
+    hydrated.current = true;
+    setWidgets(normalizeWidgets(user.widgets));
+  }, [user]);
+
+  const save = async () => {
+    setSaving(true);
+    const d = await apiCall("update", { data: { widgets } });
+    setSaving(false);
+    if (d.error) { alert(d.error); return; }
+    if (d.user) onUpdateUser?.(d.user);
+    setSavedMsg("widgets saved â€” can take a few seconds for changes to take place");
+    setTimeout(() => setSavedMsg(""), 3500);
+  };
+
+  const setPages = (n: number) =>
+    setWidgets((prev) => {
+      const capped = premium ? n : Math.min(n, 2);
+      const next = { ...prev, pages: capped };
+      if (capped >= 2 && !next.about) next.about = defaultAboutPage();
+      if (capped >= 3 && !next.song) next.song = defaultSongPage();
+      if (capped >= 4 && !next.projects) next.projects = defaultProjectsPage();
+      return next;
+    });
+
+  const patchAbout = (patch: Partial<AboutPageConfig>) =>
+    setWidgets((prev) => ({ ...prev, about: prev.about ? { ...prev.about, ...patch } : prev.about }));
+
+  const patchClock = (patch: Partial<ClockWidgetConfig>) =>
+    setWidgets((prev) => ({ ...prev, about: prev.about?.clock ? { ...prev.about, clock: { ...prev.about.clock, ...patch } } : prev.about }));
+
+  const addTag = (raw: string) => {
+    const tag = raw.trim().replace(/[#@]/g, "");
+    if (!tag) return;
+    setWidgets((prev) => {
+      const cur = prev.about?.tags || [];
+      if (cur.length >= MAX_TAGS || cur.some((x) => x.toLowerCase() === tag.toLowerCase())) return prev;
+      return { ...prev, about: prev.about ? { ...prev.about, tags: [...cur, tag] } : prev.about };
+    });
+  };
+
+  const removeTag = (idx: number) =>
+    setWidgets((prev) =>
+      prev.about ? { ...prev, about: { ...prev.about, tags: (prev.about.tags || []).filter((_, i) => i !== idx) } } : prev
+    );
+
+  const patchSong = (patch: Partial<SongPageConfig>) =>
+    setWidgets((prev) => ({ ...prev, song: prev.song ? { ...prev.song, ...patch } : prev.song }));
+
+  const patchProject = (idx: number, patch: Partial<ProjectItem>) =>
+    setWidgets((prev) => {
+      if (!prev.projects) return prev;
+      return {
+        ...prev,
+        projects: {
+          ...prev.projects,
+          projects: prev.projects.projects.map((pr, i) => (i === idx ? { ...pr, ...patch } : pr)),
+        },
+      };
+    });
+
+  const addProject = () =>
+    setWidgets((prev) => {
+      if (!prev.projects || prev.projects.projects.length >= MAX_PROJECTS) return prev;
+      return { ...prev, projects: { ...prev.projects, projects: [...prev.projects.projects, emptyProject()] } };
+    });
+
+  const removeProject = (idx: number) =>
+    setWidgets((prev) => {
+      if (!prev.projects || prev.projects.projects.length <= 1) return prev;
+      return {
+        ...prev,
+        projects: { ...prev.projects, projects: prev.projects.projects.filter((_, i) => i !== idx) },
+      };
+    });
+
+  const findLocation = async () => {
+    setLocating(true);
+    try {
+      const tz = await findMyTimeZone();
+      patchClock({ timeZone: tz, label: defaultLabel(tz) });
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Couldn't detect your location.");
+    } finally {
+      setLocating(false);
+    }
+  };
+
+  const tzOptions = (currentTz: string) => {
+    const list = TIMEZONE_PRESETS.some((p) => p.tz === currentTz)
+      ? TIMEZONE_PRESETS
+      : [{ tz: currentTz, label: defaultLabel(currentTz), offset: tzOffsetHours(currentTz) }, ...TIMEZONE_PRESETS];
+    return [...list].sort((a, b) => a.offset - b.offset || a.tz.localeCompare(b.tz));
+  };
+
+  const clock = widgets.about?.clock ?? null;
+
+  return (
+    <div className="relative">
+      <div className="absolute inset-0 pointer-events-none -z-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_0%,rgba(37,99,235,0.12),transparent_70%)]" />
+      <div className="relative z-10">
+        <div className="flex items-center gap-3 mb-8">
+          <h1 className="text-lg font-semibold text-gradient-blue lowercase">widgets</h1>
+          {premium ? (
+            <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-blue-300 bg-blue-600/15 border border-blue-500/30 rounded-full px-2.5 py-1 shadow-[0_0_15px_rgba(37,99,235,0.25)]">
+              <Crown size={10} /> premium
+            </span>
+          ) : (
+            <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-300 bg-emerald-600/15 border border-emerald-500/30 rounded-full px-2.5 py-1">
+              free Â· up to 2 pages
+            </span>
+          )}
+        </div>
+
+        <div className="flex items-center gap-3 mb-6">
+          <button
+            onClick={save}
+            disabled={saving}
+            className="text-sm shimmer rounded-xl bg-white/[0.06] border border-white/10 px-4 py-2.5 text-white/80 font-semibold disabled:opacity-40 cursor-pointer"
+          >
+            {saving ? "saving..." : "save widgets"}
+          </button>
+          {savedMsg && <span className="text-xs text-blue-300 font-semibold">{savedMsg}</span>}
+        </div>
+
+        <div className="glass-card rounded-2xl p-6 mb-6 border-blue-500/10">
+          <p className="text-[11px] text-white/40 mb-3">number of pages on your biolink{premium ? "" : " Â· premium unlocks pages 3â€“4"}</p>
+          <div className="flex gap-2">
+            {[1, 2, 3, 4].map((n) => {
+              const locked = !premium && n > 2;
+              return (
+                <button
+                  key={n}
+                  onClick={() => { if (!locked) setPages(n); }}
+                  disabled={locked}
+                  className={`h-10 w-10 rounded-xl text-sm font-bold transition-all border ${widgets.pages === n ? "bg-gradient-to-br from-blue-600 to-blue-500 text-white border-blue-400 shadow-[0_0_15px_rgba(37,99,235,0.4)]" : locked ? "bg-white/[0.02] text-white/20 border-white/5 cursor-not-allowed" : "bg-white/[0.03] text-white/50 border-white/10 hover:border-blue-500/40 hover:text-white/80 cursor-pointer"}`}
+                  title={locked ? "premium unlocks pages 3â€“4" : `${n} page${n > 1 ? "s" : ""}`}
+                >
+                  {n}
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-[10px] text-white/30 mt-3">
+            {widgets.pages === 1
+              ? "page 1 Â· glasscard"
+              : `pages 1â€“${widgets.pages} Â· glasscard, about, ${widgets.pages >= 3 ? "song, " : ""}${widgets.pages >= 4 ? "projects" : ""}`}
+          </p>
+        </div>
+
+        {widgets.pages >= 2 && widgets.about && (
+          <div className="glass-card rounded-2xl p-6 mb-6 border-blue-500/10">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-blue-300/80 mb-4">page 2 Â· about me</p>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div>
+                  <label className="text-[11px] text-white/40 block mb-1">title</label>
+                  <input
+                    type="text"
+                    value={widgets.about.title}
+                    onChange={(e) => patchAbout({ title: e.target.value })}
+                    placeholder="About me"
+                    className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none placeholder:text-white/10 focus:border-blue-500/50 transition-colors"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] text-white/40 block mb-1">description</label>
+                  <textarea
+                    value={widgets.about.description}
+                    onChange={(e) => patchAbout({ description: e.target.value })}
+                    rows={4}
+                    placeholder="a short description about yourself"
+                    className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none placeholder:text-white/10 focus:border-blue-500/50 transition-colors resize-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] text-white/40 block mb-2">
+                    skill tags ({widgets.about.tags.length}/{MAX_TAGS})
+                  </label>
+                  {widgets.about.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      {widgets.about.tags.map((t, i) => (
+                        <span key={i} className="flex items-center gap-2 rounded-full bg-[#171717] border border-white/[0.08] py-1.5 pl-3.5 pr-1.5 text-xs font-bold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]">
+                          <TagIcon tag={t} size={13} />
+                          {t}
+                          <button
+                            onClick={() => removeTag(i)}
+                            className="flex h-4 w-4 items-center justify-center rounded-full bg-white/10 text-white/70 transition-colors hover:bg-red-500/60 cursor-pointer"
+                          >
+                            <X size={10} />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <div className="flex gap-2 mb-3">
+                    <input
+                      type="text"
+                      value={tagInput}
+                      onChange={(e) => setTagInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          addTag(tagInput);
+                          setTagInput("");
+                        }
+                      }}
+                      placeholder="add your own tag..."
+                      disabled={widgets.about.tags.length >= MAX_TAGS}
+                      className="flex-1 bg-white/[0.03] border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none placeholder:text-white/10 focus:border-blue-500/50 transition-colors disabled:opacity-40"
+                    />
+                    <button
+                      onClick={() => { addTag(tagInput); setTagInput(""); }}
+                      disabled={widgets.about.tags.length >= MAX_TAGS || !tagInput.trim()}
+                      className="text-xs font-semibold text-blue-300 hover:text-blue-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    >
+                      add
+                    </button>
+                  </div>
+                  {widgets.about.tags.length < MAX_TAGS && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {LANGUAGE_TAGS
+                        .filter((l) => !(widgets.about.tags || []).some((t) => t.toLowerCase() === l.toLowerCase()))
+                        .slice(0, MAX_TAGS - widgets.about.tags.length)
+                        .map((l) => (
+                          <button
+                            key={l}
+                            onClick={() => addTag(l)}
+                            className="flex items-center gap-1.5 text-[11px] rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-1 text-white/40 transition-colors hover:border-blue-500/40 hover:bg-blue-600/20 hover:text-blue-300 cursor-pointer"
+                          >
+                            <TagIcon tag={l} size={11} />
+                            {l}
+                          </button>
+                        ))}
+                    </div>
+                  )}
+                </div>
+                {clock && (
+                  <>
+                    <div>
+                      <label className="text-[11px] text-white/40 block mb-1">clock location label</label>
+                      <input
+                        type="text"
+                        value={clock.label}
+                        onChange={(e) => patchClock({ label: e.target.value })}
+                        placeholder="e.g. Istanbul"
+                        className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none placeholder:text-white/10 focus:border-blue-500/50 transition-colors"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] text-white/40 block mb-1">timezone</label>
+                      <select
+                        value={clock.timeZone}
+                        onChange={(e) => {
+                          const tz = e.target.value;
+                          patchClock({ timeZone: tz, label: defaultLabel(tz) });
+                        }}
+                        className="w-full bg-[#131316] border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-blue-500/50 transition-colors"
+                      >
+                        {tzOptions(clock.timeZone).map((o) => (
+                          <option key={o.tz} value={o.tz}>
+                            {o.label} (GMT{o.offset >= 0 ? "+" : ""}{o.offset})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <button
+                      onClick={findLocation}
+                      disabled={locating}
+                      className="text-[11px] bg-white/[0.04] hover:bg-blue-600/20 hover:text-blue-300 border border-white/10 hover:border-blue-500/40 transition-colors rounded-lg px-3 py-2 text-white/50 flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40 w-full"
+                    >
+                      <Search size={12} />
+                      {locating ? "detecting..." : "find my location"}
+                    </button>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] text-white/40">mouse follow clock</span>
+                      <Toggle checked={!!clock.mouseFollow} onChange={(v) => patchClock({ mouseFollow: v })} />
+                    </div>
+                  </>
+                )}
+                <div>
+                  <label className="text-[11px] text-white/40 block mb-1">discord server invite</label>
+                  <input
+                    type="text"
+                    value={widgets.about.discordServer?.inviteCode || ""}
+                    onChange={(e) => patchAbout({ discordServer: parseInviteCode(e.target.value) ? { inviteCode: parseInviteCode(e.target.value) } : null })}
+                    placeholder="discord.gg/hauntgg"
+                    className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none placeholder:text-white/10 focus:border-blue-500/50 transition-colors"
+                  />
+                  <p className="text-[10px] text-white/30 mt-1">shows server icon, online + member counts and a join button</p>
+                </div>
+                <div>
+                  <label className="text-[11px] text-white/40 block mb-1">last.fm username</label>
+                  <input
+                    type="text"
+                    value={widgets.about.lastfm?.username || ""}
+                    onChange={(e) => patchAbout({ lastfm: e.target.value.trim() ? { username: e.target.value.trim().slice(0, 64) } : null })}
+                    placeholder="your last.fm username"
+                    className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none placeholder:text-white/10 focus:border-blue-500/50 transition-colors"
+                  />
+                  <p className="text-[10px] text-white/30 mt-1">shows scrobbles, artists and your 4 most recent tracks</p>
+                </div>
+                <div>
+                  <label className="text-[11px] text-white/40 block mb-1">roblox username</label>
+                  <input
+                    type="text"
+                    value={widgets.about.roblox?.username || ""}
+                    onChange={(e) => {
+                      const v = e.target.value.trim().replace(/^@/, "").slice(0, 32);
+                      patchAbout({ roblox: v ? { username: v } : null });
+                    }}
+                    placeholder="your roblox username"
+                    className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none placeholder:text-white/10 focus:border-blue-500/50 transition-colors"
+                  />
+                  <p className="text-[10px] text-white/30 mt-1">shows avatar, display name, friends + follower counts</p>
+                </div>
+                <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4">
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-[11px] font-semibold text-white/60">pin to main panel</label>
+                    <span className="text-[10px] font-mono text-white/40">{(widgets.about.side || []).length}/{MAX_SIDE_WIDGETS}</span>
+                  </div>
+                  <p className="text-[10px] text-white/30 mb-3 leading-relaxed">pick up to 2 widgets to dock on the right side of your main page, next to your info. off by default â€” pinned widgets stay on your about page too. hit save below when done.</p>
+                  <div className="flex gap-1.5 mb-3">
+                    <div className="flex-1 rounded-lg border border-white/10 bg-white/[0.03] px-2 py-2 text-center text-[10px] text-white/50">profile info</div>
+                    {(widgets.about.side || []).map((k) => (
+                      <div key={k} className="flex-1 truncate rounded-lg border border-blue-500/40 bg-blue-600/20 px-2 py-2 text-center text-[10px] text-blue-300">{SIDE_WIDGET_LABELS[k]}</div>
+                    ))}
+                    {Array.from({ length: Math.max(0, MAX_SIDE_WIDGETS - (widgets.about.side || []).length) }).map((_, i) => (
+                      <div key={`empty-${i}`} className="flex-1 rounded-lg border border-dashed border-white/10 px-2 py-2 text-center text-[10px] text-white/20">empty</div>
+                    ))}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {SIDE_WIDGET_KEYS.map((k) => {
+                      const side = widgets.about.side || [];
+                      const selected = side.includes(k);
+                      const full = !selected && side.length >= MAX_SIDE_WIDGETS;
+                      const ready = k === "rpc"
+                        ? !!(user?.discord_id && user?.discord_rpc_enabled)
+                        : k === "clock"
+                          ? !!widgets.about.clock
+                          : k === "server"
+                            ? !!widgets.about.discordServer
+                            : k === "lastfm"
+                              ? !!widgets.about.lastfm
+                              : !!widgets.about.roblox;
+                      return (
+                        <button
+                          key={k}
+                          onClick={() => {
+                            if (selected) {
+                              patchAbout({ side: side.filter((x) => x !== k) });
+                              setPinHint("");
+                              return;
+                            }
+                            if (full) { setPinHint("max 3 â€” unpin one first"); return; }
+                            if (!ready) { setPinHint(`set up your ${SIDE_WIDGET_LABELS[k].toLowerCase()} above first`); return; }
+                            patchAbout({ side: [...side, k] });
+                            setPinHint("");
+                          }}
+                          className={`flex items-center gap-1.5 text-[11px] px-3 py-1.5 rounded-lg border transition-colors cursor-pointer ${
+                            selected
+                              ? "bg-blue-600/20 border-blue-500/40 text-blue-300"
+                              : full || !ready
+                                ? "bg-white/[0.03] border-white/10 text-white/25"
+                                : "bg-white/[0.03] border-white/10 text-white/40 hover:text-white/60"
+                          }`}
+                        >
+                          {selected ? `${side.indexOf(k) + 1} Â· ` : null}{SIDE_WIDGET_LABELS[k]}
+                          {!ready && !selected ? <span className="text-white/20">Â· off</span> : null}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {pinHint ? <p className="text-[10px] text-amber-300/80 mt-2">{pinHint}</p> : null}
+                </div>
+              </div>
+              <div className="flex items-center justify-center rounded-2xl border border-white/[0.06] bg-black/20 p-6">
+                <AboutPage config={widgets.about} discordId={user?.discord_id} discordEnabled={user?.discord_rpc_enabled} instant />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {widgets.pages >= 3 && widgets.song && (
+          <div className="glass-card rounded-2xl p-6 mb-6 border-blue-500/10">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-blue-300/80 mb-4">page 3 Â· song + live lyrics</p>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div>
+                  <label className="text-[11px] text-white/40 block mb-1">spotify track link</label>
+                  <input
+                    type="text"
+                    value={widgets.song.url}
+                    onChange={(e) => patchSong({ url: e.target.value })}
+                    placeholder="https://open.spotify.com/track/..."
+                    className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none placeholder:text-white/10 focus:border-blue-500/50 transition-colors"
+                  />
+                </div>
+                <p className="text-[11px] text-white/30 leading-relaxed">
+                  paste a spotify track link â€” the page will show the track embed plus live synced lyrics below it.
+                </p>
+              </div>
+              <div className="flex items-center justify-center rounded-2xl border border-white/[0.06] bg-black/20 p-6">
+                <SongPage url={widgets.song.url} instant />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {widgets.pages >= 4 && widgets.projects && (
+          <div className="glass-card rounded-2xl p-6 mb-6 border-blue-500/10">
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-blue-300/80">
+                page 4 Â· my projects ({widgets.projects.projects.length}/{MAX_PROJECTS})
+              </p>
+              <button
+                onClick={addProject}
+                disabled={widgets.projects.projects.length >= MAX_PROJECTS}
+                className="text-xs font-semibold text-blue-300 hover:text-blue-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              >
+                + add project
+              </button>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="space-y-6">
+                {widgets.projects.projects.map((pr, i) => (
+                  <div key={i} className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-white/50">project {i + 1}</span>
+                      {widgets.projects!.projects.length > 1 && (
+                        <button onClick={() => removeProject(i)} className="text-xs text-red-400/70 hover:text-red-300 transition-colors">
+                          remove
+                        </button>
+                      )}
+                    </div>
+                    <div>
+                      <label className="text-[11px] text-white/40 block mb-1">banner image link</label>
+                      <input
+                        type="text"
+                        value={pr.banner}
+                        onChange={(e) => patchProject(i, { banner: e.target.value })}
+                        placeholder="https://example.com/banner.png"
+                        className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none placeholder:text-white/10 focus:border-blue-500/50 transition-colors"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] text-white/40 block mb-1">project name</label>
+                      <input
+                        type="text"
+                        value={pr.name}
+                        onChange={(e) => patchProject(i, { name: e.target.value })}
+                        placeholder="e.g. My Python Project"
+                        className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none placeholder:text-white/10 focus:border-blue-500/50 transition-colors"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] text-white/40 block mb-1">description</label>
+                      <textarea
+                        value={pr.description}
+                        onChange={(e) => patchProject(i, { description: e.target.value })}
+                        rows={2}
+                        placeholder="what does it do?"
+                        className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none placeholder:text-white/10 focus:border-blue-500/50 transition-colors resize-none"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="flex items-center justify-center overflow-hidden rounded-2xl border border-white/[0.06] bg-black/20 p-6">
+                <ProjectsPage config={widgets.projects} instant />
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function DataSettings({ user }: { user: User | null }) {
+  const [deleting, setDeleting] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState("");
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirm !== user?.username) return;
+    setDeleting(true);
+    try {
+      const r = await apiCall("delete_account");
+      if (r.error) { alert(r.error || "Failed to delete account"); setDeleting(false); return; }
+      localStorage.removeItem("sl_auth");
+      window.location.href = "/";
+    } catch { alert("Something went wrong"); setDeleting(false); }
+  };
+
+  return (
+    <div>
+      <h1 className="text-lg font-semibold text-white/40 mb-6 lowercase">data management</h1>
+
+      <div className="glass-card rounded-2xl p-6">
+        <h3 className="text-sm font-semibold text-red-400/80 mb-1">delete account</h3>
+        <p className="text-xs text-white/30 mb-4">This permanently deletes your account and all associated data. This cannot be undone.</p>
+        {deleting ? (
+          <p className="text-sm text-white/40">deleting...</p>
+        ) : showConfirm ? (
+          <div className="space-y-3">
+            <p className="text-xs text-white/50">Type <span className="text-white font-semibold">{user?.username}</span> to confirm deletion:</p>
+            <input
+              type="text"
+              value={deleteConfirm}
+              onChange={(e) => setDeleteConfirm(e.target.value)}
+              placeholder={user?.username || ""}
+              className="w-full bg-white/[0.03] border border-red-500/30 rounded-xl px-4 py-2.5 text-sm text-white outline-none placeholder:text-white/10 focus:border-red-500/50 transition-colors"
+            />
+            <div className="flex gap-2">
+              <button onClick={() => { setDeleteConfirm(""); setShowConfirm(false); setDeleting(false); }} className="flex-1 rounded-xl bg-white/[0.05] py-2.5 text-sm text-white/50 hover:text-white/80 transition-colors">
+                cancel
+              </button>
+              <button onClick={handleDeleteAccount} disabled={deleteConfirm !== user?.username} className="flex-1 shimmer rounded-xl bg-red-600 py-2.5 text-sm font-semibold text-white disabled:opacity-40 disabled:cursor-not-allowed">
+                permanently delete
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button onClick={() => { setDeleteConfirm(""); setShowConfirm(true); }} className="text-sm text-red-400/70 hover:text-red-400 transition-colors">
+            delete my account
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
