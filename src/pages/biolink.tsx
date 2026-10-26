@@ -970,8 +970,8 @@ export default function Biolink() {
                       <motion.div
                         layout
                         onMouseLeave={() => setHoveredBadge(null)}
-                        className="flex items-center justify-center gap-2 h-16 rounded-xl bg-white/[0.06] px-4"
-                        style={{ width: `${visibleBadges.length * 64 + (visibleBadges.length - 1) * 8 + 32}px` }}
+                        className="flex items-center justify-center gap-2 h-12 rounded-xl bg-white/[0.06] px-4"
+                        style={{ width: `${visibleBadges.length * 36 + (visibleBadges.length - 1) * 8 + 32}px` }}
                       >
                         {visibleBadges.map((b) => {
                           if (b === "verified") {
@@ -1018,7 +1018,7 @@ export default function Biolink() {
                             >
                               {BadgeTint ? (
                                 <motion.div
-                                  className="h-14 w-14"
+                                  className="h-9 w-9"
                                   style={{
                                     backgroundColor: BadgeTint,
                                     WebkitMaskImage: `url(${src})`,
@@ -1038,7 +1038,7 @@ export default function Biolink() {
                               <motion.img
                                 src={src}
                                 alt={b}
-                                className={`h-14 w-14 object-contain ${b !== "booster" && b !== "halloween" ? "brightness-150" : ""} ${user?.monochrome_badges ? "grayscale brightness-150" : ""}`}
+                                className={`h-9 w-9 object-contain ${b !== "booster" && b !== "halloween" ? "brightness-150" : ""} ${user?.monochrome_badges ? "grayscale brightness-150" : ""}`}
                                 whileHover={{ scale: 1.15 }}
                                 transition={{ type: "spring", stiffness: 300, damping: 15 }}
                               />
