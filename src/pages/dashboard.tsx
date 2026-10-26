@@ -6359,8 +6359,8 @@ function Widgets({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (u:
                   {widgets.about.tags.length > 0 && (
                     <div className="flex flex-wrap gap-2 mb-3">
                       {widgets.about.tags.map((t, i) => (
-                        <span key={i} className="flex items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.06] py-1 pl-3 pr-1.5 text-xs font-semibold text-white/90">
-                          <TagIcon tag={t} size={11} />
+                        <span key={i} className="flex items-center gap-2 rounded-full bg-[#171717] border border-white/[0.08] py-1.5 pl-3.5 pr-1.5 text-xs font-bold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]">
+                          <TagIcon tag={t} size={13} />
                           {t}
                           <button
                             onClick={() => removeTag(i)}

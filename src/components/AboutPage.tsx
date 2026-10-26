@@ -106,9 +106,9 @@ function TagsCard({ tags }: { tags: string[] }) {
         <motion.span
           key={t}
           variants={dropItem}
-          className="flex items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.06] px-4 py-1.5 text-sm font-semibold text-white/90 backdrop-blur-sm"
+          className="flex items-center gap-2 rounded-full bg-[#171717] border border-white/[0.08] px-4 py-2 text-[13px] font-bold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.07)] backdrop-blur-sm"
         >
-          <TagIcon tag={t} size={13} />
+          <TagIcon tag={t} size={15} />
           {t}
         </motion.span>
       ))}
