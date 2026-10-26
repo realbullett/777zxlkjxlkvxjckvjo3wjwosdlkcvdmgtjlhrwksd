@@ -45,8 +45,8 @@ const dropContainer: Variants = {
   show: { transition: { staggerChildren: 0.12, delayChildren: 0.05 } },
 };
 const dropItem: Variants = {
-  hidden: { opacity: 0, y: -28 },
-  show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 22 } },
+  hidden: { opacity: 0, y: 28 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.65, ease: [0.22, 1, 0.36, 1] } },
 };
 
 const PREMIUM_DISPLAY_EFFECTS = new Set(["glitch", "neon", "gradient-flow", "shine-sweep"]);
@@ -1196,30 +1196,30 @@ export default function Biolink() {
             <div className="min-w-0 text-left w-full">
               {featFm ? (
                 <div className="grid gap-5 min-w-0 items-start sm:grid-cols-[minmax(0,1fr)_230px]">
-                  <div className="min-w-0 overflow-hidden">
+                  <motion.div variants={dropItem} initial="hidden" whileInView="show" viewport={{ once: false, amount: 0.25 }} className="min-w-0 overflow-hidden">
                     {widgetCfg.about?.lastfm ? <LastfmCard config={widgetCfg.about.lastfm} instant /> : null}
-                  </div>
+                  </motion.div>
                   <div className="flex flex-col gap-5 min-w-0">
                     {sideKeys.filter((k) => k !== "lastfm").map((k) => (
-                      <div key={k} className="min-w-0 overflow-hidden">
+                      <motion.div key={k} variants={dropItem} initial="hidden" whileInView="show" viewport={{ once: false, amount: 0.25 }} className="min-w-0 overflow-hidden">
                         {k === "rpc" && user.discord_id ? <DiscordRPC discordId={user.discord_id} wide /> : null}
                         {k === "clock" && widgetCfg.about?.clock ? <ClockWidget widget={widgetCfg.about.clock} /> : null}
                         {k === "server" && widgetCfg.about?.discordServer ? <DiscordServerCard config={widgetCfg.about.discordServer} instant /> : null}
                         {k === "roblox" && widgetCfg.about?.roblox ? <RobloxCard config={widgetCfg.about.roblox} instant /> : null}
-                      </div>
+                      </motion.div>
                     ))}
                   </div>
                 </div>
               ) : (
                 <div className="flex flex-col gap-5 min-w-0">
                   {sideKeys.map((k) => (
-                    <div key={k} className="min-w-0 overflow-hidden">
+                    <motion.div key={k} variants={dropItem} initial="hidden" whileInView="show" viewport={{ once: false, amount: 0.25 }} className="min-w-0 overflow-hidden">
                       {k === "rpc" && user.discord_id ? <DiscordRPC discordId={user.discord_id} wide /> : null}
                       {k === "clock" && widgetCfg.about?.clock ? <ClockWidget widget={widgetCfg.about.clock} /> : null}
                       {k === "server" && widgetCfg.about?.discordServer ? <DiscordServerCard config={widgetCfg.about.discordServer} instant /> : null}
                       {k === "lastfm" && widgetCfg.about?.lastfm ? <LastfmCard config={widgetCfg.about.lastfm} instant /> : null}
                       {k === "roblox" && widgetCfg.about?.roblox ? <RobloxCard config={widgetCfg.about.roblox} instant /> : null}
-                    </div>
+                    </motion.div>
                   ))}
                 </div>
               )}
