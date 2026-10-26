@@ -15,6 +15,7 @@ export function CursorEffect({ type }: { type: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const particlesRef = useRef<Particle[]>([]);
   const mouseRef = useRef({ x: -1000, y: -1000 });
+  const prevRef = useRef({ x: -1000, y: -1000 });
   const rafRef = useRef<number>(0);
 
   useEffect(() => {
@@ -31,7 +32,31 @@ export function CursorEffect({ type }: { type: string }) {
     window.addEventListener("resize", resize);
 
     const onMove = (e: MouseEvent) => {
+      const prev = prevRef.current;
+      const dx = e.clientX - prev.x;
+      const dy = e.clientY - prev.y;
+      const spd = Math.hypot(dx, dy) || 1;
+      const nx = dx / spd;
+      const ny = dy / spd;
+      prevRef.current = { x: e.clientX, y: e.clientY };
       mouseRef.current = { x: e.clientX, y: e.clientY };
+      if (type === "spark") {
+        const n = 4 + Math.floor(Math.random() * 3);
+        for (let i = 0; i < n; i++) {
+          const t = Math.random();
+          particlesRef.current.push({
+            x: e.clientX + (Math.random() - 0.5) * 6,
+            y: e.clientY + (Math.random() - 0.5) * 6,
+            vx: -nx * (0.8 + t * 3.2) + (Math.random() - 0.5) * 1.4,
+            vy: -ny * (0.8 + t * 3.2) + (Math.random() - 0.5) * 1.4,
+            life: 0,
+            maxLife: 18 + Math.random() * 18,
+            size: 0.8 + Math.random() * 2,
+            hue: 0,
+          });
+        }
+        return;
+      }
       for (let i = 0; i < (type === "star" ? 2 : 3); i++) {
         particlesRef.current.push({
           x: e.clientX + (Math.random() - 0.5) * 10,
@@ -54,7 +79,12 @@ export function CursorEffect({ type }: { type: string }) {
         const p = ps[i];
         p.x += p.vx;
         p.y += p.vy;
-        p.vy += 0.05;
+        if (type === "spark") {
+          p.vx *= 0.93;
+          p.vy *= 0.93;
+        } else {
+          p.vy += 0.05;
+        }
         p.life++;
         const alpha = 1 - p.life / p.maxLife;
         if (alpha <= 0 || p.life >= p.maxLife) { ps.splice(i, 1); continue; }
@@ -74,13 +104,44 @@ export function CursorEffect({ type }: { type: string }) {
           ctx.closePath();
           ctx.fill();
         } else {
-          ctx.fillStyle = `hsl(${p.hue}, 100%, ${60 + alpha * 30}%)`;
-          ctx.shadowBlur = 10;
-          ctx.shadowColor = `hsl(${p.hue}, 100%, 60%)`;
+          ctx.strokeStyle = "rgba(255,255,255,0.95)";
+          ctx.lineCap = "round";
+          ctx.lineWidth = Math.max(0.4, p.size * alpha * 1.4);
+          ctx.shadowBlur = 8;
+          ctx.shadowColor = "rgba(255,255,255,0.8)";
           ctx.beginPath();
-          ctx.arc(p.x, p.y, p.size * alpha, 0, Math.PI * 2);
-          ctx.fill();
+          ctx.moveTo(p.x - p.vx * 2.4, p.y - p.vy * 2.4);
+          ctx.lineTo(p.x, p.y);
+          ctx.stroke();
         }
+        ctx.restore();
+      }
+      if (type === "spark" && mouseRef.current.x > -500) {
+        const m = mouseRef.current;
+        const R = 7 + Math.sin((performance.now() / 1000) * 7) * 1.4;
+        ctx.save();
+        ctx.translate(m.x, m.y);
+        const g = ctx.createRadialGradient(0, 0, 0, 0, 0, R * 2.2);
+        g.addColorStop(0, "rgba(255,255,255,0.45)");
+        g.addColorStop(1, "rgba(255,255,255,0)");
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.arc(0, 0, R * 2.2, 0, Math.PI * 2);
+        ctx.fill();
+        const k = R * 0.2;
+        ctx.fillStyle = "rgba(255,255,255,0.95)";
+        ctx.shadowBlur = 12;
+        ctx.shadowColor = "rgba(255,255,255,0.85)";
+        ctx.beginPath();
+        ctx.moveTo(0, -R);
+        ctx.quadraticCurveTo(k, -k, R, 0);
+        ctx.quadraticCurveTo(k, k, 0, R);
+        ctx.quadraticCurveTo(-k, k, -R, 0);
+        ctx.quadraticCurveTo(-k, -k, 0, -R);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(0, 0, 1.2, 0, Math.PI * 2);
+        ctx.fill();
         ctx.restore();
       }
       rafRef.current = requestAnimationFrame(animate);
