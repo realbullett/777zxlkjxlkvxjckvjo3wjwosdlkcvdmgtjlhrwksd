@@ -46,6 +46,7 @@ async function EnsureUserColumns(Db) {
   try { await Db.execute("ALTER TABLE users ADD COLUMN panel_pulse_color TEXT NOT NULL DEFAULT ''"); } catch {}
   try { await Db.execute("ALTER TABLE users ADD COLUMN panel_pulse_speed INTEGER NOT NULL DEFAULT 50"); } catch {}
   try { await Db.execute("ALTER TABLE users ADD COLUMN panel_pulse_type TEXT NOT NULL DEFAULT 'pulse'"); } catch {}
+  try { await Db.execute("UPDATE users SET panel_pulse_enabled = 1, panel_pulse_type = 'lightning', panel_pulse_color = '#38bdf8', panel_pulse_speed = 50 WHERE panel_pulse_enabled = 0 AND panel_pulse_type = 'pulse' AND panel_pulse_color = '' AND panel_pulse_speed = 50"); } catch {}
   try { await Db.execute("ALTER TABLE users ADD COLUMN country TEXT NOT NULL DEFAULT ''"); } catch {}
 }
 async function EnsureVotes(Db) {

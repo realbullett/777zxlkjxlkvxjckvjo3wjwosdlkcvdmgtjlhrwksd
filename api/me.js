@@ -252,6 +252,7 @@ async function EnsureSchema() {
     D.execute("ALTER TABLE users ADD COLUMN panel_pulse_type TEXT NOT NULL DEFAULT 'pulse'"),
     D.execute("ALTER TABLE users ADD COLUMN panel_pulse_color TEXT NOT NULL DEFAULT ''"),
     D.execute("ALTER TABLE users ADD COLUMN panel_pulse_speed INTEGER NOT NULL DEFAULT 50"),
+    D.execute("UPDATE users SET panel_pulse_enabled = 1, panel_pulse_type = 'lightning', panel_pulse_color = '#38bdf8', panel_pulse_speed = 50 WHERE panel_pulse_enabled = 0 AND panel_pulse_type = 'pulse' AND panel_pulse_color = '' AND panel_pulse_speed = 50").catch(() => {}),
     D.execute("ALTER TABLE users ADD COLUMN badge_color TEXT NOT NULL DEFAULT ''"),
     D.execute("ALTER TABLE users ADD COLUMN country TEXT NOT NULL DEFAULT ''"),
     D.execute("CREATE TABLE IF NOT EXISTS admin_log (id INTEGER PRIMARY KEY AUTOINCREMENT, admin_id INTEGER NOT NULL, action TEXT NOT NULL, target_uid INTEGER, detail TEXT, created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')))"),
