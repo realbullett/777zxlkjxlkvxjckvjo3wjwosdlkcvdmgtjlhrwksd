@@ -932,16 +932,15 @@ export default function Biolink() {
             ) : null}
             <motion.div variants={dropContainer} initial="hidden" animate={entered ? "show" : "hidden"} className={`min-w-0 ${IsGrid ? "grid grid-cols-[auto_minmax(0,1fr)] gap-x-5 items-start" : `flex flex-col ${IsLeft ? "items-start" : "items-center"}`}`}>
             {user.banner_enabled && banner ? (
-              <div className="pointer-events-none absolute inset-x-0 top-0 z-[1] h-32 overflow-hidden rounded-t-3xl">
-                <img
-                  src={banner}
-                  className="h-full w-full object-cover"
-                  style={{
-                    maskImage: "linear-gradient(to bottom, #000 0%, #000 42%, transparent 100%)",
-                    WebkitMaskImage: "linear-gradient(to bottom, #000 0%, #000 42%, transparent 100%)",
-                  }}
-                />
-                <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/45" />
+              <div
+                className="pointer-events-none absolute inset-x-0 top-0 z-[1] h-44 overflow-hidden rounded-t-3xl"
+                style={{
+                  maskImage: "linear-gradient(to bottom, #000 0%, #000 34%, transparent 95%)",
+                  WebkitMaskImage: "linear-gradient(to bottom, #000 0%, #000 34%, transparent 95%)",
+                }}
+              >
+                <img src={banner} className="h-full w-full object-cover" />
+                <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/30" />
               </div>
             ) : null}
             <motion.div variants={dropItem} className={IsGrid ? "col-start-1 row-start-1 row-span-3 self-start" : IsBadgesFirst ? "order-2" : (user.banner_enabled && banner ? "pt-24" : "")}>
