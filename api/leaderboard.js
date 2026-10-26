@@ -13,15 +13,19 @@ export default async function handler(req, res) {
       args: []
     });
     const rows = Rs.rows || [];
+    const ids = [];
+    for (const r of rows) ids.push(r.user_id);
     let badgeMap = {};
+    let avMap = {};
     try {
-      const ids = rows.map((r) => r.user_id);
       if (ids.length) {
         const placeholders = ids.map(() => "?").join(",");
-        const [bRs, pRs] = await Promise.all([
+        const [bRs, pRs, aRs] = await Promise.all([
           Db.execute({ sql: `SELECT user_id, badge FROM badges WHERE user_id IN (${placeholders})`, args: ids }),
           Db.execute({ sql: `SELECT user_id, badge FROM badge_prefs WHERE user_id IN (${placeholders}) AND hidden = 1`, args: ids }),
+          Db.execute({ sql: `SELECT user_id, url FROM assets WHERE user_id IN (${placeholders}) AND type = 'profile_avatar'`, args: ids }),
         ]);
+        for (const r of (aRs.rows || [])) avMap[r.user_id] = r.url;
         const hidden = new Set((pRs.rows || []).map((r) => `${r.user_id}:${r.badge}`));
         for (const r of (bRs.rows || [])) {
           if (hidden.has(`${r.user_id}:${r.badge}`)) continue;
@@ -29,7 +33,7 @@ export default async function handler(req, res) {
         }
       }
     } catch {}
-    const entries = rows.map((r) => ({ ...r, badges: badgeMap[r.user_id] || [] }));
+    const entries = rows.map((r) => ({ ...r, avatar_url: avMap[r.user_id] || r.avatar_url, badges: badgeMap[r.user_id] || [] }));
     res.setHeader("Cache-Control", "public, max-age=60, s-maxage=120, stale-while-revalidate=600");
     res.status(200).json({ source: "turso", entries });
   } catch (Err) {
