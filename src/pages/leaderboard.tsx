@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { ChevronDown, Crown, Eye, TrendingUp, Trophy } from "lucide-react";
+import { ChevronDown, Crown, Eye, Heart, TrendingUp, Trophy } from "lucide-react";
 import SEO from "../components/SEO";
 import { Navbar } from "../components/Navbar";
 import { VerifiedIcon } from "../components/VerifiedIcon";
@@ -12,10 +12,12 @@ type Entry = {
   username: string;
   avatar_url: string | null;
   views: number;
+  likes: number;
   badges: string[];
 };
 
 type Period = "all" | "month";
+type Sort = "views" | "likes";
 
 const compact = (n: number) => {
   if (n >= 1000000) return (n / 1000000).toFixed(1).replace(/\.0$/, "") + "M";
@@ -84,6 +86,7 @@ const CROWN_SIZE: Record<string, number> = { p1: 36, p2: 30, p3: 30 };
 
 export default function LeaderboardPage() {
   const [period, setPeriod] = useState<Period>("all");
+  const [sort, setSort] = useState<Sort>("views");
   const [data, setData] = useState<Entry[]>([]);
   const [loading, setLoading] = useState(false);
   const [openSel, setOpenSel] = useState<null | "metric" | "period">(null);
@@ -92,7 +95,7 @@ export default function LeaderboardPage() {
 
   useEffect(() => {
     setLoading(true);
-    fetch(`/api/leaderboard?period=${period}`).then(async (R) => {
+    fetch(`/api/leaderboard?period=${period}&sort=${sort}`).then(async (R) => {
       const J = await R.json().catch(() => null);
       const rows = J?.entries || [];
       setData(rows.map((e: any, i: number) => ({
@@ -101,11 +104,12 @@ export default function LeaderboardPage() {
         username: e.username || "unknown",
         avatar_url: e.avatar_url,
         views: Number(e.views || 0),
+        likes: Number(e.likes || 0),
         badges: Array.isArray(e.badges) ? e.badges.map((b: any) => String(b)) : [],
       })));
       setLoading(false);
     }).catch(() => setLoading(false));
-  }, [period]);
+  }, [period, sort]);
 
   useEffect(() => {
     const close = (e: MouseEvent) => {
@@ -157,6 +161,8 @@ export default function LeaderboardPage() {
   const top3 = data.slice(0, 3);
   const rest = data.slice(3);
   const totalViews = data.reduce((a, b) => a + b.views, 0);
+  const totalLikes = data.reduce((a, b) => a + b.likes, 0);
+  const Metric = sort === "likes" ? totalLikes : totalViews;
   const stars = useRef(Array.from({ length: 28 }, (_, i) => ({
     x: (i * 37 + 11) % 100,
     y: (i * 53 + 7) % 100,
@@ -190,11 +196,11 @@ export default function LeaderboardPage() {
               <Trophy size={22} color="#fde047" />
               leaderboard
             </div>
-            <p className="lb-hero-sub">the most viewed profiles, ranked.</p>
+            <p className="lb-hero-sub">{sort === "likes" ? "the most loved profiles, ranked." : "the most viewed profiles, ranked."}</p>
           </div>
           <div className="lb-hero-total">
-            <b><CountUp key={period} value={totalViews} format={compact} /></b>
-            <span><TrendingUp size={12} /> total views</span>
+            <b><CountUp key={`${period}-${sort}`} value={Metric} format={compact} /></b>
+            <span>{sort === "likes" ? <Heart size={12} fill="currentColor" /> : <TrendingUp size={12} />} {sort === "likes" ? "total likes" : "total views"}</span>
           </div>
         </div>
 
@@ -203,13 +209,14 @@ export default function LeaderboardPage() {
             <div className={`lb-sel${openSel === "metric" ? " lb-open" : ""}`}>
               <button onClick={() => setOpenSel(openSel === "metric" ? null : "metric")}>
                 <span className="lb-lbl">
-                  <Eye size={15} fill="currentColor" opacity={0.6} />
-                  Views
+                  {sort === "views" ? <Eye size={15} fill="currentColor" opacity={0.6} /> : <Heart size={15} fill="currentColor" opacity={0.6} />}
+                  {sort === "views" ? "Views" : "Likes"}
                 </span>
                 <ChevronDown size={12} className="lb-chev" strokeWidth={2.5} />
               </button>
               <div className="lb-menu">
-                <button className="lb-on" onClick={() => setOpenSel(null)}>Views</button>
+                <button className={sort === "views" ? "lb-on" : ""} onClick={() => { setSort("views"); setOpenSel(null); }}>Views</button>
+                <button className={sort === "likes" ? "lb-on" : ""} onClick={() => { setSort("likes"); setOpenSel(null); }}>Likes</button>
               </div>
             </div>
             <div className={`lb-sel${openSel === "period" ? " lb-open" : ""}`}>
@@ -239,7 +246,7 @@ export default function LeaderboardPage() {
         ) : (
           <>
             {top3.length > 0 && (
-              <div className="lb-stage" key={`stage-${period}`}>
+              <div className="lb-stage" key={`stage-${period}-${sort}`}>
                 <div className="lb-podium">
                   {pods.map((p) => {
                     if (!p.e) return null;
@@ -255,8 +262,8 @@ export default function LeaderboardPage() {
                           {badgeEls(e.badges, 2, 18)}
                         </div>
                         <span className="lb-vpill">
-                          <Eye size={12} />
-                          <CountUp value={e.views} format={(n) => String(n)} delay={p.delay} duration={1400} />
+                          {sort === "likes" ? <Heart size={12} fill="currentColor" /> : <Eye size={12} />}
+                          <CountUp value={sort === "likes" ? e.likes : e.views} format={(n) => String(n)} delay={p.delay} duration={1400} />
                         </span>
                         <div className="lb-ped">{p.rank}</div>
                       </Link>
@@ -291,7 +298,7 @@ export default function LeaderboardPage() {
                       </span>
                     </span>
                     <span className="lb-c-score">
-                      <CountUp key={period} value={e.views} format={(n) => n.toLocaleString()} />
+                      <CountUp key={`${period}-${sort}`} value={sort === "likes" ? e.likes : e.views} format={(n) => n.toLocaleString()} />
                     </span>
                   </Link>
                 ))}
