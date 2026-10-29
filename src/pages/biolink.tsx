@@ -167,6 +167,7 @@ export default function Biolink() {
     return !!At && Date.now() - At < 30 * 24 * 60 * 60 * 1000;
   });
   const [entered, setEntered] = useState(new URLSearchParams(window.location.search).get("entry") === "skip");
+  const Preview = new URLSearchParams(window.location.search).has("preview");
   const [viewCount, setViewCount] = useState<number | null>(null);
   const [likes, setLikes] = useState(0);
   const [dislikes, setDislikes] = useState(0);
@@ -652,14 +653,14 @@ export default function Biolink() {
         if (res.counted) setViewCount((prev) => (prev !== null ? prev + 1 : prev));
       }, 3000);
     }
-    if (audioRef.current && !hasSongPage && (user?.audio_autoplay ?? true)) {
+    if (!Preview && audioRef.current && !hasSongPage && (user?.audio_autoplay ?? true)) {
       audioRef.current.volume = ((user?.audio_volume ?? 30) / 100) * (Muted ? 0 : Volume / 100);
       audioRef.current.muted = Muted;
       audioRef.current.loop = user?.audio_loop ?? true;
       audioRef.current.play().catch(() => {});
     }
     if (videoBg && videoRef.current) {
-      videoRef.current.muted = !videoAudio;
+      videoRef.current.muted = !videoAudio || Preview;
       videoRef.current.play().catch(() => {});
     }
   };
@@ -830,7 +831,7 @@ export default function Biolink() {
 
       <VolumeControl Volume={Volume} Muted={Muted} OnVolume={ChangeVolume} OnMute={ToggleMute} />
 
-      {audio && !hasSongPage && <audio ref={audioRef} src={audio} loop />}
+      {audio && !hasSongPage && !Preview && <audio ref={audioRef} src={audio} loop />}
 
       <EntryOverlay
         entered={entered}
@@ -1276,7 +1277,7 @@ export default function Biolink() {
               transition={{ duration: 0.5, delay: 0.2 }}
               className="relative z-0 flex min-h-screen overflow-y-auto px-8 pt-20 pb-28 snap-page allow-scroll"
             >
-              <SongPage url={widgetCfg.song.url} autoPlay={entered} bgImage={bg} />
+              <SongPage url={widgetCfg.song.url} autoPlay={entered} silent={Preview} bgImage={bg} />
             </motion.div>
           ) : null}
           {pageCount >= 4 && widgetCfg.projects ? (

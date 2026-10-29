@@ -4960,7 +4960,7 @@ function Templates({ user, onTab, onUpdateUser }: { user: User | null; onTab: (t
               <div key={t.user_id} className={`glass-card rounded-2xl border overflow-hidden relative ${isMine ? "border-blue-500/30" : "border-white/10"}`}>
                 <div className="relative overflow-hidden border-b border-white/10" style={{ height: 160 }}>
                   <iframe
-                    src={`/${t.username}?entry=skip`}
+                    src={`/${t.username}?entry=skip&preview=1`}
                     className="w-full h-full border-0"
                     title={`${t.username}'s biolink`}
                     loading="lazy"

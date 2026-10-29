@@ -58,7 +58,7 @@ function StoredGain() {
   } catch { return 1; }
 }
 
-function SpotifyPlayerLyrics({ id, autoPlay = false, bgImage }: { id: string; autoPlay?: boolean; bgImage?: string }) {  const [info, setInfo] = useState<TrackInfo | null>(null);
+function SpotifyPlayerLyrics({ id, autoPlay = false, silent = false, bgImage }: { id: string; autoPlay?: boolean; silent?: boolean; bgImage?: string }) {  const [info, setInfo] = useState<TrackInfo | null>(null);
   const [error, setError] = useState(false);
   const [ytReady, setYtReady] = useState(false);
   const [useYt, setUseYt] = useState(true);
@@ -248,14 +248,15 @@ function SpotifyPlayerLyrics({ id, autoPlay = false, bgImage }: { id: string; au
   }, [info?.previewUrl, ytActive]);
 
   useEffect(() => {
-    if (!autoPlay || startedRef.current) return;
+    if (!autoPlay || silent || startedRef.current) return;
     const ready = ytActive ? ytReady : !!info?.previewUrl;
     if (!ready) return;
     startedRef.current = true;
     play(true);
-  }, [autoPlay, ytActive, ytReady, info?.previewUrl]);
+  }, [autoPlay, silent, ytActive, ytReady, info?.previewUrl]);
 
   useEffect(() => {
+    if (silent) return;
     const el = rootRef.current;
     if (!el) return;
     const io = new IntersectionObserver(
@@ -271,7 +272,7 @@ function SpotifyPlayerLyrics({ id, autoPlay = false, bgImage }: { id: string; au
     );
     io.observe(el);
     return () => io.disconnect();
-  }, [ytActive, ytReady, info?.previewUrl]);
+  }, [silent, ytActive, ytReady, info?.previewUrl]);
 
   useEffect(() => {
     if (ytActive) {
@@ -464,7 +465,7 @@ function SpotifyPlayerLyrics({ id, autoPlay = false, bgImage }: { id: string; au
   );
 }
 
-export default function SongPage({ url, autoPlay = false, instant = false, bgImage }: { url: string; autoPlay?: boolean; instant?: boolean; bgImage?: string }) {
+export default function SongPage({ url, autoPlay = false, silent = false, instant = false, bgImage }: { url: string; autoPlay?: boolean; silent?: boolean; instant?: boolean; bgImage?: string }) {
   const parsed = parseSongUrl(url);
   return (
     <motion.div
@@ -482,7 +483,7 @@ export default function SongPage({ url, autoPlay = false, instant = false, bgIma
       <motion.div variants={dropItem} className="w-full">
         {parsed ? (
           parsed.platform === "spotify" ? (
-            <SpotifyPlayerLyrics id={parsed.id} autoPlay={autoPlay} bgImage={bgImage} />
+            <SpotifyPlayerLyrics id={parsed.id} autoPlay={autoPlay} silent={silent} bgImage={bgImage} />
           ) : (
             <SongPlayer platform={parsed.platform} id={parsed.id} fill />
           )
