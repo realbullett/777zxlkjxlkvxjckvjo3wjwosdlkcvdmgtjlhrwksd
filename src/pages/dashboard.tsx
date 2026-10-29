@@ -3617,9 +3617,9 @@ const BADGE_DESCS: Record<string, string> = {
   corrupt: "corrupted... don't ask questions",
   owner: "the owner of sire.lol",
   halloween: "limited time badge — claimed during halloween",
-  gold: "rank #1 — most views on sire.lol",
-  silver: "rank #2 — second most views on sire.lol",
-  bronze: "rank #3 — third most views on sire.lol",
+  gold: "Ranked #1 on the sire leaderboard",
+  silver: "Ranked #2 on the sire leaderboard",
+  bronze: "Ranked #3 on the sire leaderboard",
 };
 
 function BadgeLabel(id: string) {

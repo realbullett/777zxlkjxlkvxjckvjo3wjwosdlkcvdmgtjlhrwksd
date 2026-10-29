@@ -70,9 +70,9 @@ const BADGE_INFO: Record<string, [string, string]> = {
   corrupt: ["Corrupt", "corrupted... don't ask questions"],
   owner: ["Owner", "the owner of sire.lol"],
   halloween: ["Halloween", "limited time badge — claimed during halloween"],
-  gold: ["Gold", "rank #1 — most views on sire.lol"],
-  silver: ["Silver", "rank #2 — second most views on sire.lol"],
-  bronze: ["Bronze", "rank #3 — third most views on sire.lol"],
+  gold: ["Gold", "Ranked #1 on the sire leaderboard"],
+  silver: ["Silver", "Ranked #2 on the sire leaderboard"],
+  bronze: ["Bronze", "Ranked #3 on the sire leaderboard"],
 };
 
 type Tip = { x: number; top: number; name: string; desc: string } | null;
