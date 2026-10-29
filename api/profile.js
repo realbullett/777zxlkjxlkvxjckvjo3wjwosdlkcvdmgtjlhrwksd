@@ -204,7 +204,7 @@ export default async function handler(req, res) {
     for (const K of ["show_username", "show_joindate", "show_views", "show_votes", "video_audio", "monochrome_icons", "monochrome_badges", "banner_enabled", "panel_mouse_follow", "audio_autoplay", "audio_loop", "audio_shuffle", "panel_hidden", "discord_rpc_enabled", "views_blacklisted"]) {
       if (Match[K] !== undefined && Match[K] !== null && typeof Match[K] === "number") Match[K] = !!Match[K];
     }
-    const [CountRs, BadgeRs, LinkRs, AssetRs, HostedRs, VoteRs] = await Promise.all([
+    const [CountRs, BadgeRs, LinkRs, AssetRs, HostedRs, VoteRs, RankRs] = await Promise.all([
       Db.execute({ sql: "SELECT COUNT(*) AS c FROM page_views WHERE user_id = ?", args: [Uid] }),
       Db.execute({ sql: "SELECT badge FROM badges WHERE user_id = ?", args: [Uid] }),
       Db.execute({ sql: "SELECT platform, url FROM links WHERE user_id = ?", args: [Uid] }),
@@ -213,7 +213,11 @@ export default async function handler(req, res) {
       Db.execute({
         sql: "SELECT SUM(CASE WHEN vote = 1 THEN 1 ELSE 0 END) AS likes, SUM(CASE WHEN vote = -1 THEN 1 ELSE 0 END) AS dislikes FROM profile_votes WHERE user_id = ?",
         args: [Uid]
-      })
+      }),
+      Db.execute({
+        sql: `SELECT user_id FROM page_views WHERE user_id IN (SELECT id FROM users WHERE views_blacklisted = 0 AND suspended = 0 AND hidden = 0) GROUP BY user_id ORDER BY COUNT(*) DESC LIMIT 3`,
+        args: []
+      }).catch(() => ({ rows: [] })),
     ]);
     const Voter = CleanVoter(req.query.voter);
     let Mine = 0;
@@ -231,6 +235,21 @@ export default async function handler(req, res) {
       Prefs = Object.fromEntries((PrefRs.rows || []).map((R) => [R.badge, { hidden: Number(R.hidden || 0) === 1, byName: Number(R.by_name || 0) === 1 }]));
     } catch { /* table may not exist yet on cold start */ }
     const viewCount = Number(CountRs.rows?.[0]?.c || 0);
+const rankRows = RankRs.rows || [];
+const rankIdx = rankRows.findIndex((R) => Number(R.user_id) === Number(Uid));
+const rankBadge = rankIdx >= 0 ? (["gold", "silver", "bronze"][rankIdx] || null) : null;
+// persist rank badge state for this user
+try {
+  if (rankBadge) {
+    await Db.execute({ sql: "INSERT OR IGNORE INTO badges (user_id, badge) VALUES (?, ?)", args: [Uid, rankBadge] });
+  } else {
+    await Db.execute({ sql: "DELETE FROM badges WHERE user_id = ? AND badge IN ('gold','silver','bronze')", args: [Uid] });
+  }
+} catch {}
+const baseBadges = (BadgeRs.rows || []).map((R) => R.badge);
+const badgesOut = rankBadge && !baseBadges.includes(rankBadge) ? [...baseBadges, rankBadge] : baseBadges;
+// also strip stale rank badges if user no longer qualifies
+const badgesFinal = rankBadge ? badgesOut : badgesOut.filter((b) => !["gold", "silver", "bronze"].includes(b));
     let likeCount = Number(VoteRs.rows?.[0]?.likes || 0);
     let dislikeCount = Number(VoteRs.rows?.[0]?.dislikes || 0);
     if (likeCount > viewCount || dislikeCount > viewCount) {
@@ -242,7 +261,7 @@ export default async function handler(req, res) {
       source: "turso",
       user: Match,
       views: viewCount,
-      badges: (BadgeRs.rows || []).map((R) => R.badge),
+      badges: badgesFinal,
       badgePrefs: Prefs,
       links: Object.fromEntries((LinkRs.rows || []).map((R) => [R.platform, R.url])),
       assets: (() => {

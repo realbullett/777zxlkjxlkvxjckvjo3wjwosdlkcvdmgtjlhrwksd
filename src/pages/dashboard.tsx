@@ -3242,9 +3242,15 @@ function Preview({ user, desc, background, audio, profileAvatar, customCursor, d
     corrupt: "corrupt.gif",
     owner: "owner.gif",
     halloween: "halloween.gif",
+    gold: "gold.png",
+    silver: "silver.png",
+    bronze: "bronze.png",
   };
   const BADGE_LABELS: Record<string, string> = {
     bug: "bug hunter",
+    gold: "gold",
+    silver: "silver",
+    bronze: "bronze",
   };
   const effectClass = displayEffect && displayEffect !== "none" ? `display-effect-${displayEffect}` : "";
   const previewLines = descLines && descLines.length > 0 ? descLines : (desc ? [desc] : user?.description ? [user.description] : []);
@@ -3596,6 +3602,9 @@ const BADGE_LIST = [
   { id: "corrupt", file: "corrupt.gif" },
   { id: "owner", file: "owner.gif" },
   { id: "halloween", file: "halloween.gif", label: "halloween" },
+  { id: "gold", file: "gold.png", label: "gold" },
+  { id: "silver", file: "silver.png", label: "silver" },
+  { id: "bronze", file: "bronze.png", label: "bronze" },
 ];
 
 const BADGE_DESCS: Record<string, string> = {
@@ -3608,6 +3617,9 @@ const BADGE_DESCS: Record<string, string> = {
   corrupt: "corrupted... don't ask questions",
   owner: "the owner of sire.lol",
   halloween: "limited time badge — claimed during halloween",
+  gold: "rank #1 — most views on sire.lol",
+  silver: "rank #2 — second most views on sire.lol",
+  bronze: "rank #3 — third most views on sire.lol",
 };
 
 function BadgeLabel(id: string) {

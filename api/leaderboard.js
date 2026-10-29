@@ -13,6 +13,14 @@ export default async function handler(req, res) {
       args: []
     });
     const rows = Rs.rows || [];
+    if (Period === "all") {
+      try {
+        await Db.execute({ sql: "DELETE FROM badges WHERE badge IN ('gold','silver','bronze')" });
+        for (let I = 0; I < Math.min(3, rows.length); I++) {
+          await Db.execute({ sql: "INSERT OR IGNORE INTO badges (user_id, badge) VALUES (?, ?)", args: [rows[I].user_id, ["gold", "silver", "bronze"][I]] });
+        }
+      } catch {}
+    }
     const ids = [];
     for (const r of rows) ids.push(r.user_id);
     let badgeMap = {};

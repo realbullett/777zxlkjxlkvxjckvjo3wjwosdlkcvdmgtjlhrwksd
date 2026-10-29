@@ -34,6 +34,9 @@ const BADGE_FILES: Record<string, string> = {
   corrupt: "corrupt.gif",
   owner: "owner.gif",
   halloween: "halloween.gif",
+  gold: "gold.png",
+  silver: "silver.png",
+  bronze: "bronze.png",
 };
 
 const BADGE_LABELS: Record<string, string> = {
