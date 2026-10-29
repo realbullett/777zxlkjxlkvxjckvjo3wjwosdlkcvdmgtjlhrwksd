@@ -20,6 +20,17 @@ export default async function handler(req, res) {
           await Db.execute({ sql: "INSERT OR IGNORE INTO badges (user_id, badge) VALUES (?, ?)", args: [rows[I].user_id, ["gold", "silver", "bronze"][I]] });
         }
       } catch {}
+      try {
+        await Db.execute({ sql: "DELETE FROM badges WHERE badge = 'mostliked'" });
+        const LikedRs = await Db.execute({
+          sql: `SELECT pv.user_id FROM profile_votes pv JOIN users u ON u.id = pv.user_id WHERE u.views_blacklisted = 0 AND u.suspended = 0 AND u.hidden = 0 AND pv.vote = 1 GROUP BY pv.user_id ORDER BY COUNT(*) DESC LIMIT 1`,
+          args: []
+        });
+        const LikedUid = LikedRs.rows?.[0]?.user_id;
+        if (LikedUid) {
+          await Db.execute({ sql: "INSERT OR IGNORE INTO badges (user_id, badge) VALUES (?, 'mostliked')", args: [LikedUid] });
+        }
+      } catch {}
     }
     const ids = [];
     for (const r of rows) ids.push(r.user_id);

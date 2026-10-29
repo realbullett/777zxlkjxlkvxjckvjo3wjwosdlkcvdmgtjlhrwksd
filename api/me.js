@@ -73,7 +73,7 @@ const TEMPLATE_FIELDS = new Set([
 ]);
 
 const ASSET_TYPES = new Set(["background", "audio", "audio_1", "audio_2", "profile_avatar", "custom_cursor", "video_background", "banner", "custom_font", "click_sound"]);
-const BADGES = new Set(["og", "premium", "verified", "booster", "staff", "bug", "corrupt", "owner", "halloween", "gold", "silver", "bronze"]);
+const BADGES = new Set(["og", "premium", "verified", "booster", "staff", "bug", "corrupt", "owner", "halloween", "gold", "silver", "bronze", "mostliked"]);
 const HALLOWEEN_END_MS = Date.parse("2026-11-02T00:00:00Z");
 const OG_MAX = 100;
 const OgClaimSlotOpen = async (id) => {

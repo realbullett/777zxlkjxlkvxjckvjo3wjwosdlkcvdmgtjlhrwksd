@@ -3245,12 +3245,14 @@ function Preview({ user, desc, background, audio, profileAvatar, customCursor, d
     gold: "gold.png",
     silver: "silver.png",
     bronze: "bronze.png",
+    mostliked: "mostliked.gif",
   };
   const BADGE_LABELS: Record<string, string> = {
     bug: "bug hunter",
     gold: "gold",
     silver: "silver",
     bronze: "bronze",
+    mostliked: "most loved",
   };
   const effectClass = displayEffect && displayEffect !== "none" ? `display-effect-${displayEffect}` : "";
   const previewLines = descLines && descLines.length > 0 ? descLines : (desc ? [desc] : user?.description ? [user.description] : []);
@@ -3605,6 +3607,7 @@ const BADGE_LIST = [
   { id: "gold", file: "gold.png", label: "gold" },
   { id: "silver", file: "silver.png", label: "silver" },
   { id: "bronze", file: "bronze.png", label: "bronze" },
+  { id: "mostliked", file: "mostliked.gif", label: "most loved" },
 ];
 
 const BADGE_DESCS: Record<string, string> = {
@@ -3620,6 +3623,7 @@ const BADGE_DESCS: Record<string, string> = {
   gold: "Ranked #1 on the sire leaderboard",
   silver: "Ranked #2 on the sire leaderboard",
   bronze: "Ranked #3 on the sire leaderboard",
+  mostliked: "Most loved profile on sire.lol",
 };
 
 function BadgeLabel(id: string) {

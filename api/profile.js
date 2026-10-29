@@ -204,7 +204,7 @@ export default async function handler(req, res) {
     for (const K of ["show_username", "show_joindate", "show_views", "show_votes", "video_audio", "monochrome_icons", "monochrome_badges", "banner_enabled", "panel_mouse_follow", "audio_autoplay", "audio_loop", "audio_shuffle", "panel_hidden", "discord_rpc_enabled", "views_blacklisted"]) {
       if (Match[K] !== undefined && Match[K] !== null && typeof Match[K] === "number") Match[K] = !!Match[K];
     }
-    const [CountRs, BadgeRs, LinkRs, AssetRs, HostedRs, VoteRs, RankRs] = await Promise.all([
+    const [CountRs, BadgeRs, LinkRs, AssetRs, HostedRs, VoteRs, RankRs, MostLikedRs] = await Promise.all([
       Db.execute({ sql: "SELECT COUNT(*) AS c FROM page_views WHERE user_id = ?", args: [Uid] }),
       Db.execute({ sql: "SELECT badge FROM badges WHERE user_id = ?", args: [Uid] }),
       Db.execute({ sql: "SELECT platform, url FROM links WHERE user_id = ?", args: [Uid] }),
@@ -216,6 +216,10 @@ export default async function handler(req, res) {
       }),
       Db.execute({
         sql: `SELECT user_id FROM page_views WHERE user_id IN (SELECT id FROM users WHERE views_blacklisted = 0 AND suspended = 0 AND hidden = 0) GROUP BY user_id ORDER BY COUNT(*) DESC LIMIT 3`,
+        args: []
+      }).catch(() => ({ rows: [] })),
+      Db.execute({
+        sql: `SELECT pv.user_id FROM profile_votes pv JOIN users u ON u.id = pv.user_id WHERE u.views_blacklisted = 0 AND u.suspended = 0 AND u.hidden = 0 AND pv.vote = 1 GROUP BY pv.user_id ORDER BY COUNT(*) DESC LIMIT 1`,
         args: []
       }).catch(() => ({ rows: [] })),
     ]);
@@ -246,10 +250,23 @@ try {
     await Db.execute({ sql: "DELETE FROM badges WHERE user_id = ? AND badge IN ('gold','silver','bronze')", args: [Uid] });
   }
 } catch {}
+const mostLikedRows = MostLikedRs.rows || [];
+const mostLikedBadge = mostLikedRows.length && Number(mostLikedRows[0].user_id) === Number(Uid) ? "mostliked" : null;
+try {
+  if (mostLikedBadge) {
+    await Db.execute({ sql: "INSERT OR IGNORE INTO badges (user_id, badge) VALUES (?, ?)", args: [Uid, mostLikedBadge] });
+  } else {
+    await Db.execute({ sql: "DELETE FROM badges WHERE user_id = ? AND badge = 'mostliked'", args: [Uid] });
+  }
+} catch {}
 const baseBadges = (BadgeRs.rows || []).map((R) => R.badge);
-const badgesOut = rankBadge && !baseBadges.includes(rankBadge) ? [...baseBadges, rankBadge] : baseBadges;
-// also strip stale rank badges if user no longer qualifies
-const badgesFinal = rankBadge ? badgesOut : badgesOut.filter((b) => !["gold", "silver", "bronze"].includes(b));
+let badgesOut = baseBadges;
+if (rankBadge && !badgesOut.includes(rankBadge)) badgesOut = [...badgesOut, rankBadge];
+if (mostLikedBadge && !badgesOut.includes(mostLikedBadge)) badgesOut = [...badgesOut, mostLikedBadge];
+// also strip stale rank/mostliked badges if user no longer qualifies
+let badgesFinal = badgesOut;
+if (!rankBadge) badgesFinal = badgesFinal.filter((b) => !["gold", "silver", "bronze"].includes(b));
+if (!mostLikedBadge) badgesFinal = badgesFinal.filter((b) => b !== "mostliked");
     let likeCount = Number(VoteRs.rows?.[0]?.likes || 0);
     let dislikeCount = Number(VoteRs.rows?.[0]?.dislikes || 0);
     if (likeCount > viewCount || dislikeCount > viewCount) {

@@ -37,10 +37,39 @@ const BADGE_FILES: Record<string, string> = {
   gold: "gold.png",
   silver: "silver.png",
   bronze: "bronze.png",
+  mostliked: "mostliked.gif",
 };
 
 const BADGE_LABELS: Record<string, string> = {
+  og: "OG",
+  premium: "Premium",
+  verified: "Verified",
+  booster: "Booster",
+  staff: "Staff",
   bug: "bug hunter",
+  corrupt: "Corrupt",
+  owner: "Owner",
+  halloween: "Halloween",
+  gold: "Gold",
+  silver: "Silver",
+  bronze: "Bronze",
+  mostliked: "Most loved",
+};
+
+const BADGE_DESCS: Record<string, string> = {
+  og: "secured this badge in the early days of sire.lol",
+  premium: "exclusive badge for premium supporters",
+  verified: "officially verified account on sire.lol",
+  booster: "thank you for boosting the discord server",
+  staff: "member of the sire.lol staff team",
+  bug: "reported bugs that made sire.lol better",
+  corrupt: "corrupted... don't ask questions",
+  owner: "the owner of sire.lol",
+  halloween: "limited time badge — claimed during halloween",
+  gold: "Ranked #1 on the sire leaderboard",
+  silver: "Ranked #2 on the sire leaderboard",
+  bronze: "Ranked #3 on the sire leaderboard",
+  mostliked: "Most loved profile on sire.lol",
 };
 
 const dropContainer: Variants = {
@@ -1031,9 +1060,10 @@ export default function Biolink() {
                                     animate={{ opacity: 1, y: 0 }}
                                     exit={{ opacity: 0, y: 4 }}
                                     transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                                    className="absolute -top-9 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-[#222] px-2.5 py-1 text-xs font-semibold text-white/90 shadow-lg pointer-events-none capitalize z-20"
+                                    className="absolute -top-12 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-[#222] px-2.5 py-1.5 shadow-lg pointer-events-none z-20"
                                   >
-                                    {BADGE_LABELS[b] || b}
+                                    <span className="block text-xs font-semibold text-white/90 capitalize">{BADGE_LABELS[b] || b}</span>
+                                    {BADGE_DESCS[b] ? <span className="block text-[10px] font-normal text-white/50 mt-0.5">{BADGE_DESCS[b]}</span> : null}
                                   </motion.div>
                                 )}
                               </motion.div>
@@ -1083,9 +1113,10 @@ export default function Biolink() {
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: 4 }}
                             transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                            className="absolute -top-9 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-[#222] px-2.5 py-1 text-xs font-semibold text-white/90 shadow-lg pointer-events-none capitalize z-20"
+                            className="absolute -top-12 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-[#222] px-2.5 py-1.5 shadow-lg pointer-events-none z-20"
                           >
-                            {BADGE_LABELS[b] || b}
+                            <span className="block text-xs font-semibold text-white/90 capitalize">{BADGE_LABELS[b] || b}</span>
+                            {BADGE_DESCS[b] ? <span className="block text-[10px] font-normal text-white/50 mt-0.5">{BADGE_DESCS[b]}</span> : null}
                           </motion.div>
                         )}
                       </motion.div>

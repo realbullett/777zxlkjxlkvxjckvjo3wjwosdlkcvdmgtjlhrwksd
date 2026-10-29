@@ -58,6 +58,7 @@ const BADGE_FILES: Record<string, string> = {
   gold: "gold.png",
   silver: "silver.png",
   bronze: "bronze.png",
+  mostliked: "mostliked.gif",
 };
 
 const BADGE_INFO: Record<string, [string, string]> = {
@@ -73,6 +74,7 @@ const BADGE_INFO: Record<string, [string, string]> = {
   gold: ["Gold", "Ranked #1 on the sire leaderboard"],
   silver: ["Silver", "Ranked #2 on the sire leaderboard"],
   bronze: ["Bronze", "Ranked #3 on the sire leaderboard"],
+  mostliked: ["Most loved", "Most loved profile on sire.lol"],
 };
 
 type Tip = { x: number; top: number; name: string; desc: string } | null;
