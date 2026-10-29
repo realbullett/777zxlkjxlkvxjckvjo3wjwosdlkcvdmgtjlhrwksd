@@ -1000,7 +1000,7 @@ export default function Biolink() {
                 const src = pa || user.avatar_url;
                 const alignClass = IsLeft ? "" : "mx-auto";
                 return src ? (
-                  <div className={`${roundClass} ${alignClass} mb-4 relative`} style={{ width: size, height: size, transform: `translate(${offX}px, ${offY}px)` }}>
+                  <div className={`${roundClass} ${alignClass} mb-4 relative overflow-hidden`} style={{ width: size, height: size, transform: `translate(${offX}px, ${offY}px)` }}>
                     <img src={src} className="h-full w-full object-cover" />
                     {decoUrl ? <img src={decoUrl} className="pointer-events-none absolute inset-0 h-full w-full" draggable={false} onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} /> : null}
                   </div>
