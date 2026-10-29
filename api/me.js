@@ -45,7 +45,7 @@ const USER_FIELDS = new Set([
   "panel_opacity", "panel_hidden", "discord_rpc_enabled", "panel_pulse_enabled", "panel_pulse_type",
   "widgets", "onboarding_done", "use_case", "show_joindate", "show_views", "show_votes", "custom_font_scope",
   "embed_buttons", "click_sound", "profile_layout", "country", "panel_glow_mode", "panel_glow_color", "panel_glow_color_2", "panel_glow_spread",
-  "panel_pulse_color", "panel_pulse_speed", "badge_color",
+  "panel_pulse_color", "panel_pulse_speed", "badge_color", "hide_discord_decoration",
 ]);
 
 const PREMIUM_VALUES = {
@@ -180,7 +180,7 @@ const BOOL_COLS = new Set([
   "show_username", "video_audio", "monochrome_icons", "monochrome_badges",
   "banner_enabled", "panel_mouse_follow", "audio_autoplay", "audio_loop",
   "audio_shuffle", "panel_hidden", "discord_rpc_enabled", "panel_pulse_enabled", "views_blacklisted",
-  "onboarding_done", "show_joindate", "show_views", "show_votes",
+  "onboarding_done", "show_joindate", "show_views", "show_votes", "hide_discord_decoration",
 ]);
 
 function NormalizeUser(Row) {
@@ -254,6 +254,7 @@ async function EnsureSchema() {
     D.execute("ALTER TABLE users ADD COLUMN panel_pulse_speed INTEGER NOT NULL DEFAULT 50"),
     D.execute("UPDATE users SET panel_pulse_enabled = 1, panel_pulse_type = 'lightning', panel_pulse_color = '#38bdf8', panel_pulse_speed = 50 WHERE panel_pulse_enabled = 0 AND panel_pulse_type = 'pulse' AND panel_pulse_color = '' AND panel_pulse_speed = 50").catch(() => {}),
     D.execute("ALTER TABLE users ADD COLUMN badge_color TEXT NOT NULL DEFAULT ''"),
+    D.execute("ALTER TABLE users ADD COLUMN hide_discord_decoration INTEGER NOT NULL DEFAULT 0").catch(() => {}),
     D.execute("ALTER TABLE users ADD COLUMN country TEXT NOT NULL DEFAULT ''"),
     D.execute("CREATE TABLE IF NOT EXISTS admin_log (id INTEGER PRIMARY KEY AUTOINCREMENT, admin_id INTEGER NOT NULL, action TEXT NOT NULL, target_uid INTEGER, detail TEXT, created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')))"),
     D.execute("CREATE INDEX IF NOT EXISTS idx_admin_log_time ON admin_log (created_at DESC)"),

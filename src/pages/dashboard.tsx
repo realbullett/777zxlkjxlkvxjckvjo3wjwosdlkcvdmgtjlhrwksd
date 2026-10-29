@@ -30,6 +30,7 @@ type User = {
   provider_id: string | null;
   discord_id: string | null;
   discord_rpc_enabled: boolean | null;
+  hide_discord_decoration: boolean | null;
   description: string | null;
   accent_color: string | null;
   text_color: string | null;
@@ -234,6 +235,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [user, setUser] = useState<User | null>(null);
+  const [profileAvatar, setProfileAvatar] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabId>("overview");
   const [openNav, setOpenNav] = useState<string | null>("customize");
   const [activeSub, setActiveSub] = useState<{ tab: string; sub: string } | null>({ tab: "customize", sub: "colors" });
@@ -297,6 +299,14 @@ export default function Dashboard() {
     const tab = searchParams.get("tab");
     if (tab && tabs.some((t) => t.id === tab)) setActiveTab(tab as TabId);
   }, [searchParams]);
+
+  useEffect(() => {
+    if (!user?.username) { setProfileAvatar(null); return; }
+    fetch(`/api/profile?username=${encodeURIComponent(user.username)}`).then((R) => R.json()).then((J: any) => {
+      const Pa = Array.isArray(J?.assets) ? J.assets.find((A: any) => A.type === "profile_avatar") : null;
+      setProfileAvatar(Pa?.url || null);
+    }).catch(() => {});
+  }, [user?.username]);
 
   useEffect(() => {
     if (!unauth) return;
@@ -446,8 +456,8 @@ return (
               {user && (
                 <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/[0.03]">
                   <div className="h-8 w-8 rounded-lg bg-white/[0.06] overflow-hidden shrink-0">
-                    {user.avatar_url ? (
-                      <img src={user.avatar_url} alt="" className="h-full w-full object-cover" />
+                    {profileAvatar ? (
+                      <img src={profileAvatar} alt="" className="h-full w-full object-cover" />
                     ) : (
                       <div className="h-full w-full flex items-center justify-center text-white/30">
                         <UserIcon size={14} />
@@ -1396,6 +1406,7 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
   const [songError, setSongError] = useState("");
   const songTouched = useRef(false);
   const [discordRpcEnabled, setDiscordRpcEnabled] = useState(user?.discord_rpc_enabled || false);
+  const [hideDeco, setHideDeco] = useState(!!user?.hide_discord_decoration);
   const [showUsername, setShowUsername] = useState(user?.show_username !== false);
   const [showJoindate, setShowJoindate] = useState(user?.show_joindate !== false);
   const [country, setCountry] = useState(user?.country || "");
@@ -1515,6 +1526,7 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
     setShowViews(user.show_views !== false);
     setShowVotes(user.show_votes !== false);
     setDiscordRpcEnabled(!!user.discord_rpc_enabled);
+    setHideDeco(!!user.hide_discord_decoration);
     if (user.song_platform) setSongPlatform(user.song_platform);
     if (user.song_id) setSongId(user.song_id);
   }, [user]);
@@ -2222,6 +2234,10 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
                   <Toggle checked={discordRpcEnabled} onChange={setDiscordRpcEnabled} />
                   Show Discord presence on my biolink
                 </label>
+                <label className="flex items-center gap-2 text-xs text-white/50 cursor-pointer">
+                  <Toggle checked={hideDeco} onChange={setHideDeco} />
+                  Hide my discord avatar decoration
+                </label>
                 <ol className="text-[11px] text-white/40 space-y-1 list-decimal list-inside">
                   <li>Join our <a href="https://discord.gg/npN6H47KEn" target="_blank" rel="noreferrer" className="text-blue-400 hover:text-blue-300">Discord server</a> (the sire bot can only see members who are in the server).</li>
                   <li>Run <span className="text-white/70 font-mono">/link</span> in the server to get the linked role.</li>
@@ -2231,7 +2247,7 @@ function Customize({ user, onUpdateUser }: { user: User | null; onUpdateUser?: (
                   <button
                     onClick={async () => {
                       if (!user) return;
-                      const { error } = await apiCall("update", { data: { discord_rpc_enabled: discordRpcEnabled } });
+                      const { error } = await apiCall("update", { data: { discord_rpc_enabled: discordRpcEnabled, hide_discord_decoration: hideDeco } });
                       if (error) console.error("saveDiscordRpc error:", error);
                       else showSaved("discord rpc saved!");
                     }}

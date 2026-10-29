@@ -161,6 +161,7 @@ type User = {
   song_offset_y: number | null;
   discord_rpc_offset_x: number | null;
   discord_rpc_offset_y: number | null;
+  hide_discord_decoration: boolean | null;
   panel_opacity: number | null;
   panel_hidden: boolean | null;
   widgets: unknown;
@@ -191,6 +192,7 @@ export default function Biolink() {
   const { username } = useParams();
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
+  const [decoUrl, setDecoUrl] = useState<string>("");
   const [assets, setAssets] = useState<Asset[]>([]);
   const [notFound, setNotFound] = useState(false);
   const [Verified, SetVerified] = useState(() => {
@@ -269,6 +271,18 @@ export default function Biolink() {
       if (!ok) setNotFound(true);
     });
   }, [username, Verified]);
+
+  useEffect(() => {
+    const Did = user?.discord_id;
+    if (!Did || user?.hide_discord_decoration) { setDecoUrl(""); return; }
+    fetch(`/api/presence?discord_id=${encodeURIComponent(Did)}`)
+      .then((R) => (R.ok ? R.json().catch(() => null) : null))
+      .then((J) => {
+        const Deco = J?.presence?.avatar_decoration;
+        setDecoUrl(Deco ? `https://cdn.discordapp.com/avatar-decoration-presets/${Deco}.png` : "");
+      })
+      .catch(() => {});
+  }, [user?.id, user?.discord_id, user?.hide_discord_decoration]);
 
   // live rev poll — dashboard save bumps rev, we swap the profile in without a reload :sob:
   useEffect(() => {
@@ -986,7 +1000,10 @@ export default function Biolink() {
                 const src = pa || user.avatar_url;
                 const alignClass = IsLeft ? "" : "mx-auto";
                 return src ? (
-                  <img src={src} className={`${roundClass} ${alignClass} mb-4 object-cover`} style={{ width: size, height: size, transform: `translate(${offX}px, ${offY}px)` }} />
+                  <div className={`${roundClass} ${alignClass} mb-4 relative`} style={{ width: size, height: size, transform: `translate(${offX}px, ${offY}px)` }}>
+                    <img src={src} className="h-full w-full object-cover" />
+                    {decoUrl ? <img src={decoUrl} className="pointer-events-none absolute inset-0 h-full w-full" draggable={false} onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} /> : null}
+                  </div>
                 ) : (
                   <div className={`${roundClass} ${alignClass} mb-4 bg-white/[0.04] border border-white/[0.06]`} style={{ width: size, height: size, transform: `translate(${offX}px, ${offY}px)` }} />
 );

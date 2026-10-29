@@ -48,6 +48,7 @@ async function EnsureUserColumns(Db) {
   try { await Db.execute("ALTER TABLE users ADD COLUMN panel_pulse_type TEXT NOT NULL DEFAULT 'pulse'"); } catch {}
   try { await Db.execute("UPDATE users SET panel_pulse_enabled = 1, panel_pulse_type = 'lightning', panel_pulse_color = '#38bdf8', panel_pulse_speed = 50 WHERE panel_pulse_enabled = 0 AND panel_pulse_type = 'pulse' AND panel_pulse_color = '' AND panel_pulse_speed = 50"); } catch {}
   try { await Db.execute("ALTER TABLE users ADD COLUMN country TEXT NOT NULL DEFAULT ''"); } catch {}
+  try { await Db.execute("ALTER TABLE users ADD COLUMN hide_discord_decoration INTEGER NOT NULL DEFAULT 0"); } catch {}
 }
 async function EnsureVotes(Db) {
   if (VotesEnsured) return;
@@ -201,7 +202,7 @@ export default async function handler(req, res) {
     }
     Match.widgets = ParseJson(Match.widgets, Match.widgets ?? []);
     Match.desc_lines = ParseJson(Match.desc_lines, Match.desc_lines ?? null);
-    for (const K of ["show_username", "show_joindate", "show_views", "show_votes", "video_audio", "monochrome_icons", "monochrome_badges", "banner_enabled", "panel_mouse_follow", "audio_autoplay", "audio_loop", "audio_shuffle", "panel_hidden", "discord_rpc_enabled", "views_blacklisted"]) {
+    for (const K of ["show_username", "show_joindate", "show_views", "show_votes", "video_audio", "monochrome_icons", "monochrome_badges", "banner_enabled", "panel_mouse_follow", "audio_autoplay", "audio_loop", "audio_shuffle", "panel_hidden", "discord_rpc_enabled", "views_blacklisted", "hide_discord_decoration"]) {
       if (Match[K] !== undefined && Match[K] !== null && typeof Match[K] === "number") Match[K] = !!Match[K];
     }
     const [CountRs, BadgeRs, LinkRs, AssetRs, HostedRs, VoteRs, RankRs, MostLikedRs] = await Promise.all([
