@@ -11,7 +11,7 @@ type Particle = {
   hue: number;
 };
 
-export function CursorEffect({ type }: { type: string }) {
+export function CursorEffect({ type, Bounded }: { type: string; Bounded?: boolean }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const particlesRef = useRef<Particle[]>([]);
   const mouseRef = useRef({ x: -1000, y: -1000 });
@@ -25,28 +25,49 @@ export function CursorEffect({ type }: { type: string }) {
     if (!ctx) return;
 
     const resize = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
+      if (Bounded) {
+        const R = canvas.parentElement ? canvas.parentElement.getBoundingClientRect() : canvas.getBoundingClientRect();
+        canvas.width = Math.max(1, Math.round(R.width));
+        canvas.height = Math.max(1, Math.round(R.height));
+      } else {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+      }
     };
     resize();
     window.addEventListener("resize", resize);
+    if (Bounded && canvas.parentElement && typeof ResizeObserver !== "undefined") {
+      const RO = new ResizeObserver(resize);
+      RO.observe(canvas.parentElement);
+    }
 
-    const onMove = (e: MouseEvent) => {
+    const onMove = (ev: MouseEvent) => {
+      let mx = ev.clientX;
+      let my = ev.clientY;
+      if (Bounded) {
+        const R = canvas.getBoundingClientRect();
+        mx -= R.left;
+        my -= R.top;
+        if (mx < 0 || my < 0 || mx > R.width || my > R.height) {
+          mouseRef.current = { x: -1000, y: -1000 };
+          return;
+        }
+      }
       const prev = prevRef.current;
-      const dx = e.clientX - prev.x;
-      const dy = e.clientY - prev.y;
+      const dx = mx - prev.x;
+      const dy = my - prev.y;
       const spd = Math.hypot(dx, dy) || 1;
       const nx = dx / spd;
       const ny = dy / spd;
-      prevRef.current = { x: e.clientX, y: e.clientY };
-      mouseRef.current = { x: e.clientX, y: e.clientY };
+      prevRef.current = { x: mx, y: my };
+      mouseRef.current = { x: mx, y: my };
       if (type === "spark") {
         const n = 4 + Math.floor(Math.random() * 3);
         for (let i = 0; i < n; i++) {
           const t = Math.random();
           particlesRef.current.push({
-            x: e.clientX + (Math.random() - 0.5) * 6,
-            y: e.clientY + (Math.random() - 0.5) * 6,
+            x: mx + (Math.random() - 0.5) * 6,
+            y: my + (Math.random() - 0.5) * 6,
             vx: -nx * (0.8 + t * 3.2) + (Math.random() - 0.5) * 1.4,
             vy: -ny * (0.8 + t * 3.2) + (Math.random() - 0.5) * 1.4,
             life: 0,
@@ -59,8 +80,8 @@ export function CursorEffect({ type }: { type: string }) {
       }
       for (let i = 0; i < (type === "star" ? 2 : 3); i++) {
         particlesRef.current.push({
-          x: e.clientX + (Math.random() - 0.5) * 10,
-          y: e.clientY + (Math.random() - 0.5) * 10,
+          x: mx + (Math.random() - 0.5) * 10,
+          y: my + (Math.random() - 0.5) * 10,
           vx: (Math.random() - 0.5) * 4,
           vy: (Math.random() - 0.5) * 4 - 1,
           life: 0,
@@ -153,12 +174,12 @@ export function CursorEffect({ type }: { type: string }) {
       window.removeEventListener("resize", resize);
       window.removeEventListener("mousemove", onMove);
     };
-  }, [type]);
+  }, [type, Bounded]);
 
   return (
     <canvas
       ref={canvasRef}
-      className="fixed inset-0 pointer-events-none z-[9999]"
+      className={Bounded ? "absolute inset-0 h-full w-full pointer-events-none" : "fixed inset-0 pointer-events-none z-[9999]"}
     />
   );
 }

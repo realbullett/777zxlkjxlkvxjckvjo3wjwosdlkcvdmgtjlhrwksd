@@ -3339,7 +3339,7 @@ function Preview({ user, desc, background, audio, profileAvatar, customCursor, d
         {bgEffect === "hearts" && <HeartsEffect />}
         {bgEffect === "leaves" && <LeavesEffect />}
         {bgEffect === "lightning" && <LightningEffect />}
-        {cursorEffectType && cursorEffectType !== "none" && <CursorEffect type={cursorEffectType} />}
+        {cursorEffectType && cursorEffectType !== "none" && <CursorEffect type={cursorEffectType} Bounded />}
         <div className="absolute inset-0 bg-black/30" />
 
         <AnimatePresence>
